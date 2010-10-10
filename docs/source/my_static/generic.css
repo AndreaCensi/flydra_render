@@ -1,0 +1,99 @@
+   .pagetoc { 
+	max-width: 30%;
+	display: block; float: right; margin-left: 3em; background-color: white; border: solid 2px gray;}
+
+
+	div.col1 {
+		display: block;
+		float: left;
+	}
+
+	div.col2 {
+		margin-left: 3em;
+		display: block;
+		float: left;
+	}
+
+	div.after {
+		clear: left;
+	}
+
+	div.twitterbadge {
+		float: right;
+		margin-left: 2em;
+	}
+
+	img.bigpicture {
+		margin: 1em;
+		max-width: 90%;
+	}
+	
+	.header h2 {
+		color: #990033 !important;
+		font-size: 200% !important;
+	}
+	.content {
+/*		padding-left: 5em; */
+	}
+	.content p, .content p {
+		max-width: 40em;
+	}
+	
+	.content h1 { 
+		display: none;
+	}
+	h2, h3 {  
+		border-bottom: solid 2px orange;
+		max-width: 40em;
+	}
+	
+	h1 { font-size: 200%;}
+	h2 { font-size: 150%;}
+	h3 { font-size: 125%;}
+	
+/*	body { font-size: 120%; font-family: Georgia,Serif !important;} */
+		
+	pre{
+		max-width: 60em;
+	/*	width: 80ex;*/
+	}
+	
+	body {  font-size: 120%; font-family: "Droid Serif", serif; }
+	
+	h1,h2,h3 { 
+  font-family: "Lobster", serif;
+  font-style: normal;
+  font-weight: 400;
+  text-shadow: 6px 6px 6px #ccc;
+}
+
+div.header h2 {
+    font-size: 1.3em;
+    font-weight: normal;
+    letter-spacing: 1px;
+    text-transform: none !important;
+    color: #aaa;
+    border: 0;
+    margin-top: -3px;
+    padding: 0;
+}
+
+/* On the first page */
+
+.col1 strong, .col2 strong { 
+	font-family: "Lobster", serif; color: #990033;text-shadow: 6px 6px 6px #ccc;
+	font-size: 160%;
+ }
+
+.compmake-brand {
+	font-family: "Lobster", serif;
+	font-size: 120%;
+}
+
+a.reference em, a.external em {
+	font-style: normal !important;
+}
+
+/* Remove top level */
+div.header h1.heading SPAN {display: none;}
+

@@ -1,0 +1,19 @@
+{% extends "!layout.html" %}
+{% block footer %}
+	{{ super() }}
+		
+    <script type="text/javascript" src="static/analytics.js"></script> 
+
+{% endblock %}
+{% block extrahead %}
+	{{ super() }}
+	
+    <link type="text/css" rel="stylesheet" href="static/generic.css" />
+    <link type="text/css" rel="stylesheet" href="static/custom.css" />
+
+	<link  href="http://fonts.googleapis.com/css?family=Lobster" rel="stylesheet" type="text/css" >
+	<link  href="http://fonts.googleapis.com/css?family=Droid+Serif" rel="stylesheet" type="text/css" >
+
+{% endblock %}
+{% block copyright %}
+{% endblock %}
