@@ -75,17 +75,16 @@ def main():
         stim = os.path.splitext(os.path.basename(stim_fname))[0]
         sample_id = os.path.splitext(os.path.basename(filename))[0]
         
+        logger.info("File %d/%d %s %s %s " % (i, n, str(filename), str(obj_ids), stim_fname))
+       
         if db.has_sample(sample_id) and \
            db.has_rows(sample_id) and not options.nocache:
             logger.info('Sample %s already computed; skipping. (use --nocache to ignore)' % \
                              sample_id)
             continue
         
-        if not db.has_sample(sample_id):
-            db.add_sample(sample_id)
         
-        logger.info("File %d/%d %s %s %s " % (i, n, str(filename), str(obj_ids), stim_fname))
-         
+  
         all_data = [] 
 
         for obj_id, rows in get_good_smoothed_tracks(
@@ -98,13 +97,16 @@ def main():
             filtered = filter_rows(rows, options)
             all_data.append(filtered)
              
-        if all_data:
-            rows = numpy.concatenate(all_data)
-            db.set_rows(sample_id, rows)
-        else:
+        if not all_data:
             logger.info('Not enough data found for %s; skipping.' % filename)
             continue
 
+        if not db.has_sample(sample_id):
+            db.add_sample(sample_id)
+
+        rows = numpy.concatenate(all_data)
+        db.set_rows(sample_id, rows)
+    
         attrs = db.get_rows(sample_id)._v_attrs
         attrs.stim_fname = stim_fname
         attrs.stimulus = stim

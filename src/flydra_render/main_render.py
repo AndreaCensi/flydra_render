@@ -96,7 +96,7 @@ def render(rows, stimulus_xml, compute_mu=False,
             for field in copy_fields:
                 a[field] = rows[:][field]
      
-    num_frames = 20
+    #num_frames = 20
     
     pb = progress_bar('Rendering', num_frames)
     
