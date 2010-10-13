@@ -45,5 +45,6 @@ def create_eye_map(width, height):
 
 if __name__ == '__main__':
 
-    create_eye_map(480, 240)
+    # create_eye_map(480, 240)
+    create_eye_map(640, 320)
     

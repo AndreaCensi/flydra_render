@@ -47,6 +47,7 @@ class FlydraData(Generator):
         for field in fields:
             self.set_output(field, value=row[field], timestamp=t)
         
+        
         self.next_index += 1
         if self.next_index == len(self.rows):
             self.next_index = None

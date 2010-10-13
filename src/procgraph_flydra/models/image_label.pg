@@ -1,0 +1,22 @@
+--- model image_label
+""" Puts a border and a label around an image """
+config title
+input rgb 
+output out "Image with border and label"
+
+import procgraph.components.pil
+
+|input name=rgb| --> |border| --> |text| --> |output name=out|
+
+border.left = 2
+border.right = 2
+border.top = 30
+border.bottom = 2
+
+
+size = 16
+font = 'Candara'
+color = white
+bg =  black
+
+text.texts = [{string:$title, valign: top, halign: center, font: $font, size: $size, color: $color, bg: $bg, position: [middle,5]} ]

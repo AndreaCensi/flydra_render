@@ -20,7 +20,11 @@ class FlydraImage(Generator):
     def init(self):
         self.db = FlydraDB(self.config.db)
         self.data = self.db.get_image(self.config.sample, self.config.image)
+        
         self.next_index = 0
+        if len(self.data) == 0:
+            self.info('Empty rows for sample %s.' % self.config.sample)
+            self.next_index = None
 
     def update(self):
         row = self.data[self.next_index]

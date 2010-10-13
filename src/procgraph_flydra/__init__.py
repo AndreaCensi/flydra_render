@@ -3,7 +3,7 @@
 import flydra_db_source
 import flydra_db_image
 import values2retina
-
+import arena_display
 
 # FIXME, make this importing code easier
 import os

@@ -1,6 +1,7 @@
 from geometric_saccade_detector.filesystem_utils import locate_roots
 import tables
 import os
+import tempfile
 
 FLYDRA_ROOT = 'flydra'
 
@@ -108,22 +109,26 @@ class FlydraDB:
 
 def db_summary(directory):
     files = locate_roots('*.h5', directory)
-    summary_file = os.path.join(directory, 'index.h5')
-    summary = tables.openFile(summary_file, 'w')
+    
+    fid, summary_file = tempfile.mkstemp(suffix='.h5', prefix='index', dir=directory)
+    
+    #summary_file = os.path.join(directory, 'index.h5')
+    summary = tables.openFile(summary_file, 'a')
     for file in files:
         # do not consider the index itself
-        if os.path.samefile(file, summary_file):
+        if os.path.basename(file).startswith('index'):
             continue
         
-        f = tables.openFile(file, 'r')
+        f = tables.openFile(file, 'a')
 
         if not FLYDRA_ROOT in f.root:
             print 'Ignoring file %s' % os.path.basename(file)
             continue
         
         link_everything(src=f, dst=summary, src_filename=os.path.basename(file))
-        
-        f.close()
+     
+    # XXX if you close it, there will be concurrent problems   
+    #    f.close()
     
     return summary
         

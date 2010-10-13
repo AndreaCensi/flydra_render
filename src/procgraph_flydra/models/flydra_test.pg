@@ -12,6 +12,9 @@ file = "${outdir}/flydra_test/rgb.avi"
 
 rgb -->  |mencoder file=$file|
 
+
+|luminance:flydra_db_image db=$db sample=$sample image=luminance|
+
 --- model flydra_test_image
 " This model tests reading and simple plotting of retinal images. "
 config db     "Directory containing the flydra DB."
@@ -28,3 +31,7 @@ values --> |scale| --> rgb
 file = "${outdir}/flydra_test/${sample}-${image}.avi"
 
 rgb -->  |mencoder file=$file|
+
+
+
+
