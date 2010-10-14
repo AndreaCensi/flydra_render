@@ -17,6 +17,7 @@ def main():
     parser.add_option("--nocache", help="Ignores already computed results.",
                       default=False, action="store_true")    
     
+    parser.add_options("--sigma", help="Kernel spread (degrees)", default=5)
     (options, args) = parser.parse_args()
     
 
@@ -53,7 +54,8 @@ def main():
 
         luminance = db.get_image(sample_id, 'luminance')
         
-        contrast = compute_contrast(luminance, distance_matrix, sigma=numpy.radians(5))
+        contrast = compute_contrast(luminance, distance_matrix,
+                                    sigma=numpy.radians(options.sigma))
         
         db.add_image(sample_id, 'contrast', contrast)
         

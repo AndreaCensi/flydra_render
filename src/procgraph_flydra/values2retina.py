@@ -57,9 +57,9 @@ register_simple_block(plot_nearness)
 
 
 def plot_contrast(values):
-    print 'contrast', min(values), max(values)
+    #print 'contrast', min(values), max(values)
     # im = values2retina(values, background=numpy.NaN)
-    print values[0:100].tolist()
+    #print values[0:100].tolist()
     im = values2retina(values, background=0)
     return scale(im, min_color=[0, 0, 0], max_color=[0, 1, 1], nan_color=[0.5, 0.5, 0.5])
 
