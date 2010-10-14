@@ -1,5 +1,6 @@
 from flydra_render.db import FlydraDB
 import numpy
+from compmake.jobs.progress import progress
 
 
 def weighted_average(A, Aweight, B, Bweight=1):
@@ -32,7 +33,10 @@ def compute_image_mean(db, samples, image):
     
     ex = Expectation()
     
-    for id in samples:
+    for i, id in enumerate(samples):
+        progress('Computing mean %s' % image,
+                 (i, len(samples)), "Sample %s" % id)
+    
         if not (db.has_sample(id) and db.has_image(id, image)):
             raise ValueError('Not enough data for id %s' % id)
         
@@ -55,7 +59,10 @@ def compute_image_cov(db, samples, image):
     
     ex = Expectation()
     
-    for id in samples:
+    for i, id in enumerate(samples):
+        progress('Computing covariance of %s' % image,
+                 (i, len(samples)), "Sample %s" % id)
+        
         if not (db.has_sample(id) and db.has_image(id, image)):
             raise ValueError('Not enough data for id %s' % id)
         
