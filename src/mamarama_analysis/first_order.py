@@ -8,7 +8,7 @@ from flydra_render.db import FlydraDB
 from procgraph_flydra.values2retina import values2retina
 
 from mamarama_analysis import logger
-from mamarama_analysis.covariance import compute_image_mean
+from mamarama_analysis.covariance import compute_image_mean, compute_image_cov
 
 
 
@@ -55,11 +55,15 @@ def main():
         comp_prefix(group_name)
         
         data = {}
-        data['mean_luminance'] = comp(compute_image_mean, options.db, samples, 'luminance',
-                                      job_id='mean_luminance')
-        data['mean_contrast'] = comp(compute_image_mean, options.db, samples, 'contrast',
-                                     job_id='mean_contrast')
+        for i in ['luminance', 'contrast']:
+            mean = comp(compute_image_mean, options.db,
+                        samples, i, job_id='mean_%s' % i)
+            cov = comp(compute_image_cov, options.db,
+                        samples, i, job_id='cov_%s' % i)
+            data['mean_%s' % i] = mean 
+            data['cov_%s' % i ] = cov
         
+
         report = comp(create_report, group_name, data)
         all_reports.append(report)
         
@@ -70,14 +74,30 @@ def main():
         
 def create_report(group_name, data):
     r = Report(group_name)
-    f = r.figure('means')
     
-    for m in ['mean_luminance', 'mean_contrast']:
-        x = data[m]
-        with r.data_pylab(m) as pylab:
-            pylab.imshow(values2retina(x))
+    
+    for m in ['luminance', 'contrast']:
+    
+        rm = r.node('%s_statistics' % m)
+        
+        f = rm.figure('%s statistics' % m, shape=(3, 3))
             
-        f.sub(m)
+        mean = data['mean_%s' % m]
+        cov = data['cov_%s' % m]
+        
+        with rm.data_pylab('mean') as pylab:
+            pylab.imshow(values2retina(mean))
+        
+        with rm.data_pylab('var') as pylab:
+            pylab.imshow(values2retina(cov.diagonal()))
+        
+        with rm.data_pylab('cov') as pylab:
+            pylab.imshow(cov)
+        
+            
+        f.sub('mean', '%s mean' % m)
+        f.sub('var', '%s variance' % m)
+        f.sub('cov', '%s covariance' % m)
         
     return r
 
