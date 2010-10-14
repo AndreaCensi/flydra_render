@@ -1,9 +1,8 @@
+import sys, numpy
 from optparse import OptionParser
+
 from flydra_render import logger
-import sys
 from flydra_render.db import FlydraDB
-from rfsee.rfsee_client import ClientTCP
-import numpy
 from flydra_render.progress import progress_bar
 from flydra_render.receptor_directions_buchner71 import directions
 
@@ -17,7 +16,7 @@ def main():
     parser.add_option("--nocache", help="Ignores already computed results.",
                       default=False, action="store_true")    
     
-    parser.add_option("--sigma", help="Kernel spread (degrees)", type="float", default=5)
+    parser.add_option("--sigma", help="Kernel spread (degrees)", type="float", default=3)
     (options, args) = parser.parse_args()
     
 

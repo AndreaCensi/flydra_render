@@ -8,8 +8,8 @@ import numpy
 
 
 mamarama_radius = 1.0
-mamarama_center = [0.1, 0.5]
-mamarama_height = 1
+mamarama_center = [0.15, 0.48]
+mamarama_height = 0.8
 
 class ArenaDisplayTop(Block):
     ''' Produces a top-down plot of a circular arena.

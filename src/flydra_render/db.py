@@ -1,3 +1,4 @@
+ 
 from geometric_saccade_detector.filesystem_utils import locate_roots
 import tables
 import os
@@ -118,19 +119,42 @@ class FlydraDB:
         ref = self.get_sample_group(id)._f_getChild(attname)
         return ref(mode='a') # dereference
 
+    def has_attr(self, id, key):
+        if not self.has_rows(id):
+            return False
+        attrs = self.get_rows(id)._v_attrs
+        return key in attrs
+     
+    def set_attr(self, id, key, value):
+        attrs = self.get_rows(id)._v_attrs
+        attrs.__setattr__(key, value)
+ 
+    not_specified = 'not-specified'
+    def get_attr(self, id, key, default=not_specified):
+        if not self.has_attr(id, key) and default != FlydraDB.not_specified:
+            return default
+        attrs = self.get_rows(id)._v_attrs
+        return attrs.__getattr__(key)
+    
+    def list_attr(self, id):
+        if not self.has_rows(id):
+            return []
+        attrs = self.get_rows(id)._v_attrs
+        return attrs._v_attrnamesuser
+ 
     def has_saccades(self, id):
         return self._has_table(id, 'saccades')
     def get_saccades(self, id):
         return self._get_table(id, 'saccades')
-    def set_saccades(self, id):
-        return self._set_table(id, 'saccades')
+    def set_saccades(self, id, table):
+        return self._set_table(id, 'saccades', table)
     
     def has_rows(self, id):
         return self._has_table(id, 'rows')
     def get_rows(self, id):
         return self._get_table(id, 'rows')
-    def set_rows(self, id):
-        return self._set_table(id, 'rows')
+    def set_rows(self, id, table):
+        return self._set_table(id, 'rows', table)
     
 
 def db_summary(directory):

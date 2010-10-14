@@ -107,10 +107,15 @@ def main():
         rows = numpy.concatenate(all_data)
         db.set_rows(sample_id, rows)
     
-        attrs = db.get_rows(sample_id)._v_attrs
-        attrs.stim_fname = stim_fname
-        attrs.stimulus = stim
-        attrs.stimulus_xml = open(stim_fname).read()
+        db.set_attr(sample_id, 'stim_fname', stim_fname)
+        db.set_attr(sample_id, 'stimulus', stim)
+        db.set_attr(sample_id, 'stimulus_xml', open(stim_fname).read())
+
+#        
+#        attrs = db.get_rows(sample_id)._v_attrs
+#        attrs.stim_fname = stim_fname
+#        attrs.stimulus = stim
+#        attrs.stimulus_xml = open(stim_fname).read()
 
 
     sys.exit(0)
