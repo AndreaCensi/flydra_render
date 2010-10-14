@@ -45,7 +45,7 @@ class FlydraData(Generator):
         t = row['time']
         
         for field in fields:
-            self.set_output(field, value=row[field], timestamp=t)
+            self.set_output(field, value=row[field].copy(), timestamp=t)
         
         
         self.next_index += 1

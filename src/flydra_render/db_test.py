@@ -10,14 +10,18 @@ def main():
     if not samples:
         print 'No samples found'
     
-    for sample in samples:
-        rows = db.get_rows(sample)
-        print "Sample %s: %d rows" % (sample, len(rows))
-        images = db.list_images(sample)
-        if not images:
-            print ' (no images found)'
+    for id in samples:
+        print "Sample %s" % id
+        if db.has_rows(id):
+            print ' - rows: %d' % len(db.get_rows(id))
+        if db.has_saccades(id):
+            print ' - saccades: %d' % len(db.get_saccades(id))
+        
+        images = db.list_images(id)
+#        if not images:
+#            print '   (no images found)'
         for image in images:
-            im = db.get_image(sample, image)
+            im = db.get_image(id, image)
             print " - image %s: %d rows" % (image, len(im))
 
     db.close()

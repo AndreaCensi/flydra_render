@@ -7,7 +7,18 @@ FLYDRA_ROOT = 'flydra'
 
 class FlydraDB:
     
-    def __init__(self, directory):
+    def __init__(self, directory, create=True):
+        
+        if create:
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+        else:
+            if not os.path.exists(directory):
+                raise ValueError('Directory %s does not exist.' % directory)
+        if not os.path.isdir(directory):
+            raise ValueError('Given argument "%s" is not a directory' % directory)
+    
+        
         self.directory = directory
         self.index = db_summary(directory)
         # make sure we have the skeleton
@@ -37,30 +48,7 @@ class FlydraDB:
             Useful to set and retrieve attributes. '''
         assert self.has_sample(id)
         return self.samples._f_getChild(id)
-    
-    def set_rows(self, id, rows):
-        sample_group = self.get_sample_group(id)
-        filename = os.path.join(self.directory, id + '.h5')
-        f = tables.openFile(filename, 'w')
-        filters = tables.Filters(complevel=1, complib='zlib', fletcher32=True)
-        rows_table = f.createTable(sample_group._v_pathname, 'rows',
-                                   rows, createparents=True, filters=filters)
-        self.index.createExternalLink(sample_group, 'rows',
-                                      rows_table, warn16incompat=False)
-        f.close()
-        
-    def has_rows(self, id):
-        assert self.has_sample(id)
-        group = self.get_sample_group(id)
-        
-        return 'rows' in group
-        
-    def get_rows(self, id):
-        ''' Get the trajectory data for a certain sample. '''
-        assert self.has_rows(id)    
-        ref = self.get_sample_group(id).rows
-        return ref(mode='a') # dereference
-    
+     
     def list_images(self, id):
         ''' Returns the images computed for sample. '''
         assert self.has_sample(id)
@@ -106,6 +94,44 @@ class FlydraDB:
         self.index.close()
 
 
+
+
+
+    def _set_table(self, id, attname, data):
+        sample_group = self.get_sample_group(id)
+        filename = os.path.join(self.directory, "%s-%s.h5" % (id, attname)) 
+        f = tables.openFile(filename, 'w')
+        filters = tables.Filters(complevel=1, complib='zlib', fletcher32=True)
+        rows_table = f.createTable(sample_group._v_pathname, attname,
+                                   data, createparents=True, filters=filters)
+        self.index.createExternalLink(sample_group, attname,
+                                      rows_table, warn16incompat=False)
+        f.close()
+        
+    def _has_table(self, id, attname):
+        assert self.has_sample(id)
+        group = self.get_sample_group(id)
+        return attname in group
+        
+    def _get_table(self, id, attname):
+        assert self._has_table(id, attname)    
+        ref = self.get_sample_group(id)._f_getChild(attname)
+        return ref(mode='a') # dereference
+
+    def has_saccades(self, id):
+        return self._has_table(id, 'saccades')
+    def get_saccades(self, id):
+        return self._get_table(id, 'saccades')
+    def set_saccades(self, id):
+        return self._set_table(id, 'saccades')
+    
+    def has_rows(self, id):
+        return self._has_table(id, 'rows')
+    def get_rows(self, id):
+        return self._get_table(id, 'rows')
+    def set_rows(self, id):
+        return self._set_table(id, 'rows')
+    
 
 def db_summary(directory):
     files = locate_roots('*.h5', directory)
