@@ -17,7 +17,7 @@ def main():
     parser.add_option("--nocache", help="Ignores already computed results.",
                       default=False, action="store_true")    
     
-    parser.add_options("--sigma", help="Kernel spread (degrees)", default=5)
+    parser.add_option("--sigma", help="Kernel spread (degrees)", type="float", default=5)
     (options, args) = parser.parse_args()
     
 
