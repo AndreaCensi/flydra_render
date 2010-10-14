@@ -17,6 +17,12 @@ def main():
         if db.has_saccades(id):
             print ' - saccades: %d' % len(db.get_saccades(id))
         
+        for att in db.list_attr(id):
+            s = str(db.get_attr(id, att))
+            if len(s) > 50:
+                s = s[0:50] + ' ...'
+            print '- attribute %s = %s ' % (att, s)
+        
         images = db.list_images(id)
 #        if not images:
 #            print '   (no images found)'
