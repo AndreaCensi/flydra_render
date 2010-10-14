@@ -74,18 +74,16 @@ def compute_contrast(luminance, distance_matrix, sigma):
     for i in xrange(num):
         pbar.update(i)
         c = intrinsic_contrast(luminance[i]['value'], kernel)
-        contrast[i]['value'] = c[:]
+        contrast[i]['value'][:] = c
         
     return contrast
     
 def intrinsic_contrast(luminance, kernel):
-    
     n = len(luminance)
-    
     assert luminance.shape == (n,)
-    assert kernel.shape == (n, n) 
+    assert kernel.shape == (n, n)
+     
     contrast = numpy.zeros(shape=(n,))
-    
     
     for i in range(n):
         # compute error
@@ -96,7 +94,6 @@ def intrinsic_contrast(luminance, kernel):
         contrast[i] = (error * weights).sum()
         
     assert numpy.all(numpy.isfinite(contrast))
-    #print contrast.tolist(), min(contrast), max(contrast)
     return contrast
 
 def create_distance_matrix(directions):
