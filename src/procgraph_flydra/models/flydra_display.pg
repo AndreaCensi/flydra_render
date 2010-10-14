@@ -1,0 +1,66 @@
+--- model flydra_display
+" This model displays most information in the mamarama data. "
+config db     "Directory containing the flydra DB."
+config sample "Sample to consider."
+config outdir = "${db}/out" "Output directory where to place the movie."
+config interval = 3
+
+|luminance:flydra_db_image db=$db sample=$sample image=luminance|
+|nearness:flydra_db_image db=$db sample=$sample image=nearness|
+|rv:flydra_db_image db=$db sample=$sample image=retinal_velocities|
+
+luminance.image --> |plot_luminance| --> |image_label title=Luminance| --> lum_rgb
+nearness.image --> |values2retina| --> |scale| --> |image_label title=Nearness| -->  near_rgb
+rv.image --> |plot_rv|   --> |image_label title="Horizontal retinal velocity"| -->  rv_rgb
+
+
+|data:flydra_db_source db=$db sample=$sample|
+
+data.position --> |history interval=$interval| --> position_history, time
+position_history[position], data.attitude[attitude] -> |sync| -> |arena_display_top_zoom| -> |image_label title='Top zoom'| --> arena_top_zoom
+
+position_history  -> |arena_display_side_zoom| -> |image_label title='Side zoom'| --> arena_side_zoom
+
+position_history --> |arena_display_top| --> |image_label title="Top view (x,y)"| --> arena_top
+position_history --> |arena_display_side| --> |image_label title="Side view (x,z)"| --> arena_side
+
+
+
+arena_top, arena_side --> |sync| --> |grid cols=1| --> arena
+arena_top_zoom, arena_side_zoom --> |sync| --> |grid cols=1| --> arena_zoom
+
+lum_rgb, near_rgb, rv_rgb --> |sync| --> |grid cols = 1| --> retina
+
+
+
+data.linear_velocity_modulus --> |my_plot t='Linear velocity'| --> lvel
+data.linear_acceleration_modulus -->  |my_plot t='Linear acceleration'| --> lacc
+data.reduced_angular_velocity -->  |abs| --> |my_plot t='Angular velocity'| --> avel
+data.reduced_angular_acceleration --> |abs| --> |my_plot t='Angular acceleration'|--> aacc
+
+
+lvel,avel,lacc,aacc --> |sync| -> |grid cols=2| --> |image_label title='Statistics'| --> velocities
+
+
+
+
+ 
+file = "${outdir}/flydra_test/${sample}-all.avi"
+
+arena, arena_zoom --> |sync| --> |grid cols=2| --> top_left
+top_left, velocities --> |sync| --> |grid cols=1| --> left
+
+left, retina --> |sync| --> |grid cols=3| --> rgb
+ 
+rgb --> |flydra_watermark sample=$sample title="FlyView"|--> |mencoder file=$file|
+
+
+--- model my_plot
+input x
+output y
+config interval = 5
+config t "title"
+|input name=x| --> |historyt interval=$interval| --> h
+
+h -> |plot title=$t width=258 height=160| --> |output name=y|
+

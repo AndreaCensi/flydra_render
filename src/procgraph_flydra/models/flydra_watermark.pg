@@ -1,0 +1,23 @@
+--- model flydra_watermark
+"""Adds some tracking information to the video."""
+input rgb 'image'
+output rgb 'image with overlaid information'
+config sample 'Flydra sample ID.'
+config title  'Title description.'
+
+import procgraph.components.pil
+
+|input name=rgb| --> |border| --> |text| --> |output name=rgb|
+
+border.left = 0
+border.right = 0
+border.top = 0
+border.bottom = 30
+
+
+size = 16
+font = 'Candara'
+color = orange
+bg =  black
+
+text.texts = [{string:'Caltech', valign: bottom, halign: right, font: $font, size: $size, color: $color, bg: $bg, position: [-5,-5]}, {string: '${title}          ${sample}   time {time:.2f}', valign: bottom, halign: left, position:[5,-5], font: $font, size: $size, color: $color, bg: $bg} ]

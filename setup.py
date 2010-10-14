@@ -3,8 +3,8 @@ from setuptools import setup
 setup(name='flydra_render',
     version="0.1",
       package_dir={'':'src'},
-      py_modules=['flydra_render'],
       install_requires=['flydra', 'geometric_saccade_detector', 'progressbar', 'rfsee'],
+      py_modules=['flydra_render', 'procgraph_flydra'],
       entry_points={
          'console_scripts': [
            'flydra_render_filter      = flydra_render.main_filter:main',
