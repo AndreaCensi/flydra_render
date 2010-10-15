@@ -95,16 +95,22 @@ class FlydraDB:
         self.index.close()
 
 
-
-
-
     def _set_table(self, id, attname, data):
         sample_group = self.get_sample_group(id)
         filename = os.path.join(self.directory, "%s-%s.h5" % (id, attname)) 
+        if os.path.exists(filename):
+             print "Removing file '%s'." % filename		
+             os.unlink(filename)
+        print "Writing on file '%s'." % filename
         f = tables.openFile(filename, 'w')
         filters = tables.Filters(complevel=1, complib='zlib', fletcher32=True)
         rows_table = f.createTable(sample_group._v_pathname, attname,
                                    data, createparents=True, filters=filters)
+                                   
+        if attname in sample_group:
+            print "Removing previous link"
+            sample_group._f_getChild(attname)._f_remove()
+            
         self.index.createExternalLink(sample_group, attname,
                                       rows_table, warn16incompat=False)
         f.close()
