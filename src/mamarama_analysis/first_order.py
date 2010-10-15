@@ -9,6 +9,8 @@ from procgraph_flydra.values2retina import values2retina
 
 from mamarama_analysis import logger
 from mamarama_analysis.covariance import compute_image_mean, compute_image_cov
+from mamarama_analysis.actions import compute_presaccade_action
+import numpy
 
 
 
@@ -33,15 +35,19 @@ def main():
                                         db.has_image(x, 'contrast') and
                                         db.has_image(x, 'luminance'),
                                     groups['all']))
+    groups['has_saccades'] = set(filter(lambda x: db.has_saccades(x), groups['all']))
     groups['posts'] = set(filter(lambda x: db.get_attr(x, 'stimulus', None) != 'nopost',
                                   groups['all']))
     groups['noposts'] = set(filter(lambda x: db.get_attr(x, 'stimulus', None) == 'nopost',
                                 groups['all']))
     
     
-    groups['posts+contrast'] = groups['posts'].intersection(groups['has_contrast'])
-    groups['noposts+contrast'] = groups['noposts'].intersection(groups['has_contrast'])
-    
+    groups['posts+contrast'] = groups['posts']. \
+            intersection(groups['has_contrast']).\
+            intersection(groups['has_saccades'])
+    groups['noposts+contrast'] = groups['noposts'].\
+            intersection(groups['has_contrast']).\
+            intersection(groups['has_saccades'])
     
     all_reports = []
     
@@ -60,10 +66,24 @@ def main():
                         samples, i, job_id='mean_%s' % i)
             cov = comp(compute_image_cov, options.db,
                         samples, i, job_id='cov_%s' % i)
+            action_id = comp(compute_presaccade_action, options.db,
+                                      samples, i, False, job_id='%s_action_id' % i)
+            action_sign = comp(compute_presaccade_action, options.db,
+                              samples, i, True, job_id='%s_action_sign' % i)
+
+            action_id_norm = comp(normalization, action_id, cov)
+            action_sign_norm = comp(normalization, action_sign, cov)
+            
             data['mean_%s' % i] = mean 
             data['cov_%s' % i ] = cov
         
-
+            data['%s_action_id' % i] = action_id 
+            data['%s_action_sign' % i] = action_sign
+            
+            
+            data['%s_action_sign_norm' % i] = action_sign_norm
+            data['%s_action_id_norm' % i] = action_id_norm
+             
         report = comp(create_report, group_name, data)
         all_reports.append(report)
         
@@ -71,7 +91,12 @@ def main():
 
     comp(write_report, all_reports, options.db)
     compmake_console()
-        
+    
+    
+def normalization(field, cov):
+    #return numpy.linalg.solve(cov, field)
+    return numpy.dot(numpy.linalg.pinv(cov), field)
+
 def create_report(group_name, data):
     r = Report(group_name)
     
@@ -98,6 +123,27 @@ def create_report(group_name, data):
         f.sub('mean', '%s mean' % m)
         f.sub('var', '%s variance' % m)
         f.sub('cov', '%s covariance' % m)
+        
+        action_sign = data['%s_action_sign' % m]
+        action_id = data['%s_action_id' % m]
+        action_sign_n = data['%s_action_sign_norm' % m]
+        action_id_n = data['%s_action_id_norm' % m]
+        
+        with rm.data_pylab('action_sign') as pylab:
+            pylab.imshow(values2retina(action_sign))
+        with rm.data_pylab('action_sign_norm') as pylab:
+            pylab.imshow(values2retina(action_sign_n))
+        
+        with rm.data_pylab('action_id') as pylab:
+            pylab.imshow(values2retina(action_id))
+        with rm.data_pylab('action_id_norm') as pylab:
+            pylab.imshow(values2retina(action_id_n))
+        
+        f.sub('action_id', 'E{%s * action}' % m)
+        f.sub('action_id_norm', 'E{%s * action} / cov' % m)
+        f.sub('action_sign', 'E{%s * sign(action)}' % m)
+        f.sub('action_sign_norm', 'E{%s * sign(action)} / cov' % m)
+        
         
     return r
 

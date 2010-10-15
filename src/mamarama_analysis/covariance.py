@@ -1,6 +1,7 @@
 from flydra_render.db import FlydraDB
 import numpy
 from compmake.jobs.progress import progress
+from mamarama_analysis.mycov import slowcov
 
 
 def weighted_average(A, Aweight, B, Bweight=1):
@@ -47,9 +48,7 @@ def compute_image_mean(db, samples, image):
         ex.update(values.mean(axis=0), len(data))
 
     return ex.get_value()
-           
-
-import time 
+            
             
 def compute_image_cov(db, samples, image):
     ''' 
@@ -70,43 +69,17 @@ def compute_image_cov(db, samples, image):
         
         data = db.get_image(id, image)
         
-        print "copying values (%s)" % len(data)
-        values = numpy.array(data[:]['value']).copy()
-        print "computing covariance (shape=%s, dtype=%s)" % (str(values.shape), values.dtype)
-	start = time.time()
-        cov_sample = numpy.cov(values, rowvar=0)
-        t1 = time.time() - start
-
-	print "t1", t1
-	start = time.time()
-        cov_sample = slowcov(values, debug_period=500)
-	t2 = time.time() - start
-	print "t2",t2
-        print "updating" 
+        #print "copying values (%s)" % len(data)
+        #values = numpy.array().copy()
+        #print "computing covariance (shape=%s, dtype=%s)" % (str(values.shape), values.dtype)
+        values = data[:]['value']
+        cov_sample = slowcov(values)
+         
         ex.update(cov_sample, len(data))
 
     return ex.get_value()
             
-            
-
-def slowcov(X, debug_period=None):
-    print "computing mean"
-    mean = X.mean(axis=0)
     
-    N = X.shape[0]
-    
-    m = X.shape[1]
-    
-    res = numpy.zeros((m, m))
-    
-    for i in range(N):
-        err = X[i, :] - mean
-        res += numpy.dot(err, err.T) / N
-        if debug_period is not None:
-            if not (i % debug_period):
-                print "%s / %s" % (i, N)
-    
-    return res
     
 
             
