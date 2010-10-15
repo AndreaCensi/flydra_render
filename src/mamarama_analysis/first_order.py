@@ -56,6 +56,11 @@ def main():
     set_namespace('first_order')
     for group_name in use_groups:
         samples = groups[group_name]
+        
+        # only a representation
+        if len(samples) > 5:
+            samples = list(samples)[0:5]
+        
         print 'group %s: %s' % (group_name, samples)        
         
         comp_prefix(group_name)

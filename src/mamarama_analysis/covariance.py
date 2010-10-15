@@ -73,7 +73,9 @@ def compute_image_cov(db, samples, image):
         #values = numpy.array().copy()
         #print "computing covariance (shape=%s, dtype=%s)" % (str(values.shape), values.dtype)
         values = data[:]['value']
-        cov_sample = slowcov(values)
+        
+        #cov_sample = slowcov(values)
+        cov_sample = numpy.cov(values, rowvar=0) 
          
         ex.update(cov_sample, len(data))
 
@@ -85,7 +87,6 @@ def compute_image_cov(db, samples, image):
             
 
 def slowcov2(X, debug_period=None):
-    print "computing mean"
     mean = X.mean(axis=0)
     
     N = X.shape[0]
