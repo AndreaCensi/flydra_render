@@ -47,7 +47,9 @@ def compute_image_mean(db, samples, image):
         ex.update(values.mean(axis=0), len(data))
 
     return ex.get_value()
-            
+           
+
+import time 
             
 def compute_image_cov(db, samples, image):
     ''' 
@@ -70,9 +72,16 @@ def compute_image_cov(db, samples, image):
         
         print "copying values (%s)" % len(data)
         values = numpy.array(data[:]['value']).copy()
-        print "computing covariance"
+        print "computing covariance (shape=%s, dtype=%s)" % (str(values.shape), values.dtype)
+	start = time.time()
         cov_sample = numpy.cov(values, rowvar=0)
-        # cov_sample = slowcov(values, debug_period=500)
+        t1 = time.time() - start
+
+	print "t1", t1
+	start = time.time()
+        cov_sample = slowcov(values, debug_period=500)
+	t2 = time.time() - start
+	print "t2",t2
         print "updating" 
         ex.update(cov_sample, len(data))
 
