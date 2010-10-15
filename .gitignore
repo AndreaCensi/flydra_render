@@ -1,3 +1,4 @@
 *.pyc
 src/flydra_render.egg-info
 *pgc
+*~
