@@ -58,8 +58,8 @@ def main():
         samples = groups[group_name]
         
         # only a representation
-        if len(samples) > 5:
-            samples = list(samples)[0:5]
+#        if len(samples) > 5:
+#            samples = list(samples)[0:5]
         
         print 'group %s: %s' % (group_name, samples)        
         
