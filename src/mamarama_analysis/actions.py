@@ -1,7 +1,9 @@
-from flydra_render.db import FlydraDB
-from compmake import progress
-from mamarama_analysis.covariance import Expectation
 import numpy
+from compmake import progress
+
+from flydra_render.db import FlydraDB
+from mamarama_analysis.covariance import Expectation
+
 
 def compute_presaccade_action(db, samples, image, use_sign):
     ''' 
@@ -52,6 +54,43 @@ def compute_presaccade_action(db, samples, image, use_sign):
             
         values_times_actions = numpy.zeros(shape=values.shape, dtype='float32')
         
+        for i in range(len(data)):
+            values_times_actions[i, :] = values[i, :] * actions[i]
+            
+        ex.update(values_times_actions.mean(axis=0), len(data))
+
+    return ex.get_value()
+
+
+def compute_rawcorr(db, samples, image, signal, signal_index, use_sign):
+    db = FlydraDB(db)
+    
+    ex = Expectation()
+    
+    for i, id in enumerate(samples):
+        progress('Computing interaction of %s with %s (sign=%s)' % 
+                 (image, signal, use_sign),
+                 (i, len(samples)), "Sample %s" % id)
+    
+        if not (db.has_sample(id) and db.has_image(id, image) 
+                and db.has_rows(id)):
+            raise ValueError('Not enough data for id %s' % id)
+        
+        data = db.get_image(id, image)
+        values = data[:]['value']
+        rows = db.get_rows(id)
+        
+        actions = numpy.zeros(shape=(len(data),), dtype='float32')
+        for i in range(len(data)):
+            if signal_index is not None:
+                actions[i] = rows[i][signal][signal_index]
+            else:
+                actions[i] = rows[i][signal]
+
+        if use_sign:
+            actions = numpy.sign(actions)
+            
+        values_times_actions = numpy.zeros(shape=values.shape, dtype='float32')
         for i in range(len(data)):
             values_times_actions[i, :] = values[i, :] * actions[i]
             
