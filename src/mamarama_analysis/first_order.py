@@ -9,8 +9,9 @@ from procgraph_flydra.values2retina import values2retina
 
 from mamarama_analysis import logger
 from mamarama_analysis.covariance import compute_image_mean, compute_image_cov
-from mamarama_analysis.actions import compute_presaccade_action
+from mamarama_analysis.actions import compute_presaccade_action, compute_rawcorr
 import numpy
+from procgraph.components.images.copied_from_reprep import posneg
 
 
 
@@ -89,6 +90,24 @@ def main():
             data['%s_action_sign_norm' % i] = action_sign_norm
             data['%s_action_id_norm' % i] = action_id_norm
              
+        
+        for i in ['luminance', 'contrast']:
+            signals = [
+                ('vx', 'linear_velocity_body', 0),
+                ('vy', 'linear_velocity_body', 1),
+                ('vz', 'linear_velocity_body', 2),
+                ('avel', 'reduced_angular_velocity', None),
+                ('aacc', 'reduced_angular_acceleration', None)
+            ]
+            for name, signal, index in signals:
+                for use_sign in [True, False]:
+                    exp_name = 'rawcorr_%s_%s_%s' % (i, name,
+                            {True:'sign', False:'id'}[use_sign])
+                
+                    data[exp_name] = comp(compute_rawcorr, options.db,
+                                      samples, i, signal, index, use_sign,
+                                      job_id=exp_name)
+
         report = comp(create_report, group_name, data)
         all_reports.append(report)
         
@@ -135,21 +154,26 @@ def create_report(group_name, data):
         action_id_n = data['%s_action_id_norm' % m]
         
         with rm.data_pylab('action_sign') as pylab:
-            pylab.imshow(values2retina(action_sign))
+            pylab.imshow(posneg(values2retina(action_sign)))
         with rm.data_pylab('action_sign_norm') as pylab:
-            pylab.imshow(values2retina(action_sign_n))
+            pylab.imshow(posneg(values2retina(action_sign_n)))
         
         with rm.data_pylab('action_id') as pylab:
-            pylab.imshow(values2retina(action_id))
+            pylab.imshow(posneg(values2retina(action_id)))
         with rm.data_pylab('action_id_norm') as pylab:
-            pylab.imshow(values2retina(action_id_n))
+            pylab.imshow(posneg(values2retina(action_id_n)))
         
         f.sub('action_id', 'E{%s * action}' % m)
         f.sub('action_id_norm', 'E{%s * action} / cov' % m)
         f.sub('action_sign', 'E{%s * sign(action)}' % m)
         f.sub('action_sign_norm', 'E{%s * sign(action)} / cov' % m)
         
-        
+    f = r.figure('rawcorr', shape=(3, 4))
+    for exp, field in data.items():
+        if exp.startswith('rawcorr'):
+            with r.data_pylab(exp) as pylab:
+                pylab.imshow(posneg(values2retina(field, background=0)))                
+            f.sub(exp)
     return r
 
 def write_report(reports, db):
