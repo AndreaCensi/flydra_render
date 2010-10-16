@@ -2,10 +2,10 @@ from __future__ import with_statement
 from StringIO import StringIO
 import sys, numpy
 
-if 1:
+#if 1:
     # deal with old files, forcing to numpy
-    import tables.flavor
-    tables.flavor.restrict_flavors(keep=['numpy', 'python'])
+#    import tables.flavor
+#    tables.flavor.restrict_flavors(keep=['numpy', 'python'])
 
 
 from cjson import decode
@@ -13,10 +13,7 @@ from cjson import decode
 
 import flydra.a2.xml_stimulus as xml_stimulus
 import flydra_osg.xml_stimulus_osg as xml_stimulus_osg
-#import flydra.a2.core_analysis as core_analysis
-#import flydra.a2.analysis_options as analysis_options
-#import flydra.analysis.result_utils as result_utils
-#import flydra.a2.flypos
+
 import fsee
 import fsee.Observer
 
@@ -157,7 +154,7 @@ def main():
                                                             config['osg_params'])
                             dirs = vision.cvs.precomputed_optics_module.receptor_dirs
                             dirs = map(lambda x: list(x), dirs)
-                            sys.stderr.write("Type of dirs : %s " % type(dirs[0]))
+                            #sys.stderr.write("Type of dirs : %s " % type(dirs[0]))
                             config['receptors_dirs'] = dirs
                             
                         else:
@@ -167,8 +164,10 @@ def main():
                             else:
                                 old_value = config[key];
                                 config[key] = json[key];
-                                positive_answer({}, 'Changed %s from %s to %s' % (str(key), str(old_value), str(json[key])))
-                
+                                positive_answer({}, 'Changed %s from %s to %s' % (
+                                    str(key), str(old_value), str(json[key])))
+                elif method == 'bye':
+                    positive_answer({}, 'Goodbye, good sir.')
                 else:
                     exit_with_error("Uknown method '%s' \n" % method)
                         

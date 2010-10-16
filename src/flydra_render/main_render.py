@@ -40,7 +40,9 @@ def main():
     if args:
         do_samples = args
     else:
+        # look for samples with the rows table
         do_samples = db.list_samples()
+        do_samples = filter(lambda x: db.has_rows(x), do_samples)
     
     if options.white:
         target = 'luminance_w'
@@ -51,9 +53,11 @@ def main():
         
         print 'Sample %s/%s: %s' % (i + 1, len(do_samples), sample_id)
         
-        if not db.has_sample(sample_id) or not db.has_rows(sample_id):
+        if not db.has_sample(sample_id):
             raise Exception('Sample %s not found in db.' % sample_id)
-        
+        if not db.has_rows(sample_id):
+            raise Exception('Sample %s does not have rows table.' % sample_id)
+       
         if options.compute_mu:
             if db.has_table(sample_id, 'nearness') and not options.nocache:
                 print 'Already computed nearness for %s; skipping' % sample_id
@@ -159,6 +163,8 @@ def render(rows, stimulus_xml, host=None, compute_mu=False,
         res['retinal_velocities'] = retinal_velocities
         res['nearness'] = nearness
     
+    cp.close()
+
     return res
     
 

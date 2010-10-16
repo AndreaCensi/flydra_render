@@ -151,7 +151,7 @@ class StimulusWithOSG(xml_stimulus.Stimulus):
     @contextlib.contextmanager
     def OSG_model_path(self, extra):
         
-        if extra.get('white_arena', False):
+        if not extra.get('white_arena'):
             greenred = 'greenred.png'
             redgreen = 'redgreen.png'
             floor = 'nearblack.png'
@@ -222,3 +222,6 @@ class StimulusWithOSG(xml_stimulus.Stimulus):
             yield model_path
         finally:
             shutil.rmtree(tmpdir)
+
+
+
