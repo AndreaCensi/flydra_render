@@ -1,6 +1,6 @@
 import flydra.a2.xml_stimulus as xml_stimulus
 import contextlib, os, tempfile, shutil, math, sets
-import numpy
+import numpy, sys
 
 import fsee
 import fsee.scenegen.primlib as primlib
@@ -151,13 +151,18 @@ class StimulusWithOSG(xml_stimulus.Stimulus):
     @contextlib.contextmanager
     def OSG_model_path(self, extra):
         
-        if not extra.get('white_arena'):
+        #sys.stderr.write('Got %s\n' % extra)
+
+        if not extra.get('white_arena', False):
+         #   sys.stderr.write('Using normal arena\n')
+
             greenred = 'greenred.png'
             redgreen = 'redgreen.png'
             floor = 'nearblack.png'
             ceiling = 'nearblack.png'
             posts = 'nearblack.png'
         else:
+          #  sys.stderr.write('Using white arena\n')
             greenred = 'white.png'
             redgreen = 'white.png'
             floor = 'white.png'
