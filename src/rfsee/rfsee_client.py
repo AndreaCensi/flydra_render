@@ -38,7 +38,11 @@ class Client:
         });
         # FIXME ADD: BINARY MODE
         return self.expect_ok_status()
-        
+    
+    def close(self):
+        self.write_json({'method': 'bye'})
+        return self.expect_ok_status()
+
     def expect_ok_status(self):
         packet = self.read_json()
         try:
@@ -96,33 +100,37 @@ class ClientTCP(Client):
 
     def __init__(self, host, port):
         #create an INET, STREAMing socket
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.connect((host, port))
-        f = s.makefile()
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.s.connect((host, port))
+        f = self.s.makefile()
         Client.__init__(self, f, f)
+ 
 
     def close(self):
-        pass
+        Client.close(self)
+        self.s.close()
         
 
 import sys
-import subprocess as sub
+import subprocess 
         
 class ClientProcess(Client):
     process = None;
 
     def __init__(self, script_path='rfsee_server'):
-        self.process = sub.Popen(script_path, bufsize=0,
-                                 stdout=sub.PIPE, stderr=sys.stderr, stdin=sub.PIPE)
+        self.process = subprocess.Popen(script_path, 
+            bufsize=0,
+            stdout=subprocess.PIPE, 
+            stderr=sys.stderr, 
+            stdin=subprocess.PIPE)
         Client.__init__(self, self.process.stdout, self.process.stdin)
 
     def close(self):
-        pass
-        
-class ClientSSH:
+        Client.close(self)
+        # ready anything left, and wait for termination
+        out, err = self.process.communicate(input=None)
 
-    def __init__(self, host, port, user):
-        pass
 
-    def close(self):
-        pass
+
+
+         
