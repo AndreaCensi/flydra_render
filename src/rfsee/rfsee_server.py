@@ -1,28 +1,32 @@
 from __future__ import with_statement
 from StringIO import StringIO
-from rfsee.communication import positive_answer, exit_with_error
+import sys, numpy
+
 if 1:
     # deal with old files, forcing to numpy
     import tables.flavor
     tables.flavor.restrict_flavors(keep=['numpy', 'python'])
 
-import sys
-from cjson import decode, encode
 
-import numpy
+from cjson import decode
+
 
 import flydra.a2.xml_stimulus as xml_stimulus
-import flydra.a2.xml_stimulus_osg as xml_stimulus_osg
-import flydra.a2.core_analysis as core_analysis
-import flydra.a2.analysis_options as analysis_options
-import flydra.analysis.result_utils as result_utils
-import flydra.a2.flypos
+import flydra_osg.xml_stimulus_osg as xml_stimulus_osg
+#import flydra.a2.core_analysis as core_analysis
+#import flydra.a2.analysis_options as analysis_options
+#import flydra.analysis.result_utils as result_utils
+#import flydra.a2.flypos
 import fsee
 import fsee.Observer
+
 import cgtypes
 import cjson
 import struct
+
         
+from rfsee.communication import positive_answer, exit_with_error
+
 
 def go_render(vision, json, compute_mu, write_binary):
     position = numpy.array(json['position'])
@@ -107,7 +111,7 @@ def go_initialize_stimulus(stimulus_xml, optics):
 
 try:
     # XXX Add timestamp
-    sys.stderr.write('rfsee.py started\n')
+    sys.stderr.write('rfsee_server.py started\n')
     
     
     # State 
