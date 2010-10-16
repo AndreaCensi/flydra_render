@@ -86,9 +86,9 @@ def go_initialize_stimulus(stimulus_xml, optics, extra):
             stimulus_xml = StringIO(stimulus_xml)
         
         stim_xml = xml_stimulus.xml_stimulus_from_filename(stimulus_xml)
-        stim_xml_osg = xml_stimulus_osg.StimulusWithOSG(stim_xml.get_root(), extra=extra)
+        stim_xml_osg = xml_stimulus_osg.StimulusWithOSG(stim_xml.get_root())
 
-        with  stim_xml_osg.OSG_model_path() as osg_model_path:
+        with  stim_xml_osg.OSG_model_path(extra=extra) as osg_model_path:
             # sys.stderr.write('osg_model_path = \n %s' % open(osg_model_path).read())
             hz = 60.0 # fps
             dt = 1.0 / hz

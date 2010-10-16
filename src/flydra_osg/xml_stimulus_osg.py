@@ -87,8 +87,8 @@ def cylindrical_arena(info=None,
             verts = verts + origin[numpy.newaxis, :]
             wall.verts = verts
             geom.append(wall.get_as_osg_geometry())
-    floor_g = make_floor((-2.0, -2.0), (2.0, 2.0), z=z0, floor)
-    ceil_g = make_floor((-2.0, -2.0), (2.0, 2.0), z=z1, ceiling)
+    floor_g = make_floor((-2.0, -2.0), (2.0, 2.0), z=z0, texture=floor)
+    ceil_g = make_floor((-2.0, -2.0), (2.0, 2.0), z=z1, texture=ceiling)
     geom.extend([floor_g.get_as_osg_geometry(),
                  ceil_g.get_as_osg_geometry()])
     return geom, assets
