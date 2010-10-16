@@ -111,8 +111,9 @@ import subprocess as sub
 class ClientProcess(Client):
     process = None;
 
-    def __init__(self, script_path):
-        self.process = sub.Popen(['python', script_path], bufsize=0, stdout=sub.PIPE, stderr=sys.stderr, stdin=sub.PIPE)
+    def __init__(self, script_path='rfsee_server'):
+        self.process = sub.Popen(script_path, bufsize=0,
+                                 stdout=sub.PIPE, stderr=sys.stderr, stdin=sub.PIPE)
         Client.__init__(self, self.process.stdout, self.process.stdin)
 
     def close(self):

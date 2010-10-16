@@ -13,7 +13,8 @@ setup(name='flydra_render',
            'flydra_render_db_check      = flydra_render.db_test:main',
            'flydra_render_contrast      = flydra_render.compute_contrast:main',
            'flydra_video_contrast      = procgraph_flydra.video_contrast:main',
-           'mamarama_first_order      = mamarama_analysis.first_order:main'
+           'mamarama_first_order      = mamarama_analysis.first_order:main',
+           'rfsee_server = rfsee.rfsee_server:main' 
         ]
       },
 )
