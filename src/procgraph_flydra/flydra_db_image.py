@@ -19,6 +19,12 @@ class FlydraImage(Generator):
     
     def init(self):
         self.db = FlydraDB(self.config.db)
+        if not self.db.has_sample(self.config.sample):
+            raise ValueError('Sample "%s" not found.' % self.config.sample)
+        if not self.db.has_table(self.config.sample, self.config.image):
+            raise ValueError('Table "%s" not found for sample %s.' %\
+                    (self.config.sample, self.config.image))
+
         self.data = self.db.get_table(self.config.sample, self.config.image)
         
         self.next_index = 0

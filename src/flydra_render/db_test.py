@@ -14,7 +14,8 @@ def main():
         print "Sample %s" % id
         
         for table in db.list_tables(id):    
-            print ' - %s: %d' % (table, len(db.get_table(id)))
+	    if table != 'images':
+            	print ' - %s: %d' % (table, len(db.get_table(id, table)))
         
         for att in db.list_attr(id):
             s = str(db.get_attr(id, att))
