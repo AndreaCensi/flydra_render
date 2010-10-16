@@ -94,8 +94,7 @@ class FlydraDB:
     def close(self):
         self.index.close()
 
-
-    def _set_table(self, id, attname, data):
+    def set_table(self, id, attname, data):
         sample_group = self.get_sample_group(id)
         filename = os.path.join(self.directory, "%s-%s.h5" % (id, attname)) 
         if os.path.exists(filename):
@@ -115,13 +114,13 @@ class FlydraDB:
                                       rows_table, warn16incompat=False)
         f.close()
         
-    def _has_table(self, id, attname):
+    def has_table(self, id, attname):
         assert self.has_sample(id)
         group = self.get_sample_group(id)
         return attname in group
         
-    def _get_table(self, id, attname):
-        assert self._has_table(id, attname)    
+    def get_table(self, id, attname):
+        assert self.has_table(id, attname)    
         ref = self.get_sample_group(id)._f_getChild(attname)
         return ref(mode='a') # dereference
 
@@ -149,18 +148,18 @@ class FlydraDB:
         return attrs._v_attrnamesuser
  
     def has_saccades(self, id):
-        return self._has_table(id, 'saccades')
+        return self.has_table(id, 'saccades')
     def get_saccades(self, id):
-        return self._get_table(id, 'saccades')
+        return self.get_table(id, 'saccades')
     def set_saccades(self, id, table):
-        return self._set_table(id, 'saccades', table)
+        return self.set_table(id, 'saccades', table)
     
     def has_rows(self, id):
-        return self._has_table(id, 'rows')
+        return self.has_table(id, 'rows')
     def get_rows(self, id):
-        return self._get_table(id, 'rows')
+        return self.get_table(id, 'rows')
     def set_rows(self, id, table):
-        return self._set_table(id, 'rows', table)
+        return self.set_table(id, 'rows', table)
     
 
 def db_summary(directory):

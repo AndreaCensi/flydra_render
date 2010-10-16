@@ -42,21 +42,21 @@ def main():
         if not db.has_sample(sample_id):
             raise Exception('Sample %s not found in db.' % sample_id)
         
-        if not db.has_image(sample_id, 'luminance'):
+        if not db.has_table(sample_id, 'luminance'):
             print 'Sample %s does not have luminance; skipping.' % sample_id
             continue
         
-        if db.has_image(sample_id, 'contrast') and not options.nocache:
+        if db.has_table(sample_id, 'contrast') and not options.nocache:
             print 'Already computed contrast for %s; skipping' % sample_id
             continue
 
 
-        luminance = db.get_image(sample_id, 'luminance')
+        luminance = db.get_table(sample_id, 'luminance')
         
         contrast = compute_contrast(luminance, distance_matrix,
                                     sigma=numpy.radians(options.sigma))
         
-        db.add_image(sample_id, 'contrast', contrast)
+        db.set_table(sample_id, 'contrast', contrast)
         
 
 
