@@ -1,0 +1,27 @@
+--- model flydra_simple_video
+" This model creates a simple video of one retinal image. "
+config db     "Directory containing the flydra DB."
+config sample "Sample to consider."
+config image = luminance "Which image to plot."
+config outdir = "${db}/out" "Output directory where to place the movie."
+config filter = flydra_simple_video_filter "Which block used to convert retinal values to RGB"
+
+|data:flydra_db_image db=$db sample=$sample image=$image|
+
+data.image --> |$filter| --> rgb
+
+file = "${outdir}/flydra_simple_video/${sample}-${image}.avi"
+
+rgb -->  |mencoder file=$file|
+
+
+--- model flydra_simple_video_filter
+""" Default filter used by :ref:`block:flydra_simple_video` to convert
+    retinal values to RGB images. """
+    
+input values "Retinal values (1398 values)"
+output rgb   "Converted RGB image"
+
+|input name=values| --> |values2retina| --> |scale| --> |output name=rgb|
+
+   

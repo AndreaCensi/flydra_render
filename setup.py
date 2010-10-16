@@ -10,10 +10,11 @@ setup(name='flydra_render',
          'console_scripts': [
            'flydra_render_filter      = flydra_render.main_filter:main',
            'flydra_render             = flydra_render.main_render:main',
-           'flydra_render_db_check      = flydra_render.db_test:main',
-           'flydra_render_contrast      = flydra_render.compute_contrast:main',
-           'flydra_video_contrast      = procgraph_flydra.video_contrast:main',
+           'flydra_render_db_check    = flydra_render.db_test:main',
+           'flydra_render_contrast    = flydra_render.compute_contrast:main',
+           'flydra_video_contrast     = procgraph_flydra.video_contrast:main',
            'mamarama_first_order      = mamarama_analysis.first_order:main',
+           'flydra_video_image      = procgraph_flydra.video_image:main',
            'rfsee_server = rfsee.rfsee_server:main' 
         ]
       },

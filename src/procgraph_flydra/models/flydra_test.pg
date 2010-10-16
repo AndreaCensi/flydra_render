@@ -15,23 +15,6 @@ rgb -->  |mencoder file=$file|
 
 |luminance:flydra_db_image db=$db sample=$sample image=luminance|
 
---- model flydra_test_image
-" This model tests reading and simple plotting of retinal images. "
-config db     "Directory containing the flydra DB."
-config sample "Sample to consider."
-config image = luminance "Which image to plot."
-config outdir = "${db}/out" "Output directory where to place the movie."
-
-|data:flydra_db_image db=$db sample=$sample image=$image|
-
-data.image --> |values2retina| --> values
-
-values --> |scale| --> rgb
-
-file = "${outdir}/flydra_test/${sample}-${image}.avi"
-
-rgb -->  |mencoder file=$file|
-
 
 
 
