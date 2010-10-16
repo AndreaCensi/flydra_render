@@ -44,7 +44,7 @@ def cylindrical_arena(info=None,
                       redgreen='redgreen.png',
                       floor='nearblack.png',
                       ceiling='nearblack.png'):
-    assets = [greenred, redgreen]
+    assets = [greenred, redgreen, floor, ceiling]
     assets = [ os.path.join(fsee.data_dir,
                             'models', 'mamarama_checkerboard',
                             asset) for asset in assets]
