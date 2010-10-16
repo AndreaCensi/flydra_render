@@ -4,7 +4,7 @@ setup(name='flydra_render',
     version="0.1",
       package_dir={'':'src'},
       install_requires=['flydra', 'geometric_saccade_detector', 'progressbar', 'rfsee'],
-      py_modules=['flydra_render', 'procgraph_flydra', 'mamarama_analysis'],
+      py_modules=['rfsee', 'flydra_render', 'procgraph_flydra', 'mamarama_analysis'],
       entry_points={
          'console_scripts': [
            'flydra_render_filter      = flydra_render.main_filter:main',
