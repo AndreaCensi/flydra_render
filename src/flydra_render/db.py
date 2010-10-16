@@ -49,47 +49,47 @@ class FlydraDB:
             Useful to set and retrieve attributes. '''
         assert self.has_sample(id)
         return self.samples._f_getChild(id)
-     
-    def list_images(self, id):
-        ''' Returns the images computed for sample. '''
-        assert self.has_sample(id)
-        sample_group = self.get_sample_group(id)
-        if not 'images' in sample_group:
-            self.index.createGroup(sample_group, 'images') 
-        return list(sample_group.images._v_children)
-
-    def has_image(self, id, image):
-        ''' Checks that an image is computed for a certain sample. '''
-        return image in self.list_images(id)
-    
-    def get_image(self, id, image):
-        ''' Get a reference to the image table for a certain sample. 
-            The table is created if not present. '''
-        assert self.has_image(id, image)
-        ref = self.get_sample_group(id).images._f_getChild(image)  
-        return ref(mode='a') # dereference
-        
-    def add_image(self, id, image, value):
-        assert self.has_sample(id)
-
-        sample_group = self.get_sample_group(id)
-        images = sample_group.images
-        # remove if present
-        if image in images:
-            images._f_getChild(image)._f_remove()
-        
-        filename = os.path.join(self.directory, id + '-%s.h5' % image)
-        
-        f = tables.openFile(filename, 'w')
-        filters = tables.Filters(complevel=1, complib='zlib', fletcher32=True)
-        value_table = f.createTable(images._v_pathname, image,
-                                   value, createparents=True, filters=filters)
-        
-            
-        self.index.createExternalLink(images, image,
-                                      value_table, warn16incompat=False)
-        f.close()
-    
+#     
+#    def list_images(self, id):
+#        ''' Returns the images computed for sample. '''
+#        assert self.has_sample(id)
+#        sample_group = self.get_sample_group(id)
+#        if not 'images' in sample_group:
+#            self.index.createGroup(sample_group, 'images') 
+#        return list(sample_group.images._v_children)
+#
+#    def has_image(self, id, image):
+#        ''' Checks that an image is computed for a certain sample. '''
+#        return image in self.list_images(id)
+#    
+#    def get_image(self, id, image):
+#        ''' Get a reference to the image table for a certain sample. 
+#            The table is created if not present. '''
+#        assert self.has_image(id, image)
+#        ref = self.get_sample_group(id).images._f_getChild(image)  
+#        return ref(mode='a') # dereference
+#        
+#    def add_image(self, id, image, value):
+#        assert self.has_sample(id)
+#
+#        sample_group = self.get_sample_group(id)
+#        images = sample_group.images
+#        # remove if present
+#        if image in images:
+#            images._f_getChild(image)._f_remove()
+#        
+#        filename = os.path.join(self.directory, id + '-%s.h5' % image)
+#        
+#        f = tables.openFile(filename, 'w')
+#        filters = tables.Filters(complevel=1, complib='zlib', fletcher32=True)
+#        value_table = f.createTable(images._v_pathname, image,
+#                                   value, createparents=True, filters=filters)
+#        
+#            
+#        self.index.createExternalLink(images, image,
+#                                      value_table, warn16incompat=False)
+#        f.close()
+#    
         
     def close(self):
         self.index.close()
@@ -98,8 +98,8 @@ class FlydraDB:
         sample_group = self.get_sample_group(id)
         filename = os.path.join(self.directory, "%s-%s.h5" % (id, attname)) 
         if os.path.exists(filename):
-             print "Removing file '%s'." % filename		
-             os.unlink(filename)
+            print "Removing file '%s'." % filename		
+            os.unlink(filename)
         print "Writing on file '%s'." % filename
         f = tables.openFile(filename, 'w')
         filters = tables.Filters(complevel=1, complib='zlib', fletcher32=True)
@@ -118,6 +118,10 @@ class FlydraDB:
         assert self.has_sample(id)
         group = self.get_sample_group(id)
         return attname in group
+    
+    def list_tables(self, id):
+        sample_group = self.get_sample_group(id)
+        return list(sample_group._v_children)
         
     def get_table(self, id, attname):
         assert self.has_table(id, attname)    

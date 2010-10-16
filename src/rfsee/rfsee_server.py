@@ -74,7 +74,7 @@ def go_render(vision, json, compute_mu, write_binary):
         positive_answer(answer)
         
     
-def go_initialize_stimulus(stimulus_xml, optics):
+def go_initialize_stimulus(stimulus_xml, optics, extra):
     """ returns fsee.Observer.Observer """
     try:        
         # stimulus_xml can be a filename
@@ -86,7 +86,7 @@ def go_initialize_stimulus(stimulus_xml, optics):
             stimulus_xml = StringIO(stimulus_xml)
         
         stim_xml = xml_stimulus.xml_stimulus_from_filename(stimulus_xml)
-        stim_xml_osg = xml_stimulus_osg.StimulusWithOSG(stim_xml.get_root())
+        stim_xml_osg = xml_stimulus_osg.StimulusWithOSG(stim_xml.get_root(), extra=extra)
 
         with  stim_xml_osg.OSG_model_path() as osg_model_path:
             # sys.stderr.write('osg_model_path = \n %s' % open(osg_model_path).read())
@@ -116,7 +116,10 @@ def main():
         sys.stderr.write('rfsee_server.py started\n')
         
         # State 
-        config = {'compute_mu': 0, 'write_binary': 1, 'optics': 'buchner71'}
+        config = {'compute_mu': 0,
+                  'write_binary': 1,
+                  'optics': 'buchner71',
+                  'osg_params': {'white_arena': False}}
         vision = None
     
         while True:
@@ -150,7 +153,8 @@ def main():
                     for key in json.keys():
                         
                         if key == "stimulus_xml":
-                            vision = go_initialize_stimulus(json[key], config['optics'])
+                            vision = go_initialize_stimulus(json[key], config['optics'],
+                                                            config['osg_params'])
                             dirs = vision.cvs.precomputed_optics_module.receptor_dirs
                             dirs = map(lambda x: list(x), dirs)
                             sys.stderr.write("Type of dirs : %s " % type(dirs[0]))

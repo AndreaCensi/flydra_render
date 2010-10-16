@@ -21,6 +21,9 @@ def main():
     parser.add_option("--compute_mu", help="Computes mu and optic flow.",
                       default=False, action="store_true")
     
+    parser.add_option("--white", help="Computes luminance_w, with the arena"
+                      " painted white.", default=False, action="store_true")
+    
     parser.add_option("--host", help="Use a remote rfsee. Otherwise, use local process.",
                        default=None)
     
@@ -39,6 +42,11 @@ def main():
     else:
         do_samples = db.list_samples()
     
+    if options.white:
+        target = 'luminance_w'
+    else:
+        target = 'luminance'
+    
     for i, sample_id in enumerate(do_samples):
         
         print 'Sample %s/%s: %s' % (i + 1, len(do_samples), sample_id)
@@ -47,11 +55,11 @@ def main():
             raise Exception('Sample %s not found in db.' % sample_id)
         
         if options.compute_mu:
-            if db.has_image(sample_id, 'nearness') and not options.nocache:
+            if db.has_table(sample_id, 'nearness') and not options.nocache:
                 print 'Already computed nearness for %s; skipping' % sample_id
                 continue
         else:
-            if db.has_image(sample_id, 'luminance') and not options.nocache:
+            if db.has_table(sample_id, target) and not options.nocache:
                 print 'Already computed luminance for %s; skipping' % sample_id
                 continue
         
@@ -59,9 +67,9 @@ def main():
         stimulus_xml = rows._v_attrs.stimulus_xml
         
         results = render(rows, stimulus_xml, host=options.host,
-                         compute_mu=options.compute_mu)
+                         compute_mu=options.compute_mu, white=options.white)
    
-        db.set_table(sample_id, 'luminance', results['luminance'])
+        db.set_table(sample_id, target, results['luminance'])
         
         if options.compute_mu:
             db.set_table(sample_id, 'nearness', results['nearness'])
@@ -69,8 +77,8 @@ def main():
                          results['retinal_velocities'])
             
    
-def render(rows, stimulus_xml, compute_mu=False,
-           host=None, do_distance=False):
+def render(rows, stimulus_xml, host=None, compute_mu=False,
+           white=False):
     
     if host is not None:
         tokens = host.split(':')
@@ -87,6 +95,10 @@ def render(rows, stimulus_xml, compute_mu=False,
         
     cp.config_stimulus_xml(stimulus_xml)    
     cp.config_compute_mu(compute_mu)
+
+    if white:
+        cp.config('osg_params', {'white_arena': True})
+
 
     num_frames = len(rows)
     dtype = [('time', 'float64'),

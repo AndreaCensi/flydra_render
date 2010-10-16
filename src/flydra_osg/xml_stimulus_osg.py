@@ -6,7 +6,8 @@ import fsee
 import fsee.scenegen.primlib as primlib
 import fsee.scenegen.osgwriter as osgwriter
 
-def make_floor(x0y0, x1y1, xtilesize=1, ytilesize=1, z=0):
+def make_floor(x0y0, x1y1, xtilesize=1, ytilesize=1, z=0,
+                texture='nearblack.png'):
     xo, yo = x0y0
     x1, y1 = x1y1
     xlen = x1 - xo
@@ -16,7 +17,7 @@ def make_floor(x0y0, x1y1, xtilesize=1, ytilesize=1, z=0):
     maxi = int(math.ceil(xlen / xg))
     maxj = int(math.ceil(ylen / yg))
     floor = primlib.Prim()
-    floor.texture_fname = "nearblack.png"
+    floor.texture_fname = texture
     count = 0
     quads = []
     for i in range(maxi):
@@ -38,10 +39,12 @@ def make_floor(x0y0, x1y1, xtilesize=1, ytilesize=1, z=0):
     floor.prim_sets = [primlib.Quads(quads)]
     return floor
 
-def cylindrical_arena(info=None):
-    assets = ['greenred.png',
-              'redgreen.png',
-              'nearblack.png']
+def cylindrical_arena(info=None,
+                      greenred='greenred.png',
+                      redgreen='redgreen.png',
+                      floor='nearblack.png',
+                      ceiling='nearblack.png'):
+    assets = [greenred, redgreen]
     assets = [ os.path.join(fsee.data_dir,
                             'models', 'mamarama_checkerboard',
                             asset) for asset in assets]
@@ -71,9 +74,9 @@ def cylindrical_arena(info=None):
 
             wall = primlib.XZRect()
             if i % 2 == 0:
-                wall.texture_fname = 'redgreen.png'
+                wall.texture_fname = redgreen
             else:
-                wall.texture_fname = 'greenred.png'
+                wall.texture_fname = greenred
             wall.mag_filter = "NEAREST"
             z0 = 0
             z1 = height
@@ -84,15 +87,16 @@ def cylindrical_arena(info=None):
             verts = verts + origin[numpy.newaxis, :]
             wall.verts = verts
             geom.append(wall.get_as_osg_geometry())
-    floor = make_floor((-2.0, -2.0), (2.0, 2.0), z=z0)
-    ceil = make_floor((-2.0, -2.0), (2.0, 2.0), z=z1)
-    geom.extend([floor.get_as_osg_geometry(), ceil.get_as_osg_geometry()])
+    floor_g = make_floor((-2.0, -2.0), (2.0, 2.0), z=z0, floor)
+    ceil_g = make_floor((-2.0, -2.0), (2.0, 2.0), z=z1, ceiling)
+    geom.extend([floor_g.get_as_osg_geometry(),
+                 ceil_g.get_as_osg_geometry()])
     return geom, assets
 
-def cylindrical_post(info=None):
+def cylindrical_post(info=None, texture='nearblack.png'):
     geom = []
 
-    assets = ['nearblack.png']
+    assets = [texture]
     assets = [ os.path.join(fsee.data_dir,
                             'models', 'mamarama_checkerboard',
                             asset) for asset in assets]
@@ -130,7 +134,7 @@ def cylindrical_post(info=None):
             x2 = stop_x[i]; y2 = stop_y[i]
 
             wall = primlib.XZRect()
-            wall.texture_fname = "nearblack.png"
+            wall.texture_fname = texture
             z0 = 0
             z1 = height
             verts = numpy.array([[ x1, y1, z0],
@@ -145,7 +149,20 @@ def cylindrical_post(info=None):
 
 class StimulusWithOSG(xml_stimulus.Stimulus):
     @contextlib.contextmanager
-    def OSG_model_path(self):
+    def OSG_model_path(self, extra):
+        
+        if extra.get('white_arena', False):
+            greenred = 'greenred.png'
+            redgreen = 'redgreen.png'
+            floor = 'nearblack.png'
+            ceiling = 'nearblack.png'
+            posts = 'nearblack.png'
+        else:
+            greenred = 'white.png'
+            redgreen = 'white.png'
+            floor = 'white.png'
+            ceiling = 'white.png'
+            posts = 'nearblack.png'
 
         real_osg_fnames = []
         geode = osgwriter.Geode(states=['GL_LIGHTING OFF'])
@@ -155,12 +172,18 @@ class StimulusWithOSG(xml_stimulus.Stimulus):
                 continue
             elif child.tag == 'cylindrical_arena':
                 info = self._get_info_for_cylindrical_arena(child)
-                geom_elements, this_assets = cylindrical_arena(info=info)
+                geom_elements, this_assets = \
+                    cylindrical_arena(info=info,
+                                      greenred=greenred,
+                                      redgreen=redgreen,
+                                      floor=floor,
+                                      ceiling=ceiling)
                 for el in geom_elements:
                     geode.append(el)
             elif child.tag == 'cylindrical_post':
                 info = self._get_info_for_cylindrical_post(child)
-                geom_elements, this_assets = cylindrical_post(info=info)
+                geom_elements, this_assets = \
+                    cylindrical_post(info=info, texture=posts)
                 for el in geom_elements:
                     geode.append(el)
             elif child.tag == 'osg_model':
