@@ -20,8 +20,8 @@ def main():
         print 'No samples found'
     
     for id in samples:
-        if db.has_rows(id) and db.has_image(id, 'contrast') and \
-            db.has_image(id, 'luminance'):
+        if db.has_rows(id) and db.has_table(id, 'contrast') and \
+            db.has_table(id, 'luminance'):
             config = {'sample': id, 'db': directory}
             comp(pg, 'flydra_display_contrast', config,
                  job_id="flydra_display_contrast:%s" % id)
@@ -31,3 +31,4 @@ def main():
     
 if __name__ == '__main__':
     main()
+
