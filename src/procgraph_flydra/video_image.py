@@ -20,27 +20,35 @@ def main():
     (options, args) = parser.parse_args()
     
     if options.image is None:
-        print "Usage: %s [--db DB] --image <image>" % sys.argv[0]
+        print "Usage: %s [--db DB] --image <image> [ids]" % sys.argv[0]
         sys.exit(-1)
             
     db = FlydraDB(options.db)
     
     set_namespace('video_image_%s' % options.image)
     
-    samples = db.list_samples()
-    samples = filter(lambda id: db.has_table(id, options.image), samples)
+    if args:
+        samples = args
+    else:
+        # look for samples with the rows table
+        samples = db.list_samples()
+        samples = filter(lambda x: db.has_table(x, options.image), samples)
     
     if not samples:
         raise Exception('No samples found at all with available image "%s".' % \
             options.image)
     
     for id in samples:
-        if  db.has_table(id, options.image):
-            config = {'sample': id,
-                      'db': options.db,
-                      'image': options.image,
-                      'filter': options.filter}
-            comp(pg, 'flydra_simple_video', config, job_id="%s" % id)
+        if  not db.has_table(id, options.image):
+            raise Exception('Sample %s does not have table "%s".' % 
+                            (id, options.image))
+            
+        config = {'sample': id,
+                  'db': options.db,
+                  'image': options.image,
+                  'filter': options.filter}
+        comp(pg, 'flydra_simple_video', config,
+             job_id="%s" % id)
 
     compmake_console()
     
