@@ -21,6 +21,10 @@ def main():
     parser.add_option("--compute_mu", help="Computes mu and optic flow.",
                       default=False, action="store_true")
     
+    
+    parser.add_options("--host", help="Use a remote rfsee. Otherwise, use local process.",
+                       default=None)
+    
     (options, args) = parser.parse_args()
     
 
@@ -55,7 +59,8 @@ def main():
         rows = db.get_rows(sample_id)
         stimulus_xml = rows._v_attrs.stimulus_xml
         
-        results = render(rows, stimulus_xml, compute_mu=options.compute_mu)
+        results = render(rows, stimulus_xml, host=options.host,
+                         compute_mu=options.compute_mu)
    
         db.set_table(sample_id, 'luminance', results['luminance'])
         
@@ -66,8 +71,21 @@ def main():
             
    
 def render(rows, stimulus_xml, compute_mu=False,
-           host='tokyo', do_distance=False):     
-    cp = ClientTCP(host, port=10781)
+           host=None, do_distance=False):
+    
+    if host is not None:
+        tokens = host.split(':')
+        if len(tokens) == 2:
+            hostname = tokens[0]
+            port = tokens[1]
+        else:
+            hostname = tokens[0]
+            port = 10781
+            
+        cp = ClientTCP(hostname, port)
+    else:
+        cp = ClientProcess()
+        
     cp.config_stimulus_xml(stimulus_xml)    
     cp.config_compute_mu(compute_mu)
 
