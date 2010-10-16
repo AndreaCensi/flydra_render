@@ -1,7 +1,7 @@
 import sys, numpy
 from optparse import OptionParser
 
-from rfsee.rfsee_client import ClientTCP
+from rfsee.rfsee_client import ClientTCP, ClientProcess
 
 from flydra_render import logger
 from flydra_render.db import FlydraDB
@@ -21,8 +21,7 @@ def main():
     parser.add_option("--compute_mu", help="Computes mu and optic flow.",
                       default=False, action="store_true")
     
-    
-    parser.add_options("--host", help="Use a remote rfsee. Otherwise, use local process.",
+    parser.add_option("--host", help="Use a remote rfsee. Otherwise, use local process.",
                        default=None)
     
     (options, args) = parser.parse_args()
@@ -150,8 +149,6 @@ def render(rows, stimulus_xml, compute_mu=False,
     
     return res
     
-
-
 
 if __name__ == '__main__':
     main()
