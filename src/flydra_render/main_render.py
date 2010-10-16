@@ -61,11 +61,11 @@ def main():
         results = render(rows, stimulus_xml, host=options.host,
                          compute_mu=options.compute_mu)
    
-        db.add_image(sample_id, 'luminance', results['luminance'])
+        db.set_table(sample_id, 'luminance', results['luminance'])
         
         if options.compute_mu:
-            db.add_image(sample_id, 'nearness', results['nearness'])
-            db.add_image(sample_id, 'retinal_velocities',
+            db.set_table(sample_id, 'nearness', results['nearness'])
+            db.set_table(sample_id, 'retinal_velocities',
                          results['retinal_velocities'])
             
    
