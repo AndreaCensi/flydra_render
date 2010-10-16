@@ -17,6 +17,11 @@ def main():
                       default=False, action="store_true")    
     
     parser.add_option("--sigma", help="Kernel spread (degrees)", type="float", default=3)
+   
+    parser.add_option("--source", default='luminance', help="Source table")
+    parser.add_option("--target", default='contrast', help="Destination table")
+
+    
     (options, args) = parser.parse_args()
     
 
@@ -34,6 +39,11 @@ def main():
         do_samples = args
     else:
         do_samples = db.list_samples()
+        do_samples = filter(lambda x: db.has_table(x, options.source),
+                            do_samples)
+        
+    if not do_samples:
+        raise Exception('No samples with table "%s" found. ' % options.source)
     
     for i, sample_id in enumerate(do_samples):
         
@@ -42,21 +52,22 @@ def main():
         if not db.has_sample(sample_id):
             raise Exception('Sample %s not found in db.' % sample_id)
         
-        if not db.has_table(sample_id, 'luminance'):
-            print 'Sample %s does not have luminance; skipping.' % sample_id
-            continue
+        if not db.has_table(sample_id, options.source):
+            raise Exception('Sample %s does not have table %s; skipping.' \
+                            % (sample_id, options.source))
         
-        if db.has_table(sample_id, 'contrast') and not options.nocache:
-            print 'Already computed contrast for %s; skipping' % sample_id
+        if db.has_table(sample_id, options.target) and not options.nocache:
+            print 'Already computed "%s" for %s; skipping' % \
+                (options.target, sample_id)
             continue
 
 
-        luminance = db.get_table(sample_id, 'luminance')
+        luminance = db.get_table(sample_id, options.source)
         
         contrast = compute_contrast(luminance, distance_matrix,
                                     sigma=numpy.radians(options.sigma))
         
-        db.set_table(sample_id, 'contrast', contrast)
+        db.set_table(sample_id, options.target, contrast)
         
 
 
