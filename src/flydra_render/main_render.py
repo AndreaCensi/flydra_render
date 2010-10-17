@@ -97,11 +97,12 @@ def render(rows, stimulus_xml, host=None, compute_mu=False,
     else:
         cp = ClientProcess()
         
+    if white: # before stimulus_xml
+        cp.config('osg_params', {'white_arena': True})
+
+
     cp.config_stimulus_xml(stimulus_xml)    
     cp.config_compute_mu(compute_mu)
-
-    if white:
-        cp.config('osg_params', {'white_arena': True})
 
 
     num_frames = len(rows)

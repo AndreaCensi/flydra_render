@@ -150,6 +150,7 @@ def main():
                     for key in json.keys():
                         
                         if key == "stimulus_xml":
+                            # sys.stderr.write('Using params: %s\n' % config['osg_params'])   
                             vision = go_initialize_stimulus(json[key], config['optics'],
                                                             config['osg_params'])
                             dirs = vision.cvs.precomputed_optics_module.receptor_dirs
