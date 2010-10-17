@@ -153,7 +153,8 @@ def main():
                             vision = go_initialize_stimulus(json[key], config['optics'],
                                                             config['osg_params'])
                             dirs = vision.cvs.precomputed_optics_module.receptor_dirs
-                            dirs = map(lambda x: list(x), dirs)
+                            dirs = map(lambda x: [x[0], x[1], x[2]], dirs)
+                            dirs = []
                             #sys.stderr.write("Type of dirs : %s " % type(dirs[0]))
                             config['receptors_dirs'] = dirs
                             

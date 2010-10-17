@@ -15,7 +15,11 @@ setup(name='flydra_render',
            'flydra_video_contrast     = procgraph_flydra.video_contrast:main',
            'mamarama_first_order      = mamarama_analysis.first_order:main',
            'flydra_video_image      = procgraph_flydra.video_image:main',
-           'rfsee_server = rfsee.rfsee_server:main' 
+           
+           'rfsee_server = rfsee.rfsee_server:main',
+           'rfsee_demo_pipe = rfsee.demo.demo_pipe:main',
+           'rfsee_demo_tcp = rfsee.demo.demo_tcp:main',
+           'rfsee_demo_tcp_benchmark = rfsee.demo.demo_tcp_benchmark:main',
         ]
       },
 )
