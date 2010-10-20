@@ -29,12 +29,23 @@ class Client:
         self.expect_ok_status()
         
     def render(self, position, attitude, linear_velocity_body, angular_velocity_body):
+        
+        # write the data as simple lists of floats
+        def simple(x):
+            return [x[0], x[1], x[2]]
+        
+        def simple_matrix(x):
+            return [ [ x[0, 0], x[0, 1], x[0, 2]],
+                     [ x[1, 0], x[1, 1], x[1, 2]],
+                     [ x[2, 0], x[2, 1], x[2, 2]]  ]
+        
+
         self.write_json({
             'method': 'render',
-            'position': position,
-            'attitude': attitude,
-            'linear_velocity_body': linear_velocity_body,
-            'angular_velocity_body': angular_velocity_body,
+            'position': simple(position),
+            'attitude': simple_matrix(attitude),
+            'linear_velocity_body': simple(linear_velocity_body),
+            'angular_velocity_body': simple(angular_velocity_body),
         });
         # FIXME ADD: BINARY MODE
         return self.expect_ok_status()
@@ -83,7 +94,6 @@ class Client:
             self.config('compute_mu', 1)
         else:
             self.config('compute_mu', 0)
-        
     
     # binary sending
     def config_use_binary(self, use):
@@ -93,6 +103,12 @@ class Client:
         else:
             self.config('write_binary', 0)
     
+    def config_use_white_arena(self):
+        ''' Tweak the OSG model such that the arena is displayed in white. 
+            (the posts are the only distinguishable entities. 
+            Call this before config_stimulus_xml().
+        '''
+        self.config('osg_params', {'white_arena': True})
     
 import socket
 
@@ -118,10 +134,10 @@ class ClientProcess(Client):
     process = None;
 
     def __init__(self, script_path='rfsee_server'):
-        self.process = subprocess.Popen(script_path, 
+        self.process = subprocess.Popen(script_path,
             bufsize=0,
-            stdout=subprocess.PIPE, 
-            stderr=sys.stderr, 
+            stdout=subprocess.PIPE,
+            stderr=sys.stderr,
             stdin=subprocess.PIPE)
         Client.__init__(self, self.process.stdout, self.process.stdin)
 

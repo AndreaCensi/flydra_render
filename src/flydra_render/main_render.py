@@ -84,22 +84,11 @@ def main():
 def render(rows, stimulus_xml, host=None, compute_mu=False,
            white=False):
     
-    if host is not None:
-        tokens = host.split(':')
-        if len(tokens) == 2:
-            hostname = tokens[0]
-            port = tokens[1]
-        else:
-            hostname = tokens[0]
-            port = 10781
-            
-        cp = ClientTCP(hostname, port)
-    else:
-        cp = ClientProcess()
-        
-    if white: # before stimulus_xml
-        cp.config('osg_params', {'white_arena': True})
+    cp = get_rfsee_client(host)
+    
 
+    if white: # before stimulus_xml
+        cp.config_use_white_arena()
 
     cp.config_stimulus_xml(stimulus_xml)    
     cp.config_compute_mu(compute_mu)
@@ -128,9 +117,7 @@ def render(rows, stimulus_xml, host=None, compute_mu=False,
         for a in [nearness, retinal_velocities]:
             for field in copy_fields:
                 a[field] = rows[:][field]
-     
-    #num_frames = 20
-    
+      
     pb = progress_bar('Rendering', num_frames)
     
     for i in range(num_frames):
@@ -140,18 +127,9 @@ def render(rows, stimulus_xml, host=None, compute_mu=False,
         attitude = rows[i]['attitude']
         linear_velocity_body = rows[i]['linear_velocity_body']
         angular_velocity_body = rows[i]['angular_velocity_body']
-        
-        def simple(x):
-            return [x[0], x[1], x[2]]
-        
-        def simple_matrix(x):
-            return [ [ x[0, 0], x[0, 1], x[0, 2]],
-                     [ x[1, 0], x[1, 1], x[1, 2]],
-                     [ x[2, 0], x[2, 1], x[2, 2]]  ]
-                     
-        res = cp.render(simple(position), simple_matrix(attitude),
-            simple(linear_velocity_body), simple(angular_velocity_body))
-
+         
+        res = cp.render(position, attitude, linear_velocity_body,
+                        angular_velocity_body)
         
         luminance['value'][i] = numpy.array(res['luminance'])
         
@@ -168,6 +146,27 @@ def render(rows, stimulus_xml, host=None, compute_mu=False,
 
     return res
     
+
+def get_rfsee_client(host):
+    ''' Returns an instance of a rfsee client.
+        If host = None, use local process.
+        Otherwise, interpret host as "hostname[:port]" for 
+        a remote instance. '''
+    
+    if host is not None:
+        tokens = host.split(':')
+        if len(tokens) == 2:
+            hostname = tokens[0]
+            port = tokens[1]
+        else:
+            hostname = tokens[0]
+            port = 10781
+            
+        client = ClientTCP(hostname, port)
+    else:
+        client = ClientProcess()
+        
+    return client
 
 if __name__ == '__main__':
     main()

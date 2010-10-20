@@ -1,14 +1,13 @@
 #!/usr/bin/env python
-import   os, numpy, sys, tables
-from optparse import OptionParser 
-from flydra_render import logger
+import  os, numpy, sys
+from optparse import OptionParser
+ 
 from geometric_saccade_detector.flydra_db_utils import get_good_files
-from rfsee.rfsee_client import ClientTCP
 
+from flydra_render import logger
 from flydra_render.filtering import filter_rows
 from flydra_render.flydra_db_utils import get_good_smoothed_tracks
 from flydra_render.db import FlydraDB
-
 
 
 def main():

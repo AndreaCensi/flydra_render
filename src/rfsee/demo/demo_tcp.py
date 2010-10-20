@@ -9,7 +9,6 @@ def main():
     if len(sys.argv) > 1:
         host = sys.argv[1]
     
-    
     cp = ClientTCP(host, port)
     
     cp.config_stimulus_xml('/home/andrea/landing/20080626/4postsA.xml')

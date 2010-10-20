@@ -1,7 +1,7 @@
 from flydra_render.db import FlydraDB
 import numpy
 from compmake.jobs.progress import progress
-from mamarama_analysis.mycov import slowcov
+#from mamarama_analysis.mycov import slowcov
 
 
 def weighted_average(A, Aweight, B, Bweight=1):
@@ -38,14 +38,16 @@ def compute_image_mean(db, samples, image):
         progress('Computing mean %s' % image,
                  (i, len(samples)), "Sample %s" % id)
     
-        if not (db.has_sample(id) and db.has_image(id, image)):
-            raise ValueError('Not enough data for id %s' % id)
+        if not (db.has_sample(id) and db.has_table(id, image)):
+            raise ValueError('No table "%s" for id %s' % (image, id))
         
-        data = db.get_image(id, image)
+        data = db.get_table(id, image)
         
         values = data[:]['value']
         
         ex.update(values.mean(axis=0), len(data))
+        
+        db.release_table(data)
 
     return ex.get_value()
             
@@ -64,10 +66,10 @@ def compute_image_cov(db, samples, image):
         progress('Computing covariance of %s' % image,
                  (i, len(samples)), "Sample %s" % id)
         
-        if not (db.has_sample(id) and db.has_image(id, image)):
+        if not (db.has_sample(id) and db.has_table(id, image)):
             raise ValueError('Not enough data for id %s' % id)
         
-        data = db.get_image(id, image)
+        data = db.get_table(id, image)
         
         #print "copying values (%s)" % len(data)
         #values = numpy.array().copy()
@@ -78,6 +80,8 @@ def compute_image_cov(db, samples, image):
         cov_sample = numpy.cov(values, rowvar=0) 
          
         ex.update(cov_sample, len(data))
+
+        db.release_table(data)
 
     return ex.get_value()
             
