@@ -4,7 +4,7 @@ from flydra_render.db import FlydraDB
 def main():
     directory = sys.argv[-1]
 
-    db = FlydraDB(directory)
+    db = FlydraDB(directory) 
     
     samples = db.list_samples()
     if not samples:
@@ -14,8 +14,10 @@ def main():
         print "Sample %s" % id
         
         for table in db.list_tables(id):    
-	    if table != 'images':
-            	print ' - %s: %d' % (table, len(db.get_table(id, table)))
+            if table != 'images':
+                t = db.get_table(id, table)
+                print ' - %s: %d' % (table, len(t))
+                db.release_table(t)
         
         for att in db.list_attr(id):
             s = str(db.get_attr(id, att))

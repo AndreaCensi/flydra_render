@@ -4,6 +4,9 @@ import tables
 import os
 import tempfile
 
+from flydra_render.tables_cache import tc_open_for_reading, \
+    tc_open_for_writing, tc_close
+
 FLYDRA_ROOT = 'flydra'
 
 class FlydraDB:
@@ -51,7 +54,7 @@ class FlydraDB:
         return self.samples._f_getChild(id) 
         
     def close(self):
-        self.index.close()
+        tc_close(self.index)
 
     def set_table(self, id, attname, data):
         sample_group = self.get_sample_group(id)
@@ -61,10 +64,13 @@ class FlydraDB:
             os.unlink(filename)
         
         print "Writing on file '%s'." % filename
-        f = tables.openFile(filename, 'w')
-        filters = tables.Filters(complevel=1, complib='zlib', fletcher32=True)
+        f = tc_open_for_writing(filename)
+        filters = tables.Filters(complevel=1, complib='zlib',
+                                 fletcher32=True)
+        
         rows_table = f.createTable(sample_group._v_pathname, attname,
-                                   data, createparents=True, filters=filters)
+                                   data, createparents=True,
+                                   filters=filters)
                                    
         if attname in sample_group:
             # print "Removing previous link"
@@ -72,7 +78,7 @@ class FlydraDB:
             
         self.index.createExternalLink(sample_group, attname,
                                       rows_table, warn16incompat=False)
-        f.close()
+        tc_close(f)
         
     def has_table(self, id, attname):
         assert self.has_sample(id)
@@ -84,70 +90,101 @@ class FlydraDB:
         return list(sample_group._v_children)
         
     def get_table(self, id, attname):
+        ''' Gets the table for reading. '''
         assert self.has_table(id, attname)    
         ref = self.get_sample_group(id)._f_getChild(attname)
-        return ref(mode='a') # dereference
+        # dereference locally, so we keep a reference count
+        filename, target = ref._get_filename_node()
+        external = tc_open_for_reading(filename)
+        return external.getNode(target)
+        # return ref(mode='a') # dereference
+
+    def release_table(self, table):
+        ''' Releases the table (if nobody else is reading it, it
+        will be closed.) '''
+        tc_close(table._v_file)
 
     def has_attr(self, id, key):
         if not self.has_rows(id):
             return False
-        attrs = self.get_rows(id)._v_attrs
-        return key in attrs
+        rows = self.get_rows(id)
+        attrs = rows._v_attrs
+        have = key in attrs
+        self.release_table(rows)
+        return have
      
     def set_attr(self, id, key, value):
-        attrs = self.get_rows(id)._v_attrs
+        rows = self.get_rows(id)
+        attrs = rows._v_attrs
         attrs.__setattr__(key, value)
+        self.release_table(rows)
  
     not_specified = 'not-specified'
     def get_attr(self, id, key, default=not_specified):
-        if not self.has_attr(id, key) and default != FlydraDB.not_specified:
+        if not self.has_attr(id, key) and \
+            default != FlydraDB.not_specified:
             return default
-        attrs = self.get_rows(id)._v_attrs
-        return attrs.__getattr__(key)
+        rows = self.get_rows(id)
+        attrs = rows._v_attrs
+        value = attrs.__getattr__(key)
+        self.release_table(rows)
+        return value
     
     def list_attr(self, id):
         if not self.has_rows(id):
             return []
-        attrs = self.get_rows(id)._v_attrs
-        return attrs._v_attrnamesuser
+        rows = self.get_rows(id)
+        attrs = rows._v_attrs
+        names = list(attrs._v_attrnamesuser)
+        self.release_table(rows)
+        return names
+ 
+    # shortcuts for saccades and rows tables
  
     def has_saccades(self, id):
         return self.has_table(id, 'saccades')
+    
     def get_saccades(self, id):
         return self.get_table(id, 'saccades')
+    
     def set_saccades(self, id, table):
         return self.set_table(id, 'saccades', table)
     
     def has_rows(self, id):
         return self.has_table(id, 'rows')
+    
     def get_rows(self, id):
         return self.get_table(id, 'rows')
+    
     def set_rows(self, id, table):
         return self.set_table(id, 'rows', table)
-    
+
 
 def db_summary(directory):
     files = locate_roots('*.h5', directory)
     
-    fid, summary_file = tempfile.mkstemp(suffix='.h5', prefix='index', dir=directory)
+    fid, summary_file = tempfile.mkstemp(suffix='.h5',
+                                         prefix='index', dir=directory)
     
     #summary_file = os.path.join(directory, 'index.h5')
-    summary = tables.openFile(summary_file, 'a')
+    summary = tc_open_for_writing(summary_file)
     for file in files:
         # do not consider the index itself
         if os.path.basename(file).startswith('index'):
             continue
         
-        f = tables.openFile(file, 'a')
+        # print "Trying to open %s" % file
+        f = tc_open_for_reading(file)
 
         if not FLYDRA_ROOT in f.root:
-            print 'Ignoring file %s' % os.path.basename(file)
+            print 'Ignoring file %s: no data belonging to Flydra DB' % \
+                os.path.basename(file)
             continue
         
-        link_everything(src=f, dst=summary, src_filename=os.path.basename(file))
+        link_everything(src=f, dst=summary,
+                        src_filename=os.path.basename(file))
      
-    # XXX if you close it, there will be concurrency problems   
-    #    f.close()
+        tc_close(f)
     
     return summary
         
@@ -164,7 +201,8 @@ def link_everything(src, dst, src_filename):
             child = table._v_name
 
             if not table._v_pathname in dst:
-                dst.createExternalLink(parent, child, table, warn16incompat=False)
+                dst.createExternalLink(parent, child,
+                                       table, warn16incompat=False)
 
 
     
