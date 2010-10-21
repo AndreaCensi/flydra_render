@@ -10,7 +10,7 @@ description = """
 
 Usage: ::
 
-    $ flydra_render_saccades --db <flydra db>  [--white] [--nocache]
+    $ flydra_render_saccades --db <flydra db>  [--white] [--nocache] [IDs]
 
 This program iterates over the ``saccades`` table, and renders the scene 
 at the beginning and end of the saccade.
@@ -75,9 +75,11 @@ def main():
     if options.white:
         target_start = 'saccades_view_start_luminance_w'
         target_stop = 'saccades_view_stop_luminance_w'
+        target_rstop = 'saccades_view_stop_luminance_w'
     else:
         target_start = 'saccades_view_start_luminance'
         target_stop = 'saccades_view_stop_luminance'
+        target_rstop = 'saccades_view_rstop_luminance'
     
     for i, sample_id in enumerate(do_samples):
         
@@ -95,7 +97,9 @@ def main():
        
         # todo: check stale dependencies
         if db.has_table(sample_id, target_start) and \
-            db.has_table(sample_id, target_stop) and not options.nocache:
+            db.has_table(sample_id, target_stop) and \
+            db.has_table(sample_id, target_rstop) and \
+            not options.nocache:
             logger.info('Targets already computed for %s; skipping' % sample_id)
             continue
         
@@ -103,7 +107,7 @@ def main():
         stimulus_xml = db.get_attr(sample_id, 'stimulus_xml')
         saccades = db.get_saccades(sample_id)
         
-        view_start, view_stop = render_saccades_view(
+        view_start, view_stop, view_rstop = render_saccades_view(
             saccades=saccades,
             stimulus_xml=stimulus_xml,
             host=options.host,
@@ -111,6 +115,7 @@ def main():
    
         db.set_table(sample_id, target_start, view_start)
         db.set_table(sample_id, target_stop, view_stop)
+        db.set_table(sample_id, target_rstop, view_rstop)
          
    
 def render_saccades_view(saccades, stimulus_xml, host=None, white=False):
@@ -130,7 +135,9 @@ def render_saccades_view(saccades, stimulus_xml, host=None, white=False):
              ('value', ('float32', 1398))]
     view_start = numpy.zeros(shape=(num_frames,), dtype=dtype)
     view_stop = numpy.zeros(shape=(num_frames,), dtype=dtype)
+    view_rstop = numpy.zeros(shape=(num_frames,), dtype=dtype)
      
+    
     
     pb = progress_bar('Rendering saccades', num_frames)
     
@@ -141,9 +148,17 @@ def render_saccades_view(saccades, stimulus_xml, host=None, white=False):
         orientation_start = numpy.radians(saccade['orientation_start'])
         orientation_stop = numpy.radians(saccade['orientation_stop'])
         
+        # simulate how it would look like sampling from a random distribution
+        random_index = numpy.random.randint(0, len(saccades))
+        random_displacement = \
+            numpy.radians(saccades[random_index]['amplitude']) * \
+            saccades[random_index]['sign']
+        orientation_rstop = orientation_start + random_displacement
+        
         position = saccade['position']
         attitude_start = rotz(orientation_start)
         attitude_stop = rotz(orientation_stop)
+        attitude_rstop = rotz(orientation_rstop)
         linear_velocity_body = [0, 0, 0]
         angular_velocity_body = [0, 0, 0]
         
@@ -153,22 +168,24 @@ def render_saccades_view(saccades, stimulus_xml, host=None, white=False):
         res_stop = client.render(position, attitude_stop,
                                   linear_velocity_body,
                                   angular_velocity_body)
+        res_rstop = client.render(position, attitude_rstop,
+                                  linear_velocity_body,
+                                  angular_velocity_body)
         
         view_start['value'][i] = numpy.array(res_start['luminance'])
         view_stop['value'][i] = numpy.array(res_stop['luminance'])
+        view_rstop['value'][i] = numpy.array(res_rstop['luminance'])
         
-        # copy other frames
-        view_start['frame'][i] = saccades[i]['frame']
-        view_stop['frame'][i] = saccades[i]['frame']
-        view_start['obj_id'][i] = saccades[i]['obj_id']
-        view_stop['obj_id'][i] = saccades[i]['obj_id']
-        view_start['time'][i] = saccades[i]['time_middle']
-        view_stop['time'][i] = saccades[i]['time_middle']
-        
+        # copy other fields
+        for arr in [view_start, view_stop, view_rstop]:
+            arr['frame'][i] = saccades[i]['frame']
+            arr['obj_id'][i] = saccades[i]['obj_id']
+            arr['time'][i] = saccades[i]['time_middle']
+             
     
     client.close()
 
-    return view_start, view_stop
+    return view_start, view_stop, view_rstop
 
 def rotz(theta):
     return numpy.array([ 

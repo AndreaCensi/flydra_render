@@ -41,6 +41,7 @@ def main():
 
     view_start = 'saccades_view_start_%s' % options.image
     view_stop = 'saccades_view_stop_%s' % options.image
+    view_rstop = 'saccades_view_rstop_%s' % options.image
     
 
     db = FlydraDB(options.db)
@@ -49,7 +50,9 @@ def main():
     
     # all samples with enough data
     all_available = lambda x: db.has_saccades(x) and \
-        db.has_table(x, view_start) and db.has_table(x, view_stop)
+        db.has_table(x, view_start) and \
+        db.has_table(x, view_stop) and \
+        db.has_table(x, view_rstop)
     
     # select with and without posts     
     posts = lambda x: all_available(x) and \
@@ -94,6 +97,10 @@ def main():
                         group_samples, view_stop,
                         job_id='%s-mean_stop' % group_name)
         
+        data['mean_rstop'] = comp(compute_image_mean, options.db,
+                        group_samples, view_rstop,
+                        job_id='%s-mean_rstop' % group_name)
+        
         report = comp(create_report, group_name, data, options.image)
         all_reports.append(report)
         
@@ -116,6 +123,9 @@ def create_report(group_name, data, image_name):
         
     with r.data_pylab('mean_stop') as pylab:
         pylab.imshow(values2retina(data['mean_stop']))
+    
+    with r.data_pylab('mean_rstop') as pylab:
+        pylab.imshow(values2retina(data['mean_rstop']))
         
     diff = data['mean_stop'] - data['mean_start']
     with r.data_pylab('diff') as pylab:
@@ -125,6 +135,7 @@ def create_report(group_name, data, image_name):
     f = r.figure()
     f.sub('mean_start', 'Mean %s at saccade start' % image_name)
     f.sub('mean_stop', 'Mean %s at saccade stop' % image_name)
+    f.sub('mean_rstop', 'Mean %s at random stop' % image_name)
     f.sub('diff')
 
     return r
