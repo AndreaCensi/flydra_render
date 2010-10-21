@@ -38,7 +38,6 @@ def main():
         logger.error('Please specify a directory using --db.')
         sys.exit(-1)
 
-
     view_start = 'saccades_view_start_%s' % options.image
     view_stop = 'saccades_view_stop_%s' % options.image
     view_rstop = 'saccades_view_rstop_%s' % options.image

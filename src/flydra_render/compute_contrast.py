@@ -16,7 +16,8 @@ def main():
     parser.add_option("--nocache", help="Ignores already computed results.",
                       default=False, action="store_true")    
     
-    parser.add_option("--sigma", help="Kernel spread (degrees)", type="float", default=3)
+    parser.add_option("--sigma", help="Kernel spread (degrees)",
+                      type="float", default=3)
    
     parser.add_option("--source", default='luminance', help="Source table")
     parser.add_option("--target", default='contrast', help="Destination table")
@@ -69,8 +70,8 @@ def main():
         
         db.set_table(sample_id, options.target, contrast)
         
-
-
+        db.release_table(luminance)
+        
 
 def compute_contrast(luminance, distance_matrix, sigma):
     kernel = numpy.exp(-distance_matrix / sigma)
@@ -89,6 +90,7 @@ def compute_contrast(luminance, distance_matrix, sigma):
         contrast[i]['value'][:] = c
         
     return contrast
+
     
 def intrinsic_contrast(luminance, kernel):
     n = len(luminance)
@@ -108,6 +110,7 @@ def intrinsic_contrast(luminance, kernel):
     assert numpy.all(numpy.isfinite(contrast))
     return contrast
 
+
 def create_distance_matrix(directions):
     n = len(directions)
     
@@ -126,14 +129,7 @@ def create_distance_matrix(directions):
     
         D[i, :] = numpy.arccos(dot_product)
          
-    return D
-    
-    
-    
-    
-    
-    
-
+    return D 
 
 
 if __name__ == '__main__':

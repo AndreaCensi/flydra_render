@@ -8,11 +8,59 @@ from flydra_render.db import FlydraDB
 from procgraph_flydra.values2retina import values2retina
 
 from mamarama_analysis import logger
-from mamarama_analysis.covariance import compute_image_mean, compute_image_cov
-from mamarama_analysis.actions import compute_presaccade_action, compute_rawcorr
+
 import numpy
 from procgraph.components.images.copied_from_reprep import posneg
+from mamarama_analysis.first_order_intervals import interval_fast, interval_all
+from mamarama_analysis.actions import compute_signal_correlation
 
+
+description = """
+
+    samples groups   (all, posts, noposts)
+    time interval    (all, fast)
+    image            (contrast, contrast_w, ...)
+    signal/component (vx,vy,vz,...) (which index: None, 0,1...)
+    signal_op        (identity, sign)
+
+"""
+
+# (id, desc, field, component
+signal_specs = [
+        ('vx', 'Forward velocity', 'linear_velocity_body', 0),
+        ('vy', 'Forward velocity', 'linear_velocity_body', 1),
+        ('vz', 'Forward velocity', 'linear_velocity_body', 2),
+        ('avel', 'Angular velocity', 'reduced_angular_velocity', None),
+        ('aacc', 'Angular acceleration', 'reduced_angular_acceleration', None)
+]
+
+# (id, desc, function)
+signal_op_specs = [
+        ('sign', 'Sign', numpy.sign),
+        ('id', 'Raw', lambda x:x)            
+]
+
+# (table, desc) 
+image_specs = [
+        ('luminance', 'Raw luminance'),
+        ('luminance_w', 'Raw luminance (only posts)'),
+        ('contrast', 'Contrast'),
+        ('contrast_w', 'Contrast (only posts)'),
+]
+
+# (id, desc, interval_function)
+# interval_function gets as arguments (FlydraDB, sample_id)
+# and should return a boolean array, the length of the "rows" table,
+# indicating which time instant should be included in the computation.
+interval_specs = [
+        ('allt', 'All times', interval_all),
+        ('fast', 'Fast motion', interval_fast),
+]   
+
+group_specs = [
+        ('posts', 'Samples with posts'),
+        ('noposts', 'Samples without posts'),
+] 
 
 
 def main():
@@ -31,161 +79,80 @@ def main():
 
     groups = {}
     groups['all'] = set(db.list_samples()) 
-    groups['has_rows'] = set(filter(lambda x: db.has_rows(x), groups['all']))
-    groups['has_contrast'] = set(filter(lambda x: 
-                                        db.has_image(x, 'contrast') and
-                                        db.has_image(x, 'luminance'),
-                                    groups['all']))
-    groups['has_saccades'] = set(filter(lambda x: db.has_saccades(x), groups['all']))
-    groups['posts'] = set(filter(lambda x: db.get_attr(x, 'stimulus', None) != 'nopost',
-                                  groups['all']))
+    
+
+    groups['posts'] = set(filter(
+                      lambda x: db.get_attr(x, 'stimulus', None) != 'nopost',
+                      groups['all']))
     groups['noposts'] = set(filter(lambda x: db.get_attr(x, 'stimulus', None) == 'nopost',
-                                groups['all']))
-    
-    
-    groups['posts+contrast'] = groups['posts']. \
-            intersection(groups['has_contrast']).\
-            intersection(groups['has_saccades'])
-    groups['noposts+contrast'] = groups['noposts'].\
-            intersection(groups['has_contrast']).\
-            intersection(groups['has_saccades'])
+                      groups['all']))
     
     all_reports = []
     
-    use_groups = ['posts+contrast', 'noposts+contrast']
-    
-    set_namespace('first_order')
-    for group_name in use_groups:
-        samples = groups[group_name]
-        
-        # only a representation
-#        if len(samples) > 5:
-#            samples = list(samples)[0:5]
-        
-        print 'group %s: %s' % (group_name, samples)        
-        
-        comp_prefix(group_name)
-        
-        data = {}
-        for i in ['luminance', 'contrast']:
-            mean = comp(compute_image_mean, options.db,
-                        samples, i, job_id='mean_%s' % i)
-            cov = comp(compute_image_cov, options.db,
-                        samples, i, job_id='cov_%s' % i)
-            action_id = comp(compute_presaccade_action, options.db,
-                                      samples, i, False, job_id='%s_action_id' % i)
-            action_sign = comp(compute_presaccade_action, options.db,
-                              samples, i, True, job_id='%s_action_sign' % i)
+    for group_spec in group_specs:
+        for interval_spec in interval_specs:
+            for signal_spec in signal_specs:
+                for signal_op_spec in signal_op_specs:
+                    for image_spec in image_specs:
+                        
+                        group_id, group_desc, group = group_spec
+                        interval_id, interval_desc, interval_function = interval_spec
+                        signal_id, signal_desc, signal, signal_component = signal_spec
+                        signal_op_id, signal_op_desc, signal_op_function = signal_op_spec
+                        image_id, image_desc = image_spec
+                        
+                        exp_id = '{group_id}-{interval_id}-{signal_id}' \
+                                 '-{signal_op_id}-{image_id}'.format(locals())
+                                 
+                        description = """
+Experiment-ID: {exp_id}
 
-            action_id_norm = comp(normalization, action_id, cov)
-            action_sign_norm = comp(normalization, action_sign, cov)
-            
-            data['mean_%s' % i] = mean 
-            data['cov_%s' % i ] = cov
-        
-            data['%s_action_id' % i] = action_id 
-            data['%s_action_sign' % i] = action_sign
-            
-            
-            data['%s_action_sign_norm' % i] = action_sign_norm
-            data['%s_action_id_norm' % i] = action_id_norm
-             
-        
-        for i in ['luminance', 'contrast']:
-            signals = [
-                ('vx', 'linear_velocity_body', 0),
-                ('vy', 'linear_velocity_body', 1),
-                ('vz', 'linear_velocity_body', 2),
-                ('avel', 'reduced_angular_velocity', None),
-                ('aacc', 'reduced_angular_acceleration', None)
-            ]
-            for name, signal, index in signals:
-                for use_sign in [True, False]:
-                    exp_name = 'rawcorr_%s_%s_%s' % (i, name,
-                            {True:'sign', False:'id'}[use_sign])
-                
-                    data[exp_name] = comp(compute_rawcorr, options.db,
-                                      samples, i, signal, index, use_sign,
-                                      job_id=exp_name)
+Group: {group_id} --- {group_desc}
+Interval: {interval_id} --- {interval_desc}
+Signal: {signal_id} --- {signal_desc}
+SignalOp: {signal_op_id} --- {signal_desc}
+Image: {image_id} --- {image_desc}
+""".format(locals())
+                           
+                    
+                        samples = groups[group]
+                        
+                        data = comp(compute_signal_correlation,
+                            db=options.db,
+                            interval_function=interval_function,
+                            samples=samples,
+                            image=image_id,
+                            signal=signal,
+                            signal_component=signal_component,
+                            signal_op=signal_op_function
+                        )
+                        
+                        report = comp(create_report, exp_id, data)
+                        
+                        comp(write_report, report, options.db, exp_id)
 
-        report = comp(create_report, group_name, data)
-        all_reports.append(report)
-        
-    comp_prefix()
-
-    comp(write_report, all_reports, options.db)
     compmake_console()
     
-    
-def normalization(field, cov):
-    #return numpy.linalg.solve(cov, field)
-    return numpy.dot(numpy.linalg.pinv(cov), field)
+#    
+#def normalization(field, cov):
+#    #return numpy.linalg.solve(cov, field)
+#    return numpy.dot(numpy.linalg.pinv(cov), field)
 
-def create_report(group_name, data):
-    r = Report(group_name)
+def create_report(exp_id, data):
+    r = Report(exp_id)
     
     
-    for m in ['luminance', 'contrast']:
-    
-        rm = r.node('%s_statistics' % m)
-        
-        f = rm.figure('%s statistics' % m, shape=(3, 3))
+    with r.data_pylab('correlation') as pylab:
+        pylab.imshow(values2retina(data['correlation']))
             
-        mean = data['mean_%s' % m]
-        cov = data['cov_%s' % m]
-        
-        with rm.data_pylab('mean') as pylab:
-            pylab.imshow(values2retina(mean))
-        
-        with rm.data_pylab('var') as pylab:
-            pylab.imshow(values2retina(cov.diagonal()))
-        
-        with rm.data_pylab('cov') as pylab:
-            pylab.imshow(cov)
-        
-            
-        f.sub('mean', '%s mean' % m)
-        f.sub('var', '%s variance' % m)
-        f.sub('cov', '%s covariance' % m)
-        
-        action_sign = data['%s_action_sign' % m]
-        action_id = data['%s_action_id' % m]
-        action_sign_n = data['%s_action_sign_norm' % m]
-        action_id_n = data['%s_action_id_norm' % m]
-        
-        with rm.data_pylab('action_sign') as pylab:
-            pylab.imshow(posneg(values2retina(action_sign)))
-        with rm.data_pylab('action_sign_norm') as pylab:
-            pylab.imshow(posneg(values2retina(action_sign_n)))
-        
-        with rm.data_pylab('action_id') as pylab:
-            pylab.imshow(posneg(values2retina(action_id)))
-        with rm.data_pylab('action_id_norm') as pylab:
-            pylab.imshow(posneg(values2retina(action_id_n)))
-        
-        f.sub('action_id', 'E{%s * action}' % m)
-        f.sub('action_id_norm', 'E{%s * action} / cov' % m)
-        f.sub('action_sign', 'E{%s * sign(action)}' % m)
-        f.sub('action_sign_norm', 'E{%s * sign(action)} / cov' % m)
-        
-    f = r.figure('rawcorr', shape=(3, 4))
-    for exp, field in data.items():
-        if exp.startswith('rawcorr'):
-            with r.data_pylab(exp) as pylab:
-                pylab.imshow(posneg(values2retina(field, background=0)))                
-            f.sub(exp)
+    f = r.figure()
+    f.sub('correlation')
+
     return r
 
-def write_report(reports, db):
-    output_file = os.path.join(db, 'out/first_order/report/index.html')
-    r = Report('first_order', children=reports)
-    r.to_html(output_file)
-    
-    
+def write_report(report, db, exp_id):
+    output_file = os.path.join(db, 'out/first_order/reports/%s.html' % exp_id)
+    report.to_html(output_file)
+
     
         
-        
-    
-    
-        
-         
