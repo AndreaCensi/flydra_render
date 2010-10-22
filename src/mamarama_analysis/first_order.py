@@ -1,7 +1,7 @@
 from optparse import OptionParser
 import sys, os
 
-from compmake import comp, compmake_console,set_namespace,comp_prefix
+from compmake import comp, compmake_console, set_namespace, comp_prefix
 
 from flydra_render.db import FlydraDB
 from procgraph_flydra.values2retina import values2retina
@@ -14,6 +14,7 @@ from mamarama_analysis.actions import compute_signal_correlation
 
 from reprep import Report  
 from reprep.graphics.posneg import posneg
+from reprep.graphics.scale import scale
 
 
 description = """
@@ -160,14 +161,12 @@ def create_report(exp_id, data):
     
     C = data['correlation']
     
-    action = C[0,1:]
+    action = C[0, 1:]
+    image_mean = data['image_mean']
     
-    with r.data_pylab('action') as pylab:
-        pylab.imshow(posneg(values2retina(action)))
-
-    with r.data_pylab('image_mean') as pylab:
-        pylab.imshow(posneg(values2retina(data['image_mean'])))
-            
+    r.data('action', action).data_rgb('posneg', posneg(values2retina(action)))
+    r.data('image_mean', image_mean).data_rgb('scale', scale(values2retina(image_mean)))
+                
     f = r.figure()
     f.sub('action')
     f.sub('image_mean')

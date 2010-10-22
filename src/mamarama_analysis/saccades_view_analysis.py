@@ -12,6 +12,7 @@ from mamarama_analysis.covariance import compute_image_mean
 
 import numpy
 from reprep.graphics.posneg import posneg
+from reprep.graphics.scale import scale
 
 description = """
 
@@ -23,7 +24,7 @@ description = """
 def main():
     parser = OptionParser()
 
-    parser.add_option("--db", default='flydra_render_output',
+    parser.add_option("--db", default='flydra_db',
                       help="Data directory")
 
     parser.add_option("--image", default="luminance",
@@ -110,25 +111,31 @@ def main():
 def create_report(group_name, data, image_name):
     r = Report(group_name)
     
-    with r.data_pylab('mean_start') as pylab:
-        pylab.imshow(values2retina(data['mean_start']))
-        
-    with r.data_pylab('mean_stop') as pylab:
-        pylab.imshow(values2retina(data['mean_stop']))
+    data = dict(**data)
     
-    with r.data_pylab('mean_rstop') as pylab:
-        pylab.imshow(values2retina(data['mean_rstop']))
+    data['stop_minus_start'] = data['mean_stop'] - data['mean_start'] 
+    data['rstop_minus_start'] = data['mean_rstop'] - data['mean_start']
+    data['rstop_minus_stop'] = data['mean_rstop'] - data['mean_stop']
+
+    keys = ['mean_start', 'mean_stop', 'mean_rstop']
+    max_value = numpy.max(map(lambda x: numpy.max(data[x]), keys))
+    for k in keys:
+        val = data[k]
+        r.data(k, val).data_rgb('retina', scale(values2retina(val), max_value=max_value))
+
+    keys = ['stop_minus_start', 'rstop_minus_start', 'rstop_minus_stop']
+    for k in keys:
+        val = data[k]
+        r.data(k, val).data_rgb('retina', posneg(values2retina(val)))
         
-    diff = data['mean_stop'] - data['mean_start']
-    with r.data_pylab('diff') as pylab:
-        pylab.imshow(posneg(values2retina(diff, 0)))
-    
         
-    f = r.figure()
+    f = r.figure(shape=(2, 3))
     f.sub('mean_start', 'Mean %s at saccade start' % image_name)
     f.sub('mean_stop', 'Mean %s at saccade stop' % image_name)
     f.sub('mean_rstop', 'Mean %s at random stop' % image_name)
-    f.sub('diff')
+    f.sub('stop_minus_start')
+    f.sub('rstop_minus_start')
+    f.sub('rstop_minus_stop')
 
     return r
 

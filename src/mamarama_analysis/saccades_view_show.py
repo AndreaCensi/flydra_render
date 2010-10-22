@@ -81,17 +81,14 @@ def create_and_write_report(flydra_db, sample, image_name):
         
         ri = r.node("saccade-%04d" % i)
         
-        with ri.data_pylab('start') as pylab:
-            pylab.imshow(plot_luminance(values_start[i]['value']))
-        with ri.data_pylab('stop') as pylab:
-            pylab.imshow(plot_luminance(values_stop[i]['value']))
-        with ri.data_pylab('rstop') as pylab:
-            pylab.imshow(plot_luminance(values_rstop[i]['value']))
-    
+        ri.data_rgb('start', plot_luminance(values_start[i]['value']))
+        ri.data_rgb('stop', plot_luminance(values_stop[i]['value']))
+        ri.data_rgb('rstop', plot_luminance(values_rstop[i]['value']))
+        
         f = ri.figure(shape=(1, 3))
         f.sub('start', 'At saccade start')
         f.sub('stop', 'At saccade stop')
-        f.sub('rstop', '(random stop)')
+        #f.sub('rstop', '(random stop)')
 
 
     db.release_table(saccades)
