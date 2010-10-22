@@ -1,18 +1,19 @@
 from optparse import OptionParser
 import sys, os
 
-from compmake import comp, compmake_console, comp_prefix, set_namespace
-from reprep import Report
+from compmake import comp, compmake_console,set_namespace,comp_prefix
 
 from flydra_render.db import FlydraDB
 from procgraph_flydra.values2retina import values2retina
 
 from mamarama_analysis import logger
 
-import numpy
-from procgraph.components.images.copied_from_reprep import posneg
+import numpy 
 from mamarama_analysis.first_order_intervals import interval_fast, interval_all
 from mamarama_analysis.actions import compute_signal_correlation
+
+from reprep import Report  
+from reprep.graphics.posneg import posneg
 
 
 description = """
@@ -35,10 +36,17 @@ signal_specs = [
 ]
 
 # (id, desc, function)
+
+def op_sign(x):
+    return numpy.sign(x)
+def op_identity(x):
+    return x
+
 signal_op_specs = [
-        ('sign', 'Sign', numpy.sign),
-        ('id', 'Raw', lambda x:x)            
+        ('sign', 'Sign', op_sign),
+        ('id', 'Raw', op_identity)            
 ]
+
 
 # (table, desc) 
 image_specs = [
@@ -64,6 +72,8 @@ group_specs = [
 
 
 def main():
+    
+    set_namespace('first_order_new')
     parser = OptionParser()
 
     parser.add_option("--db", default='flydra_render_output',
@@ -95,14 +105,14 @@ def main():
                 for signal_op_spec in signal_op_specs:
                     for image_spec in image_specs:
                         
-                        group_id, group_desc, group = group_spec
+                        group_id, group_desc = group_spec
                         interval_id, interval_desc, interval_function = interval_spec
                         signal_id, signal_desc, signal, signal_component = signal_spec
                         signal_op_id, signal_op_desc, signal_op_function = signal_op_spec
                         image_id, image_desc = image_spec
-                        
-                        exp_id = '{group_id}-{interval_id}-{signal_id}' \
-                                 '-{signal_op_id}-{image_id}'.format(locals())
+                         
+                        exp_id = '{image_id}-{signal_id}-{signal_op_id}' \
+                                '-{group_id}-{interval_id}' .format(**locals())
                                  
                         description = """
 Experiment-ID: {exp_id}
@@ -112,10 +122,12 @@ Interval: {interval_id} --- {interval_desc}
 Signal: {signal_id} --- {signal_desc}
 SignalOp: {signal_op_id} --- {signal_desc}
 Image: {image_id} --- {image_desc}
-""".format(locals())
+""".format(**locals())
                            
                     
-                        samples = groups[group]
+                        samples = groups[group_id]
+                        
+                        comp_prefix(exp_id)
                         
                         data = comp(compute_signal_correlation,
                             db=options.db,
@@ -131,6 +143,8 @@ Image: {image_id} --- {image_desc}
                         
                         comp(write_report, report, options.db, exp_id)
 
+    comp_prefix()
+    
     compmake_console()
     
 #    
@@ -143,7 +157,7 @@ def create_report(exp_id, data):
     
     
     with r.data_pylab('correlation') as pylab:
-        pylab.imshow(values2retina(data['correlation']))
+        pylab.imshow(posneg(values2retina(data['correlation'])))
             
     f = r.figure()
     f.sub('correlation')

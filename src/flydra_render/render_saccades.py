@@ -74,8 +74,8 @@ def main():
     
     if options.white:
         target_start = 'saccades_view_start_luminance_w'
-        target_stop = 'saccades_view_stop_luminance_w'
-        target_rstop = 'saccades_view_stop_luminance_w'
+        target_stop =  'saccades_view_stop_luminance_w'
+        target_rstop = 'saccades_view_rstop_luminance_w'
     else:
         target_start = 'saccades_view_start_luminance'
         target_stop = 'saccades_view_stop_luminance'

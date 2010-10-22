@@ -4,7 +4,7 @@ config db     "Directory containing the flydra DB."
 config sample "Sample to consider."
 config image = luminance "Which image to plot."
 config outdir = "${db}/out" "Output directory where to place the movie."
-config filter = flydra_simple_video_filter "Which block used to convert retinal values to RGB"
+config filter = flydra_simple_video_filter "Which block used to convert retinal values to RGB."
 
 |data:flydra_db_image db=$db sample=$sample image=$image|
 
@@ -12,7 +12,7 @@ data.image --> |$filter| --> rgb
 
 file = "${outdir}/flydra_simple_video/${sample}-${image}.avi"
 
-rgb -->  |mencoder file=$file|
+rgb -->  |flydra_watermark sample=$sample title=$image | --> |mencoder file=$file fps=60|
 
 
 --- model flydra_simple_video_filter
