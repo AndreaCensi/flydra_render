@@ -20,8 +20,6 @@ description = """
 
 """
 
-
-
 def main():
     parser = OptionParser()
 
@@ -40,8 +38,7 @@ def main():
 
     view_start = 'saccades_view_start_%s' % options.image
     view_stop = 'saccades_view_stop_%s' % options.image
-    view_rstop = 'saccades_view_rstop_%s' % options.image
-    
+    view_rstop = 'saccades_view_rstop_%s' % options.image    
 
     db = FlydraDB(options.db)
 
@@ -82,9 +79,7 @@ def main():
         if not group_samples:
             raise Exception('Could not find any samples in group "%s".' 
                             % group_name) 
-        comp_prefix(group_name)
-        
-        print group_samples
+        comp_prefix(group_name) 
         
         data = {}
 
@@ -109,10 +104,8 @@ def main():
     comp(write_report, all_reports, options.db, filename)
     compmake_console()
     
+ 
     
-def normalization(field, cov):
-    #return numpy.linalg.solve(cov, field)
-    return numpy.dot(numpy.linalg.pinv(cov), field)
 
 def create_report(group_name, data, image_name):
     r = Report(group_name)

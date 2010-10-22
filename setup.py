@@ -16,8 +16,10 @@ setup(name='flydra_render',
            'mamarama_first_order      = mamarama_analysis.first_order:main',
            'flydra_video_image      = procgraph_flydra.video_image:main',
            
+           # saccade analysis
            'flydra_render_saccades    = flydra_render.render_saccades:main',
            'saccades_view_analysis    = mamarama_analysis.saccades_view_analysis:main',
+           'saccades_view_show        = mamarama_analysis.saccades_view_show:main',
            
            'rfsee_server = rfsee.rfsee_server:main',
            'rfsee_demo_pipe = rfsee.demo.demo_pipe:main',
