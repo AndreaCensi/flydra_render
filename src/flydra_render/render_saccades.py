@@ -71,14 +71,12 @@ def main():
         logger.info('Found %d/%d samples with saccades and stimulus info.' % 
                     (len(do_samples), len(all_samples)))
     
-    if options.white:
-        target_start = 'saccades_view_start_luminance_w'
-        target_stop =  'saccades_view_stop_luminance_w'
-        target_rstop = 'saccades_view_rstop_luminance_w'
-    else:
-        target_start = 'saccades_view_start_luminance'
-        target_stop = 'saccades_view_stop_luminance'
-        target_rstop = 'saccades_view_rstop_luminance'
+    image = 'luminance_w' if options.white else 'luminance'
+        
+    target_start = 'saccades_view_start_%s' % image
+    target_stop =  'saccades_view_stop_%s' % image
+    target_rstop = 'saccades_view_rstop_%s' % image
+    target_random = 'saccades_view_random_%s' % image
     
     for i, sample_id in enumerate(do_samples):
         
@@ -98,6 +96,7 @@ def main():
         if db.has_table(sample_id, target_start) and \
             db.has_table(sample_id, target_stop) and \
             db.has_table(sample_id, target_rstop) and \
+            db.has_table(sample_id, target_random) and \
             not options.nocache:
             logger.info('Targets already computed for %s; skipping' % sample_id)
             continue
@@ -106,7 +105,7 @@ def main():
         stimulus_xml = db.get_attr(sample_id, 'stimulus_xml')
         saccades = db.get_saccades(sample_id)
         
-        view_start, view_stop, view_rstop = render_saccades_view(
+        view_start, view_stop, view_rstop, view_random = render_saccades_view(
             saccades=saccades,
             stimulus_xml=stimulus_xml,
             host=options.host,
@@ -115,6 +114,7 @@ def main():
         db.set_table(sample_id, target_start, view_start)
         db.set_table(sample_id, target_stop, view_stop)
         db.set_table(sample_id, target_rstop, view_rstop)
+        db.set_table(sample_id, target_random, view_random)
          
    
 def render_saccades_view(saccades, stimulus_xml, host=None, white=False):
@@ -135,8 +135,7 @@ def render_saccades_view(saccades, stimulus_xml, host=None, white=False):
     view_start = numpy.zeros(shape=(num_frames,), dtype=dtype)
     view_stop = numpy.zeros(shape=(num_frames,), dtype=dtype)
     view_rstop = numpy.zeros(shape=(num_frames,), dtype=dtype)
-     
-    
+    view_random = numpy.zeros(shape=(num_frames,), dtype=dtype)
     
     pb = progress_bar('Rendering saccades', num_frames)
     
@@ -154,10 +153,14 @@ def render_saccades_view(saccades, stimulus_xml, host=None, white=False):
             saccades[random_index]['sign']
         orientation_rstop = orientation_start + random_displacement
         
+        # finally, a random orientation
+        orientation_random = numpy.random.rand() * 2 * numpy.pi
+        
         position = saccade['position']
         attitude_start = rotz(orientation_start)
         attitude_stop = rotz(orientation_stop)
         attitude_rstop = rotz(orientation_rstop)
+        attitude_random = rotz(orientation_random)
         linear_velocity_body = [0, 0, 0]
         angular_velocity_body = [0, 0, 0]
         
@@ -170,13 +173,17 @@ def render_saccades_view(saccades, stimulus_xml, host=None, white=False):
         res_rstop = client.render(position, attitude_rstop,
                                   linear_velocity_body,
                                   angular_velocity_body)
+        res_random = client.render(position, attitude_random,
+                                  linear_velocity_body,
+                                  angular_velocity_body)
         
         view_start['value'][i] = numpy.array(res_start['luminance'])
         view_stop['value'][i] = numpy.array(res_stop['luminance'])
         view_rstop['value'][i] = numpy.array(res_rstop['luminance'])
+        view_random['value'][i] = numpy.array(res_random['luminance'])
         
         # copy other fields
-        for arr in [view_start, view_stop, view_rstop]:
+        for arr in [view_start, view_stop, view_rstop, view_random]:
             arr['frame'][i] = saccades[i]['frame']
             arr['obj_id'][i] = saccades[i]['obj_id']
             arr['time'][i] = saccades[i]['time_middle']
@@ -184,7 +191,7 @@ def render_saccades_view(saccades, stimulus_xml, host=None, white=False):
     
     client.close()
 
-    return view_start, view_stop, view_rstop
+    return view_start, view_stop, view_rstop, view_random
 
 def rotz(theta):
     return numpy.array([ 

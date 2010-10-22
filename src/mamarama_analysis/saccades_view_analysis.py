@@ -8,7 +8,7 @@ from flydra_render.db import FlydraDB
 from procgraph_flydra.values2retina import values2retina
 
 from mamarama_analysis import logger
-from mamarama_analysis.covariance import compute_image_mean
+from mamarama_analysis.covariance import compute_image_mean, compute_image_var
 
 import numpy
 from reprep.graphics.posneg import posneg
@@ -37,9 +37,9 @@ def main():
         logger.error('Please specify a directory using --db.')
         sys.exit(-1)
 
-    view_start = 'saccades_view_start_%s' % options.image
-    view_stop = 'saccades_view_stop_%s' % options.image
-    view_rstop = 'saccades_view_rstop_%s' % options.image    
+    views = ['start','stop','rstop','random']
+    images = map(lambda x: "saccades_view_%s_%s" % (x, options.image))
+
 
     db = FlydraDB(options.db)
 
@@ -47,9 +47,8 @@ def main():
     
     # all samples with enough data
     all_available = lambda x: db.has_saccades(x) and \
-        db.has_table(x, view_start) and \
-        db.has_table(x, view_stop) and \
-        db.has_table(x, view_rstop)
+        all(map(lambda table: db.has_table(x, table), images))
+
     
     # select with and without posts     
     posts = lambda x: all_available(x) and \
@@ -83,18 +82,16 @@ def main():
         comp_prefix(group_name) 
         
         data = {}
+        
+        for i in range(len(views)):
+            view = views[i]
+            table = images[i]
+            data['mean_%s' % view] = comp(compute_image_mean, options.db,
+                        group_samples, table)
 
-        data['mean_start'] = comp(compute_image_mean, options.db,
-                        group_samples, view_start,
-                        job_id='%s-mean_start' % group_name)
-        
-        data['mean_stop'] = comp(compute_image_mean, options.db,
-                        group_samples, view_stop,
-                        job_id='%s-mean_stop' % group_name)
-        
-        data['mean_rstop'] = comp(compute_image_mean, options.db,
-                        group_samples, view_rstop,
-                        job_id='%s-mean_rstop' % group_name)
+            data['var_start'] = comp(compute_image_var, options.db,
+                        group_samples, table)
+
         
         report = comp(create_report, group_name, data, options.image)
         all_reports.append(report)
@@ -117,11 +114,18 @@ def create_report(group_name, data, image_name):
     data['rstop_minus_start'] = data['mean_rstop'] - data['mean_start']
     data['rstop_minus_stop'] = data['mean_rstop'] - data['mean_stop']
 
-    keys = ['mean_start', 'mean_stop', 'mean_rstop']
+    keys = ['mean_start', 'mean_stop', 'mean_rstop', 'mean_random']
     max_value = numpy.max(map(lambda x: numpy.max(data[x]), keys))
     for k in keys:
         val = data[k]
         r.data(k, val).data_rgb('retina', scale(values2retina(val), max_value=max_value))
+
+    keys = ['var_start', 'var_stop', 'var_rstop', 'mean_random']
+    max_value = numpy.max(map(lambda x: numpy.max(data[x]), keys))
+    for k in keys:
+        val = data[k]
+        r.data(k, val).data_rgb('retina', scale(values2retina(val), max_value=max_value))
+
 
     keys = ['stop_minus_start', 'rstop_minus_start', 'rstop_minus_stop']
     for k in keys:
@@ -129,10 +133,15 @@ def create_report(group_name, data, image_name):
         r.data(k, val).data_rgb('retina', posneg(values2retina(val)))
         
         
-    f = r.figure(shape=(2, 3))
+    f = r.figure(shape=(3, 4))
     f.sub('mean_start', 'Mean %s at saccade start' % image_name)
     f.sub('mean_stop', 'Mean %s at saccade stop' % image_name)
     f.sub('mean_rstop', 'Mean %s at random stop' % image_name)
+    f.sub('mean_random', 'Mean %s at random direction' % image_name)
+    f.sub('var_start', 'Variance %s at saccade start' % image_name)
+    f.sub('var_stop', 'Variance %s at saccade stop' % image_name)
+    f.sub('var_rstop', 'Variance %s at random stop' % image_name)
+    f.sub('var_rstop', 'Variance %s at random direction' % image_name)
     f.sub('stop_minus_start')
     f.sub('rstop_minus_start')
     f.sub('rstop_minus_stop')
@@ -140,8 +149,10 @@ def create_report(group_name, data, image_name):
     return r
 
 def write_report(reports, db, filename):
-    output_file = os.path.join(db, filename)
-    r = Report('first_order', children=reports)
+    output_file = os.path.join(db, filename)    
+    r = Report('saccades_view_analysis', children=reports)
+    
+    print "Writing to %s" % output_file
     r.to_html(output_file)
 
     
