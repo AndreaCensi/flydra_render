@@ -18,7 +18,9 @@ def compute_signal_correlation(
     
     db = FlydraDB(db)
 
-    ex = Expectation()
+    # mean of the retinal quantity
+    image_ex = Expectation()
+    correlation_ex = Expectation()
     
     num_samples_used = 0
     
@@ -54,6 +56,11 @@ def compute_signal_correlation(
         image_values = image_values[interval]
         rows = rows_table[interval]
         
+        # compute mean image
+        image_mean = image_values.mean(axis=0)
+        image_ex.update(image_mean, len(rows))
+
+        
         # get the action vector
         actions = numpy.zeros(shape=(len(rows),), dtype='float32')
         for i in range(len(rows)):
@@ -64,24 +71,30 @@ def compute_signal_correlation(
                 
         actions = signal_op(actions)
         
-        values_times_actions = \
-            numpy.zeros(shape=image_values.shape, dtype='float32')
-            
-        for i in range(len(rows)):
-            values_times_actions[i, :] = image_values[i, :] * actions[i]
-        
+#        values_times_actions = \
+#            numpy.zeros(shape=image_values.shape, dtype='float32')
+#            
+#        for i in range(len(rows)):
+#            values_times_actions[i, :] = (image_values[i, :] - image_mean) * actions[i]
+#        
+#        correlation = values_times_actions.mean(axis=0)
+#        
+        # corrcoef is picky
+        actions = actions.reshape((len(rows),1))
+        correlation = numpy.corrcoef(actions, image_values, rowvar=0)
+        correlation_ex.update(correlation, len(rows))
+
         db.release_table(rows_table)
         db.release_table(image_table)
         
         num_samples_used += 1
-        
-        ex.update(values_times_actions.mean(axis=0), len(rows))
 
     logger.info('In total, used %d/%d samples in the group. ' % 
                 (num_samples_used, len(samples)))
 
     data ={
-           'correlation': ex.get_value()
+           'correlation': correlation_ex.get_value(),
+           'image_mean': image_ex.get_value()
         }
     
     return data

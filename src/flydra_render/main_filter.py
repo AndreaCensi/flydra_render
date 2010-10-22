@@ -12,9 +12,8 @@ from flydra_render.db import FlydraDB
 
 def main():
     parser = OptionParser()
-
-    parser.add_option("--db", default='flydra_render_output',
-                      help="Output directory")
+    
+    parser.add_option("--db", default='flydra_db', help="FlydraDB directory")
 
     parser.add_option("--min_frames_per_track", default=400,
         help="Minimum number of frames per track [= %default]")

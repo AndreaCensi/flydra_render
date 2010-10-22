@@ -11,9 +11,8 @@ from flydra_render.progress import progress_bar
 def main():
     
     parser = OptionParser()
-
-    parser.add_option("--db", default='flydra_render_output',
-                      help="Data directory")
+    
+    parser.add_option("--db", default='flydra_db', help="FlydraDB directory")
 
     parser.add_option("--nocache", help="Ignores already computed results.",
                       default=False, action="store_true")

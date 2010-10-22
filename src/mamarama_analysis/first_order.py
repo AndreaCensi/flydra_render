@@ -28,8 +28,8 @@ description = """
 
 # (id, desc, field, component
 signal_specs = [
-        ('vx', 'Forward velocity', 'linear_velocity_body', 0),
-        ('vy', 'Forward velocity', 'linear_velocity_body', 1),
+     #   ('vx', 'Forward velocity', 'linear_velocity_body', 0),
+     #   ('vy', 'Forward velocity', 'linear_velocity_body', 1),
         ('vz', 'Forward velocity', 'linear_velocity_body', 2),
         ('avel', 'Angular velocity', 'reduced_angular_velocity', None),
         ('aacc', 'Angular acceleration', 'reduced_angular_acceleration', None)
@@ -76,8 +76,7 @@ def main():
     set_namespace('first_order_new')
     parser = OptionParser()
 
-    parser.add_option("--db", default='flydra_render_output',
-                      help="Data directory")
+    parser.add_option("--db", default='flydra_db', help="FlydraDB directory")
 
     (options, args) = parser.parse_args() #@UnusedVariable
     
@@ -104,13 +103,17 @@ def main():
             for signal_spec in signal_specs:
                 for signal_op_spec in signal_op_specs:
                     for image_spec in image_specs:
-                        
+                                                
                         group_id, group_desc = group_spec
                         interval_id, interval_desc, interval_function = interval_spec
                         signal_id, signal_desc, signal, signal_component = signal_spec
                         signal_op_id, signal_op_desc, signal_op_function = signal_op_spec
                         image_id, image_desc = image_spec
-                         
+                        
+                        # Skip uninteresting combinations
+                        if image_id.endswith('_w') and group_id == 'noposts':
+                            continue
+ 
                         exp_id = '{image_id}-{signal_id}-{signal_op_id}' \
                                 '-{group_id}-{interval_id}' .format(**locals())
                                  
@@ -155,12 +158,19 @@ Image: {image_id} --- {image_desc}
 def create_report(exp_id, data):
     r = Report(exp_id)
     
+    C = data['correlation']
     
-    with r.data_pylab('correlation') as pylab:
-        pylab.imshow(posneg(values2retina(data['correlation'])))
+    action = C[0,1:]
+    
+    with r.data_pylab('action') as pylab:
+        pylab.imshow(posneg(values2retina(action)))
+
+    with r.data_pylab('image_mean') as pylab:
+        pylab.imshow(posneg(values2retina(data['image_mean'])))
             
     f = r.figure()
-    f.sub('correlation')
+    f.sub('action')
+    f.sub('image_mean')
 
     return r
 
