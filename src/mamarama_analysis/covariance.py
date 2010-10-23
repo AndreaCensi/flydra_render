@@ -83,6 +83,7 @@ def compute_mean_generic(db, samples, image, operator):
         
         this = operator(values)
         
+        # print "id: %s   len: %d  %d" % (id, len(data), len(values))
         ex.update(this, len(data))
     
         results['samples'][id] = this

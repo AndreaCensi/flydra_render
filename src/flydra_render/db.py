@@ -5,7 +5,7 @@ import os
 import tempfile
 
 from flydra_render.tables_cache import tc_open_for_reading, \
-    tc_open_for_writing, tc_close
+    tc_open_for_writing,tc_open_for_appending, tc_close
 import shutil
 from flydra_render import logger
 from flydra_render.progress import progress_bar
@@ -217,7 +217,8 @@ def db_summary(directory):
     # fid.close()
     # copy over
     shutil.copyfile(summary_file, temp_file)
-    return tc_open_for_reading(temp_file)
+    # open it for writing
+    return tc_open_for_appending(temp_file)
         
         
 def link_everything(src, dst, src_filename):

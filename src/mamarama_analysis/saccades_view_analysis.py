@@ -114,6 +114,10 @@ def create_report(group_name, data, image_name):
     data['stop_minus_start'] = data['mean_stop']['all'] - data['mean_start']['all']
     data['rstop_minus_start'] = data['mean_rstop']['all'] - data['mean_start']['all']
     data['rstop_minus_stop'] = data['mean_rstop']['all'] - data['mean_stop']['all']
+    data['random_minus_rstop'] = data['mean_random']['all'] - data['mean_rstop']['all']
+    
+    for a in ['start', 'stop', 'rstop']:
+        data['%s_minus_random' %a ] = data['mean_%s' % a]['all'] - data['mean_random']['all']
 
 
     keys = ['mean_start', 'mean_stop', 'mean_rstop', 'mean_random']
@@ -129,7 +133,8 @@ def create_report(group_name, data, image_name):
         r.data(k, val).data_rgb('retina', scale(values2retina(val), max_value=max_value))
 
 
-    keys = ['stop_minus_start', 'rstop_minus_start', 'rstop_minus_stop']
+    keys = ['start_minus_random', 'stop_minus_random', 'rstop_minus_random',
+            'stop_minus_start','rstop_minus_start','rstop_minus_stop']
     for k in keys:
         val = data[k]
         r.data(k, val).data_rgb('retina', posneg(values2retina(val)))
@@ -143,10 +148,15 @@ def create_report(group_name, data, image_name):
     f.sub('var_start', 'Variance %s at saccade start' % image_name)
     f.sub('var_stop', 'Variance %s at saccade stop' % image_name)
     f.sub('var_rstop', 'Variance %s at random stop' % image_name)
-    f.sub('var_rstop', 'Variance %s at random direction' % image_name)
+    f.sub('var_random', 'Variance %s at random direction' % image_name)
     f.sub('stop_minus_start')
     f.sub('rstop_minus_start')
     f.sub('rstop_minus_stop')
+    #f.sub('random_minus_rstop')
+    
+    f.sub('start_minus_random')
+    f.sub('stop_minus_random')
+    f.sub('rstop_minus_random')
     
     
     fall = r.figure('samples', shape=(3,4))

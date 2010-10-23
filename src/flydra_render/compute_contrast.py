@@ -4,21 +4,19 @@ from optparse import OptionParser
 from flydra_render import logger
 from flydra_render.db import FlydraDB
 from flydra_render.progress import progress_bar
-from flydra_render.receptor_directions_buchner71 import directions
 from flydra_render.contrast import get_contrast_kernel, intrinsic_contrast
 
 def main():
     
     parser = OptionParser()
 
-    parser.add_option("--db", default='flydra_render_output',
-                      help="Data directory")
+    parser.add_option("--db", default='flydra_db', help="FlydraDB directory")
 
     parser.add_option("--nocache", help="Ignores already computed results.",
                       default=False, action="store_true")    
     
     parser.add_option("--sigma", help="Kernel spread (degrees)",
-                      type="float", default=3)
+                      type="float", default=6)
    
     parser.add_option("--source", default='luminance', help="Source table")
     parser.add_option("--target", default='contrast', help="Destination table")
@@ -32,8 +30,8 @@ def main():
         sys.exit(-1)
 
     
-    kernel = get_contrast_kernel(sigma_deg=options.sigma)
-    
+    kernel = get_contrast_kernel(sigma_deg=options.sigma, eyes_interact=False)
+    kernel = kernel.astype('float32')
     db = FlydraDB(options.db)
     
     if args:
@@ -66,16 +64,14 @@ def main():
         luminance = db.get_table(sample_id, options.source)
         
     
-        contrast = compute_contrast(luminance, kernel)
+        contrast = compute_contrast_for_table(luminance, kernel)
         
         db.set_table(sample_id, options.target, contrast)
         
         db.release_table(luminance)
         
 
-def compute_contrast(luminance, kernel):
-    
-    
+def compute_contrast_for_table(luminance, kernel): 
     contrast = numpy.ndarray(shape=luminance.shape, dtype=luminance.dtype)
     contrast[:]['time'] = luminance[:]['time']
     contrast[:]['frame'] = luminance[:]['frame']
@@ -91,8 +87,7 @@ def compute_contrast(luminance, kernel):
         
     return contrast
 
-    
-
 
 if __name__ == '__main__':
     main()
+
