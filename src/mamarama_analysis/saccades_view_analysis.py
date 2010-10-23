@@ -1,18 +1,17 @@
-from optparse import OptionParser
 import sys, os
+import numpy
+from optparse import OptionParser
 
-from compmake import comp, compmake_console, comp_prefix, set_namespace
 from reprep import Report
+from reprep.graphics.posneg import posneg
+from reprep.graphics.scale import scale
+from compmake import comp, compmake_console, comp_prefix, set_namespace
 
 from flydra_render.db import FlydraDB
 from procgraph_flydra.values2retina import values2retina
 
 from mamarama_analysis import logger
 from mamarama_analysis.covariance import compute_image_mean
-
-import numpy
-from reprep.graphics.posneg import posneg
-from reprep.graphics.scale import scale
 
 description = """
 

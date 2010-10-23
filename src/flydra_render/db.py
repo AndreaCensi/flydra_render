@@ -6,6 +6,9 @@ import tempfile
 
 from flydra_render.tables_cache import tc_open_for_reading, \
     tc_open_for_writing, tc_close
+import shutil
+from flydra_render import logger
+from flydra_render.progress import progress_bar
 
 FLYDRA_ROOT = 'flydra'
 
@@ -161,32 +164,61 @@ class FlydraDB:
 
 
 def db_summary(directory):
-    files = locate_roots('*.h5', directory)
+    '''
+    - If <DB>/index.h5 is already and it is updated (more recent than directory),
+      make a copy of it in <DB>/indices/    
     
-    fid, summary_file = tempfile.mkstemp(suffix='.h5',
-                                         prefix='index', dir=directory)
+    '''
     
-    #summary_file = os.path.join(directory, 'index.h5')
-    summary = tc_open_for_writing(summary_file)
-    for file in files:
-        # do not consider the index itself
-        if os.path.basename(file).startswith('index'):
-            continue
+    summary_file = os.path.join(directory, 'index.h5')
+    
+    # if it does not exist or it is updated, recreate it 
+    if not os.path.exists(summary_file) or \
+        os.path.getmtime(directory) > os.path.getmtime(summary_file):
+    
+        logger.info('Out of date or not existing summary file; recreating ')    
         
-        # print "Trying to open %s" % file
-        f = tc_open_for_reading(file)
-
-        if not FLYDRA_ROOT in f.root:
-            print 'Ignoring file %s: no data belonging to Flydra DB' % \
-                os.path.basename(file)
-            continue
+        logger.info('Looking for h5 files...')
+        files = locate_roots('*.h5', directory)
+        logger.info('Found %s h5 files.' % len(files))
         
-        link_everything(src=f, dst=summary,
-                        src_filename=os.path.basename(file))
-     
-        tc_close(f)
+        pb = progress_bar('Opening files', len(files))
+        
+        #summary_file = os.path.join(directory, 'index.h5')
+        summary = tc_open_for_writing(summary_file)
+        for i, file in enumerate(files):
+            pb.update(i)
+            # do not consider the index itself
+            if os.path.basename(file).startswith('index'):
+                continue
+            
+            # print "Trying to open %s" % file
+            f = tc_open_for_reading(file)
     
-    return summary
+            if not FLYDRA_ROOT in f.root:
+                print 'Ignoring file %s: no data belonging to Flydra DB' % \
+                    os.path.basename(file)
+                continue
+            
+            link_everything(src=f, dst=summary,
+                            src_filename=os.path.basename(file))
+         
+            tc_close(f)
+        
+        tc_close(summary)
+        
+    # now copy to our private copy
+    
+    temp_dir = os.path.join(directory, 'indices')
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+    fid, temp_file = tempfile.mkstemp(suffix='.h5',
+                        prefix='index', dir=temp_dir)
+    # fid.close()
+    # copy over
+    shutil.copyfile(summary_file, temp_file)
+    return tc_open_for_reading(temp_file)
+        
         
 def link_everything(src, dst, src_filename):
     ''' Makes a link to every field '''

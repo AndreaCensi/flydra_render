@@ -4,7 +4,9 @@ from flydra_render.db import FlydraDB
 def main():
     directory = sys.argv[-1]
 
+    db = FlydraDB(directory)
     db = FlydraDB(directory) 
+    db = FlydraDB(directory)  
     
     samples = db.list_samples()
     if not samples:
