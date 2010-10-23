@@ -44,17 +44,25 @@ def go_render(vision, json, compute_mu, write_binary):
     y = (R + G + B) / 3.0 / 255
 
     answer = {}
+    
+    answer['position'] = list(position)
+    answer['orientation'] = numpy.array(orientation.toMat3()).tolist()
+    answer['linear_velocity_body'] = list(linear_velocity_body)
+    answer['angular_velocity_body'] = list(angular_velocity_body)
+    
+    
     answer['luminance'] = y.tolist()
 
-      # Get Q_dot and mu from body velocities
-        # WARNING: Getting Q_dot and mu can be very slow
+    # Get Q_dot and mu from body velocities
+    # WARNING: Getting Q_dot and mu can be very slow
     if compute_mu:
         lvel = json['linear_velocity_body']
         avel = json['angular_velocity_body']
         linear_velocity_body = cgtypes.vec3(numpy.array(lvel))
         angular_velocity_body = cgtypes.vec3(numpy.array(avel))
 
-        qdot, mu = vision.get_last_retinal_velocities(linear_velocity_body, angular_velocity_body)
+        qdot, mu = vision.get_last_retinal_velocities(linear_velocity_body, 
+                                                      angular_velocity_body)
 
         answer['nearness'] = mu
         answer['retinal_velocities'] = qdot
@@ -64,7 +72,8 @@ def go_render(vision, json, compute_mu, write_binary):
         what = answer['luminance']
         n = len(what);
         s = struct.pack('>' + 'f' * n, *what);
-        positive_answer({'binary_length': len(s), 'mean': numpy.mean(what) }, "Sending binary data (n * 4 bytes)")
+        positive_answer({'binary_length': len(s), 'mean': numpy.mean(what) }, 
+                        "Sending binary data (n * 4 bytes)")
         sys.stdout.write(s);
         sys.stdout.flush()
     else:
@@ -171,7 +180,7 @@ def main():
                 elif method == 'bye':
                     positive_answer({}, 'Goodbye, good sir.')
                 else:
-                    exit_with_error("Uknown method '%s' \n" % method)
+                    exit_with_error("Unknown method '%s'.\n" % method)
                         
                 
             except KeyError:

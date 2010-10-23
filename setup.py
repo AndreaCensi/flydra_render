@@ -23,6 +23,7 @@ setup(name='flydra_render',
            
            'rfsee_server = rfsee.rfsee_server:main',
            'rfsee_demo_pipe = rfsee.demo.demo_pipe:main',
+           'rfsee_demo_pipe_rotation = rfsee.demo.demo_pipe_rotation:main',
            'rfsee_demo_tcp = rfsee.demo.demo_tcp:main',
            'rfsee_demo_tcp_benchmark = rfsee.demo.demo_tcp_benchmark:main',
         ]

@@ -51,6 +51,79 @@ def compute_image_mean(db, samples, image):
 
     return ex.get_value()
             
+
+def array_mean(x):
+    return x.mean(axis=0)
+
+def array_var(x):
+    return x.var(axis=0)
+
+
+def compute_mean_generic(db, samples, image, operator):
+    ''' 
+    db: FlydraDB directory
+    samples: list of IDs
+    '''
+    db = FlydraDB(db)
+    
+    results = { 'samples': {} }
+    
+    ex = Expectation()
+    
+    for i, id in enumerate(samples):
+        progress('Computing mean %s' % image,
+                 (i, len(samples)), "Sample %s" % id)
+    
+        if not (db.has_sample(id) and db.has_table(id, image)):
+            raise ValueError('No table "%s" for id %s' % (image, id))
+        
+        data = db.get_table(id, image)
+        
+        values = data[:]['value']
+        
+        this = operator(values)
+        
+        ex.update(this, len(data))
+    
+        results['samples'][id] = this
+            
+        db.release_table(data)
+
+    results['all'] = ex.get_value()
+        
+    return results 
+
+
+            
+
+def compute_image_var(db, samples, image):
+    ''' Computes the variance (not COVariance) of an image table.
+    S
+    db: FlydraDB directory
+    samples: list of IDs
+    '''
+    db = FlydraDB(db)
+    
+    ex = Expectation()
+    
+    for i, id in enumerate(samples):
+        progress('Computing variance of %s' % image,
+                 (i, len(samples)), "Sample %s" % id)
+    
+        if not (db.has_sample(id) and db.has_table(id, image)):
+            raise ValueError('No table "%s" for id %s' % (image, id))
+        
+        data = db.get_table(id, image)
+        
+        values = data[:]['value']
+        
+        ex.update(values.var(axis=0), len(data))
+        
+        db.release_table(data)
+
+    return ex.get_value()
+                        
+            
             
 def compute_image_cov(db, samples, image):
     ''' 
