@@ -5,10 +5,11 @@ from compmake import comp, compmake_console, comp_prefix, set_namespace
 from reprep import Report
 
 from flydra_render.db import FlydraDB
-from procgraph_flydra.values2retina import values2retina
+from procgraph_flydra.values2retina import values2retina, plot_contrast
 
 from mamarama_analysis import logger
-from mamarama_analysis.covariance import compute_image_mean, compute_image_var
+from mamarama_analysis.covariance import compute_image_mean, compute_image_var,\
+    compute_mean_generic, array_mean, array_var
 
 import numpy
 from reprep.graphics.posneg import posneg
@@ -38,7 +39,7 @@ def main():
         sys.exit(-1)
 
     views = ['start','stop','rstop','random']
-    images = map(lambda x: "saccades_view_%s_%s" % (x, options.image))
+    images = map(lambda x: "saccades_view_%s_%s" % (x, options.image), views)
 
 
     db = FlydraDB(options.db)
@@ -86,11 +87,12 @@ def main():
         for i in range(len(views)):
             view = views[i]
             table = images[i]
-            data['mean_%s' % view] = comp(compute_image_mean, options.db,
-                        group_samples, table)
+            data['mean_%s' % view] = comp(compute_mean_generic, options.db,
+                        group_samples, table, array_mean)
 
-            data['var_start'] = comp(compute_image_var, options.db,
-                        group_samples, table)
+
+            data['var_%s' % view] = comp(compute_mean_generic, options.db,
+                        group_samples, table, array_var)
 
         
         report = comp(create_report, group_name, data, options.image)
@@ -110,20 +112,21 @@ def create_report(group_name, data, image_name):
     
     data = dict(**data)
     
-    data['stop_minus_start'] = data['mean_stop'] - data['mean_start'] 
-    data['rstop_minus_start'] = data['mean_rstop'] - data['mean_start']
-    data['rstop_minus_stop'] = data['mean_rstop'] - data['mean_stop']
+    data['stop_minus_start'] = data['mean_stop']['all'] - data['mean_start']['all']
+    data['rstop_minus_start'] = data['mean_rstop']['all'] - data['mean_start']['all']
+    data['rstop_minus_stop'] = data['mean_rstop']['all'] - data['mean_stop']['all']
+
 
     keys = ['mean_start', 'mean_stop', 'mean_rstop', 'mean_random']
-    max_value = numpy.max(map(lambda x: numpy.max(data[x]), keys))
+    max_value = numpy.max(map(lambda x: numpy.max(data[x]['all']), keys))
     for k in keys:
-        val = data[k]
-        r.data(k, val).data_rgb('retina', scale(values2retina(val), max_value=max_value))
+        val = data[k]['all']
+        r.data(k , val).data_rgb('retina', scale(values2retina(val), max_value=max_value))
 
-    keys = ['var_start', 'var_stop', 'var_rstop', 'mean_random']
-    max_value = numpy.max(map(lambda x: numpy.max(data[x]), keys))
+    keys = ['var_start', 'var_stop', 'var_rstop', 'var_random']
+    max_value = numpy.max(map(lambda x: numpy.max(data[x]['all']), keys))
     for k in keys:
-        val = data[k]
+        val = data[k]['all']
         r.data(k, val).data_rgb('retina', scale(values2retina(val), max_value=max_value))
 
 
@@ -145,6 +148,12 @@ def create_report(group_name, data, image_name):
     f.sub('stop_minus_start')
     f.sub('rstop_minus_start')
     f.sub('rstop_minus_stop')
+    
+    
+    fall = r.figure('samples', shape=(3,4))
+    for id, value in  data['mean_random']['samples'].items():
+        r.data_rgb('random-%s' % id, scale(values2retina(value)))
+        fall.sub('random-%s' % id)
 
     return r
 

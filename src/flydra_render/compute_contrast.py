@@ -5,6 +5,7 @@ from flydra_render import logger
 from flydra_render.db import FlydraDB
 from flydra_render.progress import progress_bar
 from flydra_render.receptor_directions_buchner71 import directions
+from flydra_render.contrast import get_contrast_kernel, intrinsic_contrast
 
 def main():
     
@@ -29,11 +30,10 @@ def main():
     if options.db is None:
         logger.error('Please specify a directory using --db.')
         sys.exit(-1)
-        
-        
-    distance_matrix = create_distance_matrix(directions)
 
-        
+    
+    kernel = get_contrast_kernel(sigma_deg=options.sigma)
+    
     db = FlydraDB(options.db)
     
     if args:
@@ -48,7 +48,7 @@ def main():
     
     for i, sample_id in enumerate(do_samples):
         
-        print 'Sample %s/%s: %s' % (i + 1, len(do_samples), sample_id)
+        logger.info( 'Sample %s/%s: %s' % (i + 1, len(do_samples), sample_id))
         
         if not db.has_sample(sample_id):
             raise Exception('Sample %s not found in db.' % sample_id)
@@ -58,23 +58,23 @@ def main():
                             % (sample_id, options.source))
         
         if db.has_table(sample_id, options.target) and not options.nocache:
-            print 'Already computed "%s" for %s; skipping' % \
-                (options.target, sample_id)
+            logger.info('Already computed "%s" for %s; skipping' % \
+                (options.target, sample_id))
             continue
 
 
         luminance = db.get_table(sample_id, options.source)
         
-        contrast = compute_contrast(luminance, distance_matrix,
-                                    sigma=numpy.radians(options.sigma))
+    
+        contrast = compute_contrast(luminance, kernel)
         
         db.set_table(sample_id, options.target, contrast)
         
         db.release_table(luminance)
         
 
-def compute_contrast(luminance, distance_matrix, sigma):
-    kernel = numpy.exp(-distance_matrix / sigma)
+def compute_contrast(luminance, kernel):
+    
     
     contrast = numpy.ndarray(shape=luminance.shape, dtype=luminance.dtype)
     contrast[:]['time'] = luminance[:]['time']
@@ -92,44 +92,6 @@ def compute_contrast(luminance, distance_matrix, sigma):
     return contrast
 
     
-def intrinsic_contrast(luminance, kernel):
-    n = len(luminance)
-    assert luminance.shape == (n,)
-    assert kernel.shape == (n, n)
-     
-    contrast = numpy.zeros(shape=(n,))
-    
-    for i in range(n):
-        # compute error
-        diff = luminance - luminance[i]
-        error = numpy.square(diff)
-        similarity = kernel[i, :]
-        weights = similarity / similarity.sum()
-        contrast[i] = (error * weights).sum()
-        
-    assert numpy.all(numpy.isfinite(contrast))
-    return contrast
-
-
-def create_distance_matrix(directions):
-    n = len(directions)
-    
-    s = numpy.array(directions)
-    
-    assert s.shape == (n, 3)
-    
-    D = numpy.zeros(shape=(n, n))
-    for i in range(n):
-        
-        dot_product = numpy.dot(s, s[i, :])
-        
-        # compensate numerical errors
-        dot_product = numpy.maximum(-1, dot_product)
-        dot_product = numpy.minimum(+1, dot_product)
-    
-        D[i, :] = numpy.arccos(dot_product)
-         
-    return D 
 
 
 if __name__ == '__main__':

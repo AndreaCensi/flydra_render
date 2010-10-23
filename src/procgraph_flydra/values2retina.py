@@ -23,7 +23,14 @@ register_simple_block(values2retina)
 
 
 def plot_luminance(values):
+    values = numpy.array(values)
+    
     n = len(values)
+    
+    if n != 1398:
+        raise Exception('Expected 1398 values, not %d.' % n)
+    
+
     r = numpy.ndarray(shape=(n + 1), dtype='uint8')
     g = numpy.ndarray(shape=(n + 1), dtype='uint8')
     b = numpy.ndarray(shape=(n + 1), dtype='uint8')
@@ -60,7 +67,7 @@ def plot_contrast(values):
     #print 'contrast', min(values), max(values)
     # im = values2retina(values, background=numpy.NaN)
     #print values[0:100].tolist()
-    im = values2retina(values, background=0)
+    im = values2retina(values, background=numpy.NaN)
     return scale(im, min_color=[0, 0, 0], max_color=[0, 1, 1], nan_color=[0.5, 0.5, 0.5])
 
 register_simple_block(plot_contrast)
