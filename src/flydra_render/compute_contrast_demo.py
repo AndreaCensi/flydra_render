@@ -37,6 +37,7 @@ def main():
     #from flydra_render.contrast import  intrinsic_contrast
     from fast_contrast import  intrinsic_contrast
 
+    
     N = 360
     
     pb = progress_bar('Computing contrast', N)
