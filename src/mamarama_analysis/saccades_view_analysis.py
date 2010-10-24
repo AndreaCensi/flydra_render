@@ -8,11 +8,10 @@ from reprep.graphics.scale import scale
 from compmake import comp, compmake_console, comp_prefix, set_namespace
 
 from flydra_render.db import FlydraDB
-from procgraph_flydra.values2retina import values2retina, plot_contrast
+from procgraph_flydra.values2retina import values2retina
 
 from mamarama_analysis import logger
-from mamarama_analysis.covariance import compute_image_mean, compute_image_var,\
-    compute_mean_generic, array_mean, array_var
+from mamarama_analysis.covariance import compute_mean_generic, array_mean, array_var
 
 description = """
 
@@ -24,8 +23,7 @@ description = """
 def main():
     parser = OptionParser()
 
-    parser.add_option("--db", default='flydra_db',
-                      help="Data directory")
+    parser.add_option("--db", default='flydra_db', help="Data directory")
 
     parser.add_option("--image", default="luminance",
                       help="Rendered image to use -- "
@@ -37,7 +35,7 @@ def main():
         logger.error('Please specify a directory using --db.')
         sys.exit(-1)
 
-    views = ['start','stop','rstop','random']
+    views = ['start', 'stop', 'rstop', 'random']
     images = map(lambda x: "saccades_view_%s_%s" % (x, options.image), views)
 
 
@@ -101,9 +99,7 @@ def main():
 
     filename = 'out/saccade_view_analysis/%s.html' % options.image
     comp(write_report, all_reports, options.db, filename)
-    compmake_console()
-    
- 
+    compmake_console() 
     
 
 def create_report(group_name, data, image_name):
@@ -161,7 +157,7 @@ def create_report(group_name, data, image_name):
     f.sub('rstop_minus_random')
     
     
-    fall = r.figure('samples', shape=(3,4))
+    fall = r.figure('samples', shape=(3, 4))
     for id, value in  data['mean_random']['samples'].items():
         r.data_rgb('random-%s' % id, scale(values2retina(value)))
         fall.sub('random-%s' % id)
@@ -175,11 +171,4 @@ def write_report(reports, db, filename):
     print "Writing to %s" % output_file
     r.to_html(output_file)
 
-    
-    
-        
-        
-    
-    
-        
          
