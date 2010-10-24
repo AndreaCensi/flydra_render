@@ -1,16 +1,14 @@
 import numpy
 from reprep import Report
-
-from flydra_render.compute_contrast import intrinsic_contrast
+ 
 from mamarama_analysis.covariance import Expectation
 from procgraph_flydra.values2retina import plot_contrast, plot_luminance,\
     values2retina
-from flydra_render.contrast import get_contrast_kernel, intrinsic_contrast
+from flydra_render.contrast import get_contrast_kernel
 from flydra_render.progress import progress_bar
 from flydra_render.render_saccades import rotz
 from rfsee.demo.example_stimxml import example_stim_xml
-from rfsee.rfsee_client import ClientProcess
-from procgraph_flydra.arena_display import mamarama_center
+from rfsee.rfsee_client import ClientProcess 
 from reprep.graphics.scale import scale
 
 
@@ -18,13 +16,16 @@ def main():
     sigma_deg =6
     kernel1 = get_contrast_kernel(sigma_deg=sigma_deg, eyes_interact=True)
     kernel2 = get_contrast_kernel(sigma_deg=sigma_deg, eyes_interact=False) # better
-       
+    
+    kernel1=kernel1.astype('float32')
+    kernel2=kernel2.astype('float32')
+    
     meany = Expectation()
     ex1 = Expectation()
     ex2 = Expectation()
     
     cp = ClientProcess()
-    #cp.config_use_white_arena()    
+    cp.config_use_white_arena()    
     cp.config_stimulus_xml(example_stim_xml)
     #position = [0.15, 0.5, 0.25]
     position = [0.35, 0.5, 0.25]
@@ -32,6 +33,9 @@ def main():
     angular_velocity_body = [0, 0, 0]
     
     
+
+    #from flydra_render.contrast import  intrinsic_contrast
+    from fast_contrast import  intrinsic_contrast
 
     N = 360
     
@@ -45,7 +49,7 @@ def main():
         res = cp.render(position, attitude, 
                         linear_velocity_body, angular_velocity_body)
     
-        y = numpy.array(res['luminance'])
+        y = numpy.array(res['luminance']).astype('float32')
         
         meany.update(y)
         #y = numpy.random.rand(1398)

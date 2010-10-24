@@ -4,8 +4,15 @@ from optparse import OptionParser
 from flydra_render import logger
 from flydra_render.db import FlydraDB
 from flydra_render.progress import progress_bar
-from flydra_render.contrast import get_contrast_kernel, intrinsic_contrast
-import time
+from flydra_render.contrast import get_contrast_kernel
+
+try:
+    from fast_contrast import intrinsic_contrast
+except:
+    logger.error('I cannot load the "fast_contrast" extension. '
+                 'I will fall back on the python implementation (20x slower).')
+    from  flydra_render.contrast  import intrinsic_contrast
+
 
 def main():
     
@@ -34,7 +41,8 @@ def main():
 
     
     kernel = get_contrast_kernel(sigma_deg=options.sigma, eyes_interact=False)
-    kernel = kernel.astype('float32')
+    kernel = kernel.astype('float32').copy('C')
+    
     db = FlydraDB(options.db)
     
     if args:
@@ -43,35 +51,6 @@ def main():
         do_samples = db.list_samples()
         do_samples = filter(lambda x: db.has_table(x, options.source),
                             do_samples)
-#    
-#    if options.psyco:
-#        logger.info('Enabling psyco support')
-#        import psyco
-#        psyco.log()
-#        psyco.full()
-#        psyco.profile()
-#        
-#        n = 10
-#        t0 = time.time()
-#        
-#        for i in range(n):
-#            intrinsic_contrast(numpy.random.rand(1398), kernel)
-#        
-#        ta = time.time() - t0
-#        
-#        logger.info('Without psyco: %f' % ta)
-#        
-#        proxy = psyco.proxy(intrinsic_contrast)
-#        
-#        t0 = time.time() 
-#    
-#        for i in range(n):
-#            proxy(numpy.random.rand(1398), kernel)
-#        
-#        tb = time.time() - t0
-#        
-#        logger.info('With psyco: %f' % tb)
-#        
         
         
     if not do_samples:
@@ -93,9 +72,7 @@ def main():
                 (options.target, sample_id))
             continue
 
-
         luminance = db.get_table(sample_id, options.source)
-        
     
         contrast = compute_contrast_for_table(luminance, kernel)
         
@@ -115,7 +92,8 @@ def compute_contrast_for_table(luminance, kernel):
     
     for i in xrange(num):
         pbar.update(i)
-        c = intrinsic_contrast(luminance[i]['value'], kernel)
+        y = luminance[i]['value'].astype('float32')
+        c = intrinsic_contrast(y, kernel)
         contrast[i]['value'][:] = c
         
     return contrast
