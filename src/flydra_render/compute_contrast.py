@@ -5,6 +5,7 @@ from flydra_render import logger
 from flydra_render.db import FlydraDB
 from flydra_render.progress import progress_bar
 from flydra_render.contrast import get_contrast_kernel, intrinsic_contrast
+import time
 
 def main():
     
@@ -22,6 +23,8 @@ def main():
     parser.add_option("--target", default='contrast', help="Destination table")
 
     
+    # parser.add_option("--psyco", default=False,action="store_true")
+
     (options, args) = parser.parse_args()
     
 
@@ -40,6 +43,36 @@ def main():
         do_samples = db.list_samples()
         do_samples = filter(lambda x: db.has_table(x, options.source),
                             do_samples)
+#    
+#    if options.psyco:
+#        logger.info('Enabling psyco support')
+#        import psyco
+#        psyco.log()
+#        psyco.full()
+#        psyco.profile()
+#        
+#        n = 10
+#        t0 = time.time()
+#        
+#        for i in range(n):
+#            intrinsic_contrast(numpy.random.rand(1398), kernel)
+#        
+#        ta = time.time() - t0
+#        
+#        logger.info('Without psyco: %f' % ta)
+#        
+#        proxy = psyco.proxy(intrinsic_contrast)
+#        
+#        t0 = time.time() 
+#    
+#        for i in range(n):
+#            proxy(numpy.random.rand(1398), kernel)
+#        
+#        tb = time.time() - t0
+#        
+#        logger.info('With psyco: %f' % tb)
+#        
+        
         
     if not do_samples:
         raise Exception('No samples with table "%s" found. ' % options.source)

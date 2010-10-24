@@ -136,7 +136,9 @@ def create_report(group_name, data, image_name):
     keys = ['start_minus_random', 'stop_minus_random', 'rstop_minus_random',
             'stop_minus_start','rstop_minus_start','rstop_minus_stop']
     for k in keys:
-        val = data[k]
+        #std = data['var_random']['all']
+        #val = data[k] / std
+        val = data[k]  
         r.data(k, val).data_rgb('retina', posneg(values2retina(val)))
         
         
