@@ -35,6 +35,22 @@ def tc_open_for_writing(filename):
         
         # print "tc: opened %s w (%s total) " % (filename, len(OpenFile.open_files))
         return f
+
+
+def tc_open_for_appending(filename):
+    ''' Throws exception if it is already open. '''
+    filename = os.path.realpath(filename)
+
+    if filename in OpenFile.open_files:
+        raise Exception('File "%s" already open, '
+                        'cannot open again for writing.' % filename)
+    else: 
+        f = tables.openFile(filename, 'r+')
+        OpenFile.open_files[filename] = OpenFile(f)
+        
+        # print "tc: opened %s w (%s total) " % (filename, len(OpenFile.open_files))
+        return f
+
     
 def tc_close(handle):
     ''' Decreases the reference counting and closes the file if

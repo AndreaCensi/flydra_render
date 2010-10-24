@@ -9,8 +9,7 @@ def main():
     
     parser = OptionParser()
 
-    parser.add_option("--db", default='flydra_render_output',
-                      help="Data directory")
+    parser.add_option("--db", default='flydra_db', help="Data directory")
 
     parser.add_option("--image", help="Which image to plot.")
     
