@@ -5,7 +5,7 @@ cimport numpy as np
 import cython
 
 cdef extern from "math.h":
-    double fabs(double)
+    float fabsf(float)
 
 
 #
@@ -49,7 +49,7 @@ def intrinsic_contrast(np.ndarray[np.float32_t, ndim=1, mode="c"] luminance,
         con = 0
         w = 0
         for j in range(n):
-            con += fabs(luminance[j] - luminance[i]) * kernel[i, j]
+            con += fabsf(luminance[j] - luminance[i]) * kernel[i, j]
             w += kernel[i, j]
         
         #error = np.abs(diff)
