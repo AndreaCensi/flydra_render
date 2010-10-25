@@ -1,5 +1,7 @@
 from flydra.a2 import core_analysis
 from flydra_render import logger
+import numpy
+import scipy.stats
 
 warned_fixed_dt = False
 
@@ -84,13 +86,34 @@ def get_good_smoothed_tracks(filename, obj_ids,
                 warned = True
                 logger.info("Warning: Implementing simple workaround for flydra's " \
                       "units inconsistencies (multiplying xvel,yvel by 1000).")
+                
                 srows['xvel'] *= 1000
                 srows['yvel'] *= 1000
+                srows['xvel'] *= 1000
+
+                v = numpy.hypot(srows['xvel'],srows['yvel'],srows['zvel'])
+                score95 = scipy.stats.scoreatpercentile(v, 95)
+    
+      
+                if score95 < 100.0:
+                    logger.debug( " score95 = %f, assuming m" % score95)
+                else:
+                    logger.debug( " score95 = %f, assuming mm" % score95)
+                    
+                    srows['xvel'] *= 0.001
+                    srows['yvel'] *= 0.001
+                    srows['xvel'] *= 0.001
+
+                v = numpy.hypot(srows['xvel'],srows['yvel'],srows['zvel'])
+                final_score95 = scipy.stats.scoreatpercentile(v, 95)
+                
+                logger.info('After much deliberation, 95% score is %f.' % 
+                            final_score95)
                 
             yield obj_id, srows 
             
         except core_analysis.NotEnoughDataToSmoothError:
-            #logger.warning('not enough data to smooth obj_id %d, skipping.'%(obj_id,))
+            logger.warning('not enough data to smooth obj_id %d, skipping.'%(obj_id,))
             continue 
         
     ca.close()

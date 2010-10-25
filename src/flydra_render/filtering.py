@@ -1,9 +1,39 @@
-from geometric_saccade_detector.math_utils import merge_fields, \
-    compute_derivative
 import numpy
 from numpy.testing.utils import assert_almost_equal
 from flydra_render.structures import additional_fields
+import scipy, scipy.signal
 
+
+def compute_derivative(x, timestamp):
+    dt = timestamp[1] - timestamp[0]
+    deriv_filter = numpy.array([0.5, 0, -0.5] / dt)
+    d = scipy.signal.convolve(x, deriv_filter, mode=1) #@UndefinedVariable
+    d[0] = d[1]
+    d[-1] = d[-2]
+    return d        
+
+def merge_fields(a, b):
+    ''' Merge the fields of the two numpy arrays a,b. 
+        They must have the same shape. '''
+    if a.shape != b.shape:    
+        raise ValueError('Arrays must have the same shape; '
+                         'found %s and %s.' % (str(a.shape), str(b.shape)))
+        
+    new_dtype = []
+    
+    for f in a.dtype.fields:
+        new_dtype.append((f, a.dtype[f]))
+    for f in b.dtype.fields:
+        new_dtype.append((f, b.dtype[f]))
+        
+    new_dtype = numpy.dtype(new_dtype)
+
+    c = numpy.ndarray(shape=a.shape, dtype=new_dtype)
+    for f in a.dtype.fields:
+        c[f] = a[f][:]
+    for f in b.dtype.fields:
+        c[f] = b[f][:]
+    return c
 
 
 

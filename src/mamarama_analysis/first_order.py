@@ -9,12 +9,15 @@ from procgraph_flydra.values2retina import values2retina
 from mamarama_analysis import logger
 
 import numpy 
-from mamarama_analysis.first_order_intervals import interval_fast, interval_all
-from mamarama_analysis.actions import compute_signal_correlation
+from mamarama_analysis.first_order_intervals import interval_fast, interval_all ,\
+    interval_between_saccades, interval_saccades
 
 from reprep import Report  
 from reprep.graphics.posneg import posneg
 from reprep.graphics.scale import scale
+from compmake.jobs.progress import progress
+from procgraph.components.statistics.cov2corr import cov2corr 
+from mamarama_analysis.covariance import Expectation
 
 
 description = """
@@ -64,6 +67,8 @@ image_specs = [
 interval_specs = [
         ('allt', 'All times', interval_all),
         ('fast', 'Fast motion', interval_fast),
+        ('saccade', 'Saccades only', interval_saccades),
+        ('between', 'Between saccades', interval_between_saccades),
 ]   
 
 group_specs = [
@@ -133,7 +138,7 @@ Image: {image_id} --- {image_desc}
                         
                         comp_prefix(exp_id)
                         
-                        data = comp(compute_signal_correlation,
+                        data = comp(compute_signal_correlation_unique,
                             db=options.db,
                             interval_function=interval_function,
                             samples=samples,
@@ -150,32 +155,161 @@ Image: {image_id} --- {image_desc}
     comp_prefix()
     
     compmake_console()
-    
-#    
-#def normalization(field, cov):
-#    #return numpy.linalg.solve(cov, field)
-#    return numpy.dot(numpy.linalg.pinv(cov), field)
-
+     
+     
+print "reloaded2"
 def create_report(exp_id, data):
-    r = Report(exp_id)
-    
-    C = data['correlation']
-    
-    action = C[0, 1:]
+    r = Report(exp_id) 
+
     image_mean = data['image_mean']
+    image_covariance = data['image_covariance']
+    image_variance = image_covariance.diagonal()
     
-    r.data('action', action).data_rgb('posneg', posneg(values2retina(action)))
-    r.data('image_mean', image_mean).data_rgb('scale', scale(values2retina(image_mean)))
+    r.data_rgb('image_mean', scale(values2retina(image_mean)))
+    r.data_rgb('image_var', scale(values2retina(image_variance)))
+    a = data['action_image_correlation']
+    r.data_rgb('action', posneg(values2retina(a)))
                 
     f = r.figure()
-    f.sub('action')
-    f.sub('image_mean')
+    f.sub('action', 'Correlation between action and image')
+    f.sub('image_mean', 'Average image')
+    f.sub('image_var', 'Variance of image')
+
+    max_corr = numpy.max(numpy.abs(a))
+    
+    r.table('stats', [[max_corr]], ['max_corr'], 'Some statistics')
 
     return r
 
 def write_report(report, db, exp_id):
-    output_file = os.path.join(db, 'out/first_order/reports/%s.html' % exp_id)
+    output_file = os.path.join(db, 'out/first_order/reports/%s_unique.html' % exp_id)
     report.to_html(output_file)
 
+
+
+def compute_signal_correlation_unique(
+        db,
+        samples,
+        interval_function,
+        image,
+        signal,
+        signal_component,
+        signal_op
+                        ):
     
+     
+    db = FlydraDB(db)
+
+    image_ex = Expectation()
+    actions_ex = Expectation()
+    
+    # first compute mean
+    for actions, image_values in enumerate_data(db, samples, interval_function, 
+                                                image, signal, signal_component,
+                                                signal_op,  'first pass'):
+        n = image_values.shape[0] 
+        
+        image_ex.update( image_values.mean(axis=0),  n)
+        actions_ex.update( actions.mean(axis=0), n)
+    
+    
+    mean_action = actions_ex.get_value()
+    mean_image = image_ex.get_value()
+    
+    cov_z = Expectation()
+    
+    # do a second pass for computing the covariance    
+    for actions, image_values in enumerate_data(db, samples, interval_function, 
+                                                image, signal, signal_component,
+                                                signal_op, 'second pass'):
+        actions = actions - mean_action
+        image_values = image_values - mean_image
+        # hstack is pickly; reshape as column
+        actions = actions.reshape((len(actions),1))
+        z = numpy.hstack((actions, image_values))
+        cov_z.update(numpy.dot(z.T, z))
+        
+#        for k in range(n):
+#            a = actions[k] - mean_action
+#            y = image_values[k,:] - mean_image 
+#            z = numpy.hstack((a,y))
+#            
+#            cov_z.update( outer(z, z) )
+            
+    covariance = cov_z.get_value()
+    correlation = cov2corr(covariance, zero_diagonal=True)
+
+    image_covariance = covariance[1:,1:]
+    image_correlation= correlation[1:,1:]
+    action_variance = covariance[0]
+    action_image_correlation = correlation[0,1:]
+
+    print covariance.dtype
+    
+    data = {
+           'covariance': covariance,
+           'correlation': correlation,
+           'image_covariance': image_covariance,
+           'image_correlation': image_correlation,
+           'action_variance': action_variance,
+           'action_image_correlation': action_image_correlation,
+           'image_mean': mean_image,
+           'action_mean': mean_action
+    }
+    
+    return data
+
+
+
+def enumerate_data(db, samples, interval_function, image, signal, signal_component,
+                       signal_op, what='enumerate_data'):
+    for k, id in enumerate(samples):
+        progress(what, (k, len(samples)), "Sample %s" % id)
+        
+        
+        if not db.has_rows(id):
+            logger.warning('Could not find rows table for %s; skipping.' % 
+                           (id))
+            continue
+        
+        if not db.has_table(id, image):
+            logger.warning('Could not find table "%s" for %s; skipping.' % 
+                           (image, id))
+            continue
+            
+        
+        rows_table = db.get_rows(id)
+        image_table = db.get_table(id, image)
+        image_values = image_table[:]['value']
+        
+        try:
+            interval = interval_function(db, id, rows_table) 
+        except Exception as e:
+            logger.warning('Cannot compute interval for sample %s: %s '\
+                           % (id, e))
+            continue
+        
+        # subset everything
+        image_values = image_values[interval]
+        rows = rows_table[interval]
+        
+        # get the action vector
+        actions = numpy.zeros(shape=(len(rows),), dtype='float32')
+        for i in range(len(rows)):
+            if signal_component is not None:
+                actions[i] = rows[i][signal][signal_component]
+            else:
+                actions[i] = rows[i][signal]
+                
+        actions = signal_op(actions)
+    
+        yield actions, image_values
+
+        
+        db.release_table(rows_table)
+        db.release_table(image_table)
+        
+        # use only one sample (for debugging)
+        # break
+        
         

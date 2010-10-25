@@ -162,9 +162,6 @@ def render_saccades_view(saccades, stimulus_xml, host=None, white=False):
         attitude_rstop = rotz(orientation_rstop)
         attitude_random = rotz(orientation_random)
         
-        print 'position', position
-        print 'attitude_stop', attitude_stop
-        print 'attitude_random', attitude_random
         
         linear_velocity_body = [0, 0, 0]
         angular_velocity_body = [0, 0, 0]

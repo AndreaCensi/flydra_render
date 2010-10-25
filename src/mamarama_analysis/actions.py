@@ -97,7 +97,10 @@ def compute_signal_correlation(
            'image_mean': image_ex.get_value()
         }
     
+    
     return data
+
+
 
 
 def compute_presaccade_action(db, samples, image, use_sign):

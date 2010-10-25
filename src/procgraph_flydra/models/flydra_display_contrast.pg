@@ -7,36 +7,38 @@ config interval = 3
 
 |luminance:flydra_db_image db=$db sample=$sample image=luminance|
 |contrast:flydra_db_image db=$db sample=$sample image=contrast|
+|contrast_w:flydra_db_image db=$db sample=$sample image=contrast_w|
 
 luminance.image --> |plot_luminance| --> |image_label title=Luminance| --> lum_rgb
 contrast.image --> |plot_contrast|  --> |image_label title=Contrast| -->  contrast_rgb
+contrast_w.image --> |plot_contrast|  --> |image_label title="Contrast (only posts)"| -->  contrast_w_rgb
 
 
 |data:flydra_db_source db=$db sample=$sample|
 
 data.position --> |history interval=$interval| --> position_history, time
-position_history[position], data.attitude[attitude] -> |sync| -> |arena_display_top_zoom| -> |image_label title='Top zoom'| --> arena_top_zoom
+position_history[position], data.attitude[attitude]  -> |sync| -> |arena_display_top_zoom db=$db sample=$sample| -> |image_label title='Top zoom'| --> arena_top_zoom
 
-position_history  -> |arena_display_side_zoom| -> |image_label title='Side zoom'| --> arena_side_zoom
+position_history  -> |arena_display_side_zoom db=$db sample=$sample| -> |image_label title='Side zoom'| --> arena_side_zoom
 
-position_history --> |arena_display_top| --> |image_label title="Top view (x,y)"| --> arena_top
-position_history --> |arena_display_side| --> |image_label title="Side view (x,z)"| --> arena_side
+position_history  --> |arena_display_top db=$db sample=$sample| --> |image_label title="Top view (x,y)"| --> arena_top
+position_history  --> |arena_display_side db=$db sample=$sample| --> |image_label title="Side view (x,z)"| --> arena_side
 
 
 
 arena_top, arena_side --> |sync| --> |grid cols=1| --> arena
 arena_top_zoom, arena_side_zoom --> |sync| --> |grid cols=1| --> arena_zoom
 
-contrast.image --> |plot| --> contrast2
+#contrast.image --> |plot| --> contrast2
 
-lum_rgb, contrast_rgb, contrast2 --> |sync| --> |grid cols = 1| --> retina
+lum_rgb, contrast_rgb, contrast_w_rgb --> |sync| --> |grid cols = 1| --> retina
 
 
 
-data.linear_velocity_modulus --> |my_plot t='Linear velocity'| --> lvel
-data.linear_acceleration_modulus -->  |my_plot t='Linear acceleration'| --> lacc
-data.reduced_angular_velocity -->  |abs| --> |my_plot t='Angular velocity'| --> avel
-data.reduced_angular_acceleration --> |abs| --> |my_plot t='Angular acceleration'|--> aacc
+data.linear_velocity_modulus --> |my_plot2 t='Linear velocity'| --> lvel
+data.linear_acceleration_modulus -->  |my_plot2 t='Linear acceleration'| --> lacc
+data.reduced_angular_velocity  --> |my_plot2 t='Angular velocity' sym=1| --> avel
+data.reduced_angular_acceleration -->  |my_plot2 t='Angular acceleration' sym=1|--> aacc
 
 
 lvel,avel,lacc,aacc --> |sync| -> |grid cols=2| --> |image_label title='Statistics'| --> velocities
@@ -53,4 +55,17 @@ top_left, velocities --> |sync| --> |grid cols=1| --> left
 left, retina --> |sync| --> |grid cols=3| --> rgb
  
 rgb --> |flydra_watermark sample=$sample title="FlyView"|--> |mencoder file=$file|
+
+
+--- model my_plot2
+""" Plots the history of a signal. """
+input x
+output y
+config interval = 5
+config t "title"
+config sym=0 "use symmetric graph"
+|input name=x| --> |historyt interval=$interval| --> h
+
+h -> |plot symmetric=$sym title="" width=258 height=160| --> |image_label title=$t| --> |output name=y|
+
 

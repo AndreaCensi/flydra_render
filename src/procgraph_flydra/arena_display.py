@@ -98,13 +98,13 @@ def plot_posts_xy(info):
     for post in info['posts']:
         p1 = post['verts'][0]
         p2 = post['verts'][1]        
-        pylab.plot([p1[0],p2[0]], [p1[1], p2[1]], 'k-')
+        pylab.plot([p1[0],p2[0]], [p1[1], p2[1]], 'k-', linewidth=3)
 
 def plot_posts_xz(info):
     for post in info['posts']:
         p1 = post['verts'][0]
         p2 = post['verts'][1]        
-        pylab.plot([p1[0],p2[0]], [p1[2], p2[2]], 'k-')
+        pylab.plot([p1[0],p2[0]], [p1[2], p2[2]], 'k-', linewidth=3)
         
    
 class ArenaDisplaySide(LookupInfo, Block):

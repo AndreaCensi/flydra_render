@@ -45,7 +45,7 @@ lvel,avel,lacc,aacc --> |sync| -> |grid cols=2| --> |image_label title='Statisti
 
 
  
-file = "${outdir}/flydra_test/${sample}-all.avi"
+file = "${outdir}/flydra_display/${sample}.avi"
 
 arena, arena_zoom --> |sync| --> |grid cols=2| --> top_left
 top_left, velocities --> |sync| --> |grid cols=1| --> left
