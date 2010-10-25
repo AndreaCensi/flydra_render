@@ -1,5 +1,3 @@
-
-
 from procgraph import Block, Generator
 from flydra_render.db import FlydraDB
 
@@ -23,7 +21,7 @@ class FlydraImage(Generator):
             raise ValueError('Sample "%s" not found.' % self.config.sample)
         if not self.db.has_table(self.config.sample, self.config.image):
             raise ValueError('Table "%s" not found for sample %s.' %\
-                    (self.config.sample, self.config.image))
+                    (self.config.image,self.config.sample))
 
         self.data = self.db.get_table(self.config.sample, self.config.image)
         

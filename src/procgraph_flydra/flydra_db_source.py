@@ -35,6 +35,8 @@ class FlydraData(Generator):
     for f in fields:
         Block.output(f)
     
+    Block.output('stimulus_xml')
+    
     def init(self):
         self.db = FlydraDB(self.config.db)
         self.rows = self.db.get_rows(self.config.sample)
@@ -47,6 +49,9 @@ class FlydraData(Generator):
         for field in fields:
             self.set_output(field, value=row[field].copy(), timestamp=t)
         
+        if self.db.has_attr(self.config.sample, 'stimulus_xml'):
+            stim_xml = self.db.get_attr(self.config.sample, 'stimulus_xml')
+            self.set_output('stimulus_xml', stim_xml, timestamp=t)
         
         self.next_index += 1
         if self.next_index == len(self.rows):
@@ -58,3 +63,5 @@ class FlydraData(Generator):
             return (False, None)
         else:
             return (True, self.rows[self.next_index]['time'])
+
+    

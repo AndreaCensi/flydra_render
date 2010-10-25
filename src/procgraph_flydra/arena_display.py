@@ -5,17 +5,47 @@ from procgraph  import Block
 from procgraph.components.gui.plot import pylab2rgb
 from procgraph.core.exceptions import BadInput
 import numpy
+from StringIO import StringIO
+from flydra_render.db import FlydraDB
+
+def get_posts_info(xml):
+    from flydra.a2 import xml_stimulus
+    stimulus_xml = StringIO(xml)
+    stim_xml = xml_stimulus.xml_stimulus_from_filename(stimulus_xml)
+    root = stim_xml.get_root()
+    
+    results = {'posts':[]}
+    for child in root:
+        if child.tag == 'cylindrical_post':
+            info = stim_xml._get_info_for_cylindrical_post(child)
+            results['posts'].append(info)
+
+    return results
+          
 
 
 mamarama_radius = 1.0
 mamarama_center = [0.15, 0.48]
 mamarama_height = 0.8
 
-class ArenaDisplayTop(Block):
+class LookupInfo:
+    
+    def init(self):
+        if self.config.db is not None and self.config.sample is not None:
+            db = FlydraDB(self.config.db)
+            stimulus_xml = db.get_attr(self.config.sample, 'stimulus_xml')
+            self.arena_info = get_posts_info(stimulus_xml)
+        else:
+            self.arena_info = None
+ 
+class ArenaDisplayTop(LookupInfo, Block):
     ''' Produces a top-down plot of a circular arena.
     '''
     
     Block.alias('arena_display_top')
+    
+    Block.config('sample', default=None)
+    Block.config('db', default=None)
     
     Block.config('width', 'Image width in pixels.', default=320)
     Block.config('arena_radius', 'Radius of the arena (m).', default=mamarama_radius)
@@ -25,13 +55,17 @@ class ArenaDisplayTop(Block):
     
     Block.output('rgb', 'RGB image.')
       
-        
+            
     def update(self):        
         position = array(self.input.position)
         f = pylab.figure(frameon=False,
                         figsize=(self.config.width / 100.0,
                                  self.config.width / 100.0))
-            
+    
+        if self.arena_info:
+            plot_posts_xy(self.arena_info)
+    
+    
         x = position[:, 0]
         y = position[ :, 1]
          
@@ -53,17 +87,34 @@ class ArenaDisplayTop(Block):
         # turn off ticks labels
         pylab.setp(f.axes[0].get_xticklabels(), visible=False)
         pylab.setp(f.axes[0].get_yticklabels(), visible=False)
-   
+
+ 
         self.output.rgb = pylab2rgb(transparent=False, tight=True)
 
         pylab.close(f.number)
 
+   
+def plot_posts_xy(info):
+    for post in info['posts']:
+        p1 = post['verts'][0]
+        p2 = post['verts'][1]        
+        pylab.plot([p1[0],p2[0]], [p1[1], p2[1]], 'k-')
 
-class ArenaDisplaySide(Block):
+def plot_posts_xz(info):
+    for post in info['posts']:
+        p1 = post['verts'][0]
+        p2 = post['verts'][1]        
+        pylab.plot([p1[0],p2[0]], [p1[2], p2[2]], 'k-')
+        
+   
+class ArenaDisplaySide(LookupInfo, Block):
     ''' Produces a side plot (x,z) of a circular arena.
     '''
     
     Block.alias('arena_display_side')
+    Block.config('sample', default=None)
+    Block.config('db', default=None)
+    
     
     Block.config('width', 'Image width in pixels.', default=320)
     Block.config('arena_radius', 'Radius of the arena (m).', default=mamarama_radius)
@@ -72,6 +123,7 @@ class ArenaDisplaySide(Block):
     
     Block.input('position', 'Assumed to be a numpy ')
     
+
     Block.output('rgb', 'RGB image.')
       
         
@@ -83,7 +135,11 @@ class ArenaDisplaySide(Block):
         
         f = pylab.figure(frameon=False,
                         figsize=(width / 100.0,
-                                 height / 100.0))
+                                 height / 100.0)) 
+    
+        if self.arena_info:
+            plot_posts_xz(self.arena_info)
+        
             
         x = position[:, 0]
         z = position[:, 2]
@@ -113,11 +169,15 @@ class ArenaDisplaySide(Block):
 
 
 
-class ArenaDisplayTopZoom(Block):
+class ArenaDisplayTopZoom(LookupInfo, Block):
     ''' Produces a top-down plot of a circular arena.
     '''
     
     Block.alias('arena_display_top_zoom')
+    
+    Block.config('sample', default=None)
+    Block.config('db', default=None)
+    
     
     Block.config('width', 'Image width in pixels.', default=320)
     Block.config('arena_radius', 'Radius of the arena (m).', default=mamarama_radius)
@@ -128,7 +188,7 @@ class ArenaDisplayTopZoom(Block):
     Block.config('arrow_length', default=0.02)
     
     Block.input('position')
-    Block.input('attitude')
+    Block.input('attitude') 
     
     Block.output('rgb', 'RGB image.')
       
@@ -138,7 +198,11 @@ class ArenaDisplayTopZoom(Block):
         f = pylab.figure(frameon=False,
                         figsize=(self.config.width / 100.0,
                                  self.config.width / 100.0))
-            
+         
+
+        if self.arena_info:
+            plot_posts_xy(self.arena_info)
+    
         x = position[:, 0]
         y = position[ :, 1]
         xc = x[-1]
@@ -176,11 +240,15 @@ class ArenaDisplayTopZoom(Block):
 
 
 
-class ArenaDisplaySideZoom(Block):
+class ArenaDisplaySideZoom(LookupInfo, Block):
     ''' Produces a side plot (x,z) of a circular arena.
     '''
     
     Block.alias('arena_display_side_zoom')
+    
+    Block.config('sample', default=None)
+    Block.config('db', default=None)
+    
     
     Block.config('width', 'Image width in pixels.', default=320)
     Block.config('zoom_area', default=0.1)
@@ -188,7 +256,8 @@ class ArenaDisplaySideZoom(Block):
     Block.config('arena_center', 'Coordinates of the center.', default=mamarama_center)
     Block.config('arena_height', 'Coordinates of the center.', default=mamarama_height)
     
-    Block.input('position', 'Assumed to be a numpy ')
+    Block.input('position', 'Assumed to be a numpy ') 
+    
     
     Block.output('rgb', 'RGB image.')
       
@@ -203,7 +272,12 @@ class ArenaDisplaySideZoom(Block):
         f = pylab.figure(frameon=False,
                         figsize=(width / 100.0,
                                  height / 100.0))
-            
+             
+    
+        if self.arena_info:
+            plot_posts_xz(self.arena_info)
+    
+    
         x = position[:, 0]
         z = position[:, 2]
         xl = x[-1]
