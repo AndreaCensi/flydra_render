@@ -7,7 +7,7 @@ from geometric_saccade_detector.math_utils import normalize_pi
 
 def compute_derivative(x, timestamp):
     dt = timestamp[1] - timestamp[0]
-    deriv_filter = numpy.array([0.5, 0, -0.5] / dt)
+    deriv_filter = numpy.array([0.5, 0, -0.5]) / dt
     d = scipy.signal.convolve(x, deriv_filter, mode=1) #@UndefinedVariable
     d[0] = d[1]
     d[-1] = d[-2]

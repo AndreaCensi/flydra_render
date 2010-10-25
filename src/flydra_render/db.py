@@ -9,6 +9,8 @@ from flydra_render.tables_cache import tc_open_for_reading, \
 import shutil
 from flydra_render import logger
 from flydra_render.progress import progress_bar
+from contextlib import contextmanager
+import numpy
 
 FLYDRA_ROOT = 'flydra'
 
@@ -66,7 +68,7 @@ class FlydraDB:
             #print "Removing file '%s'." % filename		
             os.unlink(filename)
         
-        print "Writing on file '%s'." % filename
+        # print "Writing on file '%s'." % filename
         f = tc_open_for_writing(filename)
         filters = tables.Filters(complevel=1, complib='zlib',
                                  fletcher32=True)
@@ -92,13 +94,22 @@ class FlydraDB:
         sample_group = self.get_sample_group(id)
         return list(sample_group._v_children)
         
-    def get_table(self, id, attname):
-        ''' Gets the table for reading. '''
+    def get_table(self, id, attname, mode='r'):
+        ''' Gets the table for reading or writing. 
+            If you open for writing and somebody is reading it,
+            an error will be thrown. '''
         assert self.has_table(id, attname)    
         ref = self.get_sample_group(id)._f_getChild(attname)
         # dereference locally, so we keep a reference count
         filename, target = ref._get_filename_node()
-        external = tc_open_for_reading(filename)
+        
+        if mode == 'r':
+            external = tc_open_for_reading(filename)
+        elif mode == 'r+':
+            external = tc_open_for_appending(filename)
+        else:
+            raise ValueError('Invalid mode "%s".' % mode)
+            
         return external.getNode(target)
         # return ref(mode='a') # dereference
 
@@ -107,39 +118,44 @@ class FlydraDB:
         will be closed.) '''
         tc_close(table._v_file)
 
+    @contextmanager
+    def _get_attrs(self, id, mode='r'):
+        ''' Gets the node holding the attributes, and releases it afterward. '''
+        if not self.has_table(id, 'attrs'):
+            data = numpy.zeros(shape=(1,),dtype=[('dummy', 'uint8')])
+            self.set_table(id, 'attrs', data)
+            
+        attr_table = self.get_table(id, 'attrs', mode)
+        
+        yield attr_table._v_attrs
+        
+        self.release_table(attr_table)
+        
+        
     def has_attr(self, id, key):
-        if not self.has_rows(id):
-            return False
-        rows = self.get_rows(id)
-        attrs = rows._v_attrs
-        have = key in attrs
-        self.release_table(rows)
+        with self._get_attrs(id) as attrs:
+            have = key in attrs
         return have
      
     def set_attr(self, id, key, value):
-        rows = self.get_rows(id)
-        attrs = rows._v_attrs
-        attrs.__setattr__(key, value)
-        self.release_table(rows)
+        with self._get_attrs(id, 'r+') as attrs:
+            attrs.__setattr__(key, value)
  
     not_specified = 'not-specified'
     def get_attr(self, id, key, default=not_specified):
         if not self.has_attr(id, key) and \
             default != FlydraDB.not_specified:
             return default
-        rows = self.get_rows(id)
-        attrs = rows._v_attrs
-        value = attrs.__getattr__(key)
-        self.release_table(rows)
+        
+        with self._get_attrs(id, 'r+') as attrs:
+            value = attrs.__getattr__(key)
+        
         return value
     
     def list_attr(self, id):
-        if not self.has_rows(id):
-            return []
-        rows = self.get_rows(id)
-        attrs = rows._v_attrs
-        names = list(attrs._v_attrnamesuser)
-        self.release_table(rows)
+        with self._get_attrs(id, 'r+') as attrs:
+            names = list(attrs._v_attrnamesuser)
+        
         return names
  
     # shortcuts for saccades and rows tables
@@ -198,6 +214,7 @@ def db_summary(directory):
             if not FLYDRA_ROOT in f.root:
                 print 'Ignoring file %s: no data belonging to Flydra DB' % \
                     os.path.basename(file)
+                tc_close(f)
                 continue
             
             link_everything(src=f, dst=summary,
@@ -212,7 +229,7 @@ def db_summary(directory):
     temp_dir = os.path.join(directory, 'indices')
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
-    fid, temp_file = tempfile.mkstemp(suffix='.h5',
+    fid, temp_file = tempfile.mkstemp(suffix='.h5_priv',
                         prefix='index', dir=temp_dir)
     # fid.close()
     # copy over

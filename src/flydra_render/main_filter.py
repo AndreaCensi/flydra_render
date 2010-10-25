@@ -8,6 +8,9 @@ from flydra_render import logger
 from flydra_render.filtering import filter_rows
 from flydra_render.flydra_db_utils import get_good_smoothed_tracks
 from flydra_render.db import FlydraDB
+from datetime import datetime
+import platform 
+import pwd
 
 
 def main():
@@ -42,14 +45,7 @@ def main():
     if not args:
         logger.error('No files or directories specified.')
         sys.exit(-1)
-        
-    # Create processed string
-#    processed = 'geometric_saccade_detector %s %s %s@%s Python %s' % \
-#                (version, datetime.now().strftime("%Y%m%d_%H%M%S"),
-#                 get_user(), platform.node(), platform.python_version())
-#        
-
-    
+         
     if not os.path.exists(options.db):
         os.makedirs(options.db)
 
@@ -66,7 +62,7 @@ def main():
     for i in range(n):
         (filename, obj_ids, stim_fname) = good_files[i]
         
-        print 'Sample %s/%s: %s' % (i + 1, n, filename)
+        logger.info( 'Sample %s/%s: %s' % (i + 1, n, filename) )
         
         
         # only maintain basename
@@ -109,16 +105,23 @@ def main():
         db.set_attr(sample_id, 'stimulus', stim)
         db.set_attr(sample_id, 'stimulus_xml', open(stim_fname).read())
 
-#        
-#        attrs = db.get_rows(sample_id)._v_attrs
-#        attrs.stim_fname = stim_fname
-#        attrs.stimulus = stim
-#        attrs.stimulus_xml = open(stim_fname).read()
 
+        db.set_attr(sample_id, 'filter_time', datetime.now().strftime("%Y%m%d_%H%M%S"))
+        db.set_attr(sample_id, 'filter_host', platform.node())
+        db.set_attr(sample_id, 'filter_user', get_user())
+        db.set_attr(sample_id, 'filter_python_version', platform.python_version())
+        db.set_attr(sample_id, 'filter_numpy_version', numpy.version.version)
+         
 
     sys.exit(0)
 
 
+
+def get_user():    
+    try:
+        return pwd.getpwuid(os.getuid())[0]
+    except:
+        return '<unknown user>'
 
 
 if __name__ == '__main__':
