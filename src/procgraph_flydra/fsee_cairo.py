@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 import cairo
-from math import pi, sqrt, sin, atan2, acos
+from math import pi, sin, atan2, acos
 
 import random
 import numpy

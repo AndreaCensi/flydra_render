@@ -6,7 +6,8 @@ def create_eye_map(width, height):
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
     cr = cairo.Context(surface)
     cr.translate(width / 2, height / 2)
-    cr.scale(width / 2, height / 2)
+    # note the minus here
+    cr.scale(-width / 2, height / 2)
     
     cr.set_line_width(0.01)
     
@@ -46,5 +47,6 @@ def create_eye_map(width, height):
 if __name__ == '__main__':
 
     # create_eye_map(480, 240)
-    create_eye_map(640, 320)
+    create_eye_map(480, 240)
+    #create_eye_map(640, 320)
     

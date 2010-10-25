@@ -2,6 +2,7 @@ import numpy
 from numpy.testing.utils import assert_almost_equal
 from flydra_render.structures import additional_fields
 import scipy, scipy.signal
+from geometric_saccade_detector.math_utils import normalize_pi
 
 
 def compute_derivative(x, timestamp):
@@ -50,6 +51,7 @@ def filter_rows(rows, options):
     
     minimum_linear_velocity = 0.02
     
+    dt = 1/60.0
     extra['time'] = (rows['frame'] - rows['frame'][0]) / 60.0
     
     
@@ -71,6 +73,7 @@ def filter_rows(rows, options):
     linear_velocity_body = extra['linear_velocity_body']
     linear_acceleration_world = extra['linear_acceleration_world']
     linear_acceleration_body = extra['linear_acceleration_body']
+    linear_acceleration_modulus = extra['linear_acceleration_modulus']
     angular_velocity_body = extra['angular_velocity_body']
     
        
@@ -79,6 +82,8 @@ def filter_rows(rows, options):
         linear_velocity_world[i] = numpy.array([xvel[i], yvel[i], zvel[i]])
         linear_acceleration_world[i] = numpy.array([xacc[i], yacc[i], zacc[i]])
         linear_velocity_modulus[i] = numpy.linalg.norm(linear_velocity_world[i]) 
+        linear_acceleration_modulus[i]= numpy.linalg.norm(linear_acceleration_modulus[i])
+
 
         if attitude_algo == 'ROLL0PITCH0':
             # assume roll = 0, pitch = 0
@@ -104,7 +109,7 @@ def filter_rows(rows, options):
                 else:
                     attitude[i] = numpy.eye(3)
         else:
-            raise Exception('Uknown attitude algo "%s".' % attitude_algo)
+            raise Exception('Unknown attitude algo "%s".' % attitude_algo)
         
         front = numpy.dot(attitude[i], [1, 0, 0])
         reduced_angular_orientation[i] = numpy.arctan2(front[1], front[0])
@@ -116,9 +121,13 @@ def filter_rows(rows, options):
         
         angular_velocity_body[i] = 0
 
+    
+    # Take care of rollover
+    v = compute_derivative(reduced_angular_orientation, [0, 1])
+    for i in range(len(v)):
+        extra['reduced_angular_velocity'][i] = normalize_pi(v[i]) / dt
+    
 
-    extra['reduced_angular_velocity'] = compute_derivative(reduced_angular_orientation,
-                                                           extra['time'])
 
     # todo: make it smarter
     extra['reduced_angular_acceleration'] = \
