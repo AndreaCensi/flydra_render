@@ -55,14 +55,18 @@ def main():
     if not samples:
         print 'No samples found'
     
+    num_ok = 0
     for id in samples:
-        for t in tables:
-            if not db.has_table(id, t):
-                continue
+        enough = all( map( lambda t: db.has_table(id,t), tables))
+        
+        if not enough:
+            continue
                 #raise Exception('Table "%s" not found for %s.' % (t,id))
-                
+        num_ok += 1  
         config = {'sample': id, 'db': options.db}
         comp(pg, options.model, config, job_id=id)
+
+    print "Found %d/%d samples with tables %s." % (num_ok, len(samples), tables)
 
     if options.interactive:
         # start interactive session
