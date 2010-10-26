@@ -150,19 +150,15 @@ def cylindrical_post(info=None, texture='nearblack.png'):
 class StimulusWithOSG(xml_stimulus.Stimulus):
     @contextlib.contextmanager
     def OSG_model_path(self, extra):
-        
-        #sys.stderr.write('Got %s\n' % extra)
-
         if not extra.get('white_arena', False):
-         #   sys.stderr.write('Using normal arena\n')
-
+        #   sys.stderr.write('Using normal arena\n')
             greenred = 'greenred.png'
             redgreen = 'redgreen.png'
             floor = 'nearblack.png'
             ceiling = 'nearblack.png'
             posts = 'nearblack.png'
         else:
-          #  sys.stderr.write('Using white arena\n')
+        #  sys.stderr.write('Using white arena\n')
             greenred = 'white.png'
             redgreen = 'white.png'
             floor = 'white.png'
