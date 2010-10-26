@@ -1,0 +1,32 @@
+--- model flydra_display_luminance
+" This model displays most information in the mamarama data. "
+config db     "Directory containing the flydra DB."
+config sample "Sample to consider."
+config outdir = "${db}/out" "Output directory where to place the movie."
+
+# " Data sources "
+	|data:flydra_db_source db=$db sample=$sample|
+	|luminance:flydra_db_image db=$db sample=$sample image=luminance|
+
+# " Plot luminance. "
+	luminance.image --> |plot_luminance| --> |image_label title=Luminance| --> lum_rgb
+
+# " Plot arena. "
+	data.position, data.attitude --> |flydra_arena db=$db sample=$sample| --> arena
+
+# " Plot velocities. "
+	data.linear_velocity_modulus      --> |my_plot2 yl='m/s' t='Linear velocity'| --> lvel
+	data.linear_acceleration_modulus  --> |my_plot2 yl='m/s^2' t='Linear acceleration'| --> lacc
+	data.reduced_angular_velocity     --> |rad2deg| --> |my_plot2 yl='deg/s' t='Angular velocity' sym=1| --> avel
+	data.reduced_angular_acceleration --> |rad2deg| --> |my_plot2 yl='deg/s^2't='Angular acceleration' sym=1|--> aacc
+	lvel,avel,lacc,aacc --> |sync| -> |grid cols=2| --> |image_label title='Statistics'| --> velocities
+
+# " Compose everything. "
+	arena, velocities --> |sync| --> |grid cols=1| --> left
+	left, lum_rgb --> |sync| --> |grid cols=3| --> rgb
+
+# " Output everything. "
+	file = "${outdir}/flydra_display_luminance/${sample}.avi"
+	rgb --> |flydra_watermark sample=$sample title="FlyView"|--> |mencoder file=$file|
+
+

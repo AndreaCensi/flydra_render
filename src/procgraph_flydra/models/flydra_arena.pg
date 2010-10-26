@@ -1,0 +1,41 @@
+--- model flydra_arena
+""" This model displays the fly in the arena (top, side, top-zoom, side-zoom).
+
+	It takes as input the position and attitude signal. """
+	
+config db           "FlydraDB location."
+config sample       "Flydra sample ID."
+config interval = 5 "Length of position trace."
+
+input position "Fly position."
+input attitude "Fly attitude."
+ 
+output rgb "Resulting view."
+ 
+config db "resulting view"
+ 
+# """Get the fly position and attitude. """
+
+	|input name=position| --> position
+	|input name=attitude| --> attitude
+	
+
+# """ Create the 4 views. """
+	position --> |history interval=$interval| --> position_history, time
+
+	position_history, attitude  -> |sync| -> |arena_display_top_zoom db=$db sample=$sample| -> |image_label title='Top zoom'| --> arena_top_zoom
+
+	position_history  -> |arena_display_side_zoom db=$db sample=$sample| -> |image_label title='Side zoom'| --> arena_side_zoom
+
+	position_history  --> |arena_display_top db=$db sample=$sample| --> |image_label title="Top view (x,y)"| --> arena_top
+	position_history  --> |arena_display_side db=$db sample=$sample| --> |image_label title="Side view (x,z)"| --> arena_side
+
+# """ Splice the 4 views together. """
+	arena_top, arena_side --> |sync| --> |grid cols=1| --> arena
+	arena_top_zoom, arena_side_zoom --> |sync| --> |grid cols=1| --> arena_zoom
+ 
+	arena, arena_zoom --> |sync| --> |grid cols=2| --> rgb
+	
+# """ Output the view. """
+
+	rgb --> |output name=rgb| 
