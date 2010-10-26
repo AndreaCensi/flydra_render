@@ -2,8 +2,9 @@ from optparse import OptionParser
 from flydra_render.db import FlydraDB
 import sys
 
-from compmake import comp, set_namespace, compmake_console
+from compmake import comp, set_namespace, compmake_console, batch_command
 from procgraph.scripts.pg import pg
+from compmake.jobs.syntax.parsing import parse_job_list
 
 def main():
     
@@ -15,7 +16,13 @@ def main():
     
     parser.add_option("--filter", help="Which procgraph filter to use to plot.",
                       default="flydra_simple_video_filter")
-    
+  
+    parser.add_option("--interactive", 
+                      help="Start compmake interactive session."
+                      " Otherwise run in batch mode",
+                      default=False, action="store_true")
+
+  
     (options, args) = parser.parse_args()
     
     if options.image is None:
@@ -49,7 +56,22 @@ def main():
         comp(pg, 'flydra_simple_video', config,
              job_id="%s" % id)
 
-    compmake_console()
+
+
+    if options.interactive:
+        # start interactive session
+        compmake_console()
+    else:
+        # batch mode
+        # try to do everything
+        batch_command('make all')
+        # start the console if we are not done
+        # (that is, make all failed for some reason)
+        todo = parse_job_list('todo') 
+        if todo:
+            print('Still %d jobs to do.' % len(todo))
+            sys.exit(-2)
+
     
 if __name__ == '__main__':
     main()

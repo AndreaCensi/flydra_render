@@ -1,13 +1,15 @@
 import sys     
 from optparse import OptionParser
 
-from compmake import comp, compmake_console, comp_prefix, set_namespace
+from compmake import comp, compmake_console, comp_prefix, set_namespace,\
+    batch_command
 from reprep import Report
 
 from flydra_render.db import FlydraDB
 from procgraph_flydra.values2retina import  plot_luminance
 
 from mamarama_analysis import logger
+from compmake.jobs.syntax.parsing import parse_job_list
 
 description = """
 
@@ -19,12 +21,17 @@ description = """
 def main():
     parser = OptionParser()
 
-    parser.add_option("--db", default='flydra_render_output',
-                      help="Data directory")
+    parser.add_option("--db", default='flydra_db', help="Data directory")
 
     parser.add_option("--image", default="luminance",
                       help="Rendered image to use -- "
             " corresponding to image 'saccades_view_{start,stop}_X'")
+    
+    parser.add_option("--interactive", 
+                      help="Start an interactive compmake session."
+                      " Otherwise run in batch mode. ",
+                      default=False, action="store_true")
+
 
     (options, args) = parser.parse_args() #@UnusedVariable
     
@@ -36,7 +43,7 @@ def main():
     view_stop = 'saccades_view_stop_%s' % options.image
     view_rstop = 'saccades_view_rstop_%s' % options.image    
 
-    db = FlydraDB(options.db) 
+    db = FlydraDB(options.db, False) 
     
     # all samples with enough data
     all_available = lambda x: db.has_saccades(x) and \
@@ -46,17 +53,27 @@ def main():
         
     samples = filter(all_available, db.list_samples())
     
-    set_namespace('saccade_view_show')
+    set_namespace('saccade_view_show_%s' % options.image)
     
-    for sample in samples:
-        
-        print "Sample", sample
-         
+    for sample in samples: 
         comp_prefix(sample)
         
         comp(create_and_write_report, options.db, sample, options.image) 
         
-    compmake_console()
+    
+    if options.interactive:
+        # start interactive session
+        compmake_console()
+    else:
+        # batch mode
+        # try to do everything
+        batch_command('make all')
+        # start the console if we are not done
+        # (that is, make all failed for some reason)
+        todo = parse_job_list('todo') 
+        if todo:
+            logger.info('Still %d jobs to do.' % len(todo))
+            sys.exit(-2)
  
     
 
@@ -67,7 +84,7 @@ def create_and_write_report(flydra_db, sample, image_name):
     view_rstop = 'saccades_view_rstop_%s' % image_name    
 
 
-    db = FlydraDB(flydra_db) 
+    db = FlydraDB(flydra_db, False) 
     
     saccades = db.get_saccades(sample)
     values_start = db.get_table(sample, view_start)

@@ -5,13 +5,15 @@ from optparse import OptionParser
 from reprep import Report
 from reprep.graphics.posneg import posneg
 from reprep.graphics.scale import scale
-from compmake import comp, compmake_console, comp_prefix, set_namespace
+from compmake import comp, compmake_console, comp_prefix, set_namespace,\
+    batch_command
 
 from flydra_render.db import FlydraDB
 from procgraph_flydra.values2retina import values2retina
 
 from mamarama_analysis import logger
 from mamarama_analysis.covariance import compute_mean_generic, array_mean, array_var
+from compmake.jobs.syntax.parsing import parse_job_list
 
 description = """
 
@@ -24,6 +26,11 @@ def main():
     parser = OptionParser()
 
     parser.add_option("--db", default='flydra_db', help="Data directory")
+
+    parser.add_option("--interactive", 
+                      help="Start compmake interactive session."
+                      " Otherwise run in batch mode",
+                      default=False, action="store_true")
 
     parser.add_option("--image", default="luminance",
                       help="Rendered image to use -- "
@@ -99,7 +106,23 @@ def main():
 
     filename = 'out/saccade_view_analysis/%s.html' % options.image
     comp(write_report, all_reports, options.db, filename)
-    compmake_console() 
+    
+    
+    if options.interactive:
+        # start interactive session
+        compmake_console()
+    else:
+        # batch mode
+        # try to do everything
+        batch_command('make all')
+        # start the console if we are not done
+        # (that is, make all failed for some reason)
+        todo = parse_job_list('todo') 
+        if todo:
+            logger.info('Still %d jobs to do.' % len(todo))
+            sys.exit(-2)
+
+
     
 
 def create_report(group_name, data, image_name):

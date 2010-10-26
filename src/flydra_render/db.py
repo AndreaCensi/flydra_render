@@ -189,7 +189,8 @@ def db_summary(directory):
     if not os.path.exists(summary_file) or \
         os.path.getmtime(directory) > os.path.getmtime(summary_file):
     
-        logger.info('Out of date or not existing summary file; recreating ')    
+        logger.info('Summary file %s out of date or not existing; recreating.'%\
+                    summary_file)    
         
         logger.info('Looking for h5 files...')
         files = locate_roots('*.h5', directory)
