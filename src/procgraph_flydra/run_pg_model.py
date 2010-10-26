@@ -60,13 +60,13 @@ def main():
         enough = all( map( lambda t: db.has_table(id,t), tables))
         
         if not enough:
-            continue
-                #raise Exception('Table "%s" not found for %s.' % (t,id))
+            continue 
+        
         num_ok += 1  
         config = {'sample': id, 'db': options.db}
         comp(pg, options.model, config, job_id=id)
 
-    print "Found %d/%d samples with tables %s." % (num_ok, len(samples), tables)
+    logger.info("Found %d/%d samples with tables %s." % (num_ok, len(samples), tables))
 
     if options.interactive:
         # start interactive session
@@ -79,8 +79,9 @@ def main():
         # (that is, make all failed for some reason)
         todo = parse_job_list('todo') 
         if todo:
-            print('Still %d jobs to do.' % len(todo))
+            logger.info('Still %d jobs to do.' % len(todo))
             sys.exit(-2)
     
 if __name__ == '__main__':
     main()
+    
