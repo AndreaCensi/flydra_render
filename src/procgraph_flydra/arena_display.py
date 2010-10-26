@@ -25,7 +25,7 @@ def get_posts_info(xml):
     return results
           
 #
-#
+#ss
 #mamarama_radius = 1.0
 #mamarama_center = [0.15, 0.48]
 #mamarama_height = 0.8

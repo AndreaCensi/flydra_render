@@ -2,3 +2,5 @@
 src/flydra_render.egg-info
 *pgc
 *~
+src/fast-contrast/build/
+src/fast-contrast/fast_contrast.c

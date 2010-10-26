@@ -16,6 +16,7 @@ setup(name='flydra_render',
            'mamarama_first_order      = mamarama_analysis.first_order:main',
            'mamarama_check_stats      = mamarama_analysis.check_stats:main',
            'flydra_video_image        = procgraph_flydra.video_image:main',
+           'flydra_run_pg_model       = procgraph_flydra.run_pg_model:main',
            
            # saccade analysis
            'flydra_render_saccades    = flydra_render.render_saccades:main',
