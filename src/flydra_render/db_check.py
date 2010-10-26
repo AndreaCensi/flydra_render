@@ -16,11 +16,18 @@ def main():
 
     db = FlydraDB(options.db)  
     
-    samples = db.list_samples()
+    if args:
+        samples = args
+    else:
+        samples = db.list_samples()
+        
     if not samples:
         print 'No samples found'
     
     for id in samples:
+        if not db.has_sample(id):
+            raise Exception('Sample "%s" not found.' % id)
+        
         print "Sample %s" % id
         
         if db.has_table(id, 'rows'):
@@ -44,7 +51,7 @@ def main():
             db.release_table(rows)
         
         for att in db.list_attr(id):
-            s = str(db.get_attr(id, att))
+            s = (db.get_attr(id, att)).__repr__()
             if len(s) > 50:
                 s = s[0:50] + ' ...'
             print ' - attribute %s = %s ' % (att, s)

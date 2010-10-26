@@ -1,10 +1,10 @@
+
+import numpy
 from numpy import array
 from matplotlib import pylab
 
 from procgraph  import Block
-from procgraph.components.gui.plot import pylab2rgb
-from procgraph.core.exceptions import BadInput
-import numpy
+from procgraph.components.gui.plot import pylab2rgb 
 from StringIO import StringIO
 from flydra_render.db import FlydraDB
 
@@ -19,14 +19,16 @@ def get_posts_info(xml):
         if child.tag == 'cylindrical_post':
             info = stim_xml._get_info_for_cylindrical_post(child)
             results['posts'].append(info)
+        elif child.tag == 'cylindrical_arena':
+            results['arena'] = stim_xml._get_info_for_cylindrical_arena(child)
 
     return results
           
-
-
-mamarama_radius = 1.0
-mamarama_center = [0.15, 0.48]
-mamarama_height = 0.8
+#
+#
+#mamarama_radius = 1.0
+#mamarama_center = [0.15, 0.48]
+#mamarama_height = 0.8
 
 class LookupInfo:
     
@@ -44,12 +46,10 @@ class ArenaDisplayTop(LookupInfo, Block):
     
     Block.alias('arena_display_top')
     
+    Block.config('width', 'Image width in pixels.', default=320)
+     
     Block.config('sample', default=None)
     Block.config('db', default=None)
-    
-    Block.config('width', 'Image width in pixels.', default=320)
-    Block.config('arena_radius', 'Radius of the arena (m).', default=mamarama_radius)
-    Block.config('arena_center', 'Coordinates of the center.', default=mamarama_center)
     
     Block.input('position', 'Assumed to be a numpy ')
     
@@ -71,9 +71,9 @@ class ArenaDisplayTop(LookupInfo, Block):
          
         pylab.plot(x, y, 'b-')
             
-        R = self.config.arena_radius
-        cx = self.config.arena_center[0]
-        cy = self.config.arena_center[1]
+        R = self.arena_info['arena']['diameter'] / 2 
+        cx = self.arena_info['arena']['origin'][0]
+        cy = self.arena_info['arena']['origin'][1]
          
         # draw arena
         theta = numpy.linspace(0, numpy.pi * 2.01, 500)
@@ -117,10 +117,7 @@ class ArenaDisplaySide(LookupInfo, Block):
     
     
     Block.config('width', 'Image width in pixels.', default=320)
-    Block.config('arena_radius', 'Radius of the arena (m).', default=mamarama_radius)
-    Block.config('arena_center', 'Coordinates of the center.', default=mamarama_center)
-    Block.config('arena_height', 'Coordinates of the center.', default=mamarama_height)
-    
+ 
     Block.input('position', 'Assumed to be a numpy ')
     
 
@@ -130,26 +127,27 @@ class ArenaDisplaySide(LookupInfo, Block):
     def update(self):        
         position = array(self.input.position)
         
+        R = self.arena_info['arena']['diameter'] / 2 
+        cx = self.arena_info['arena']['origin'][0]
+        cy = self.arena_info['arena']['origin'][1]
+        h = self.arena_info['arena']['height']
+        
         width = self.config.width
-        height = self.config.arena_height / (2 * self.config.arena_radius) * width
+        height = h / (2 * R) * width
         
         f = pylab.figure(frameon=False,
                         figsize=(width / 100.0,
                                  height / 100.0)) 
     
-        if self.arena_info:
-            plot_posts_xz(self.arena_info)
+        
+        plot_posts_xz(self.arena_info)
         
             
         x = position[:, 0]
         z = position[:, 2]
          
         pylab.plot(x, z, 'b-')
-            
-        R = self.config.arena_radius
-        cx = self.config.arena_center[0]
-        cy = self.config.arena_center[1]
-        h = self.config.arena_height
+        
          
         # draw arena
         x = [cx - R, cx - R, cx + R, cx + R, cx - R]
@@ -180,10 +178,7 @@ class ArenaDisplayTopZoom(LookupInfo, Block):
     
     
     Block.config('width', 'Image width in pixels.', default=320)
-    Block.config('arena_radius', 'Radius of the arena (m).', default=mamarama_radius)
-    Block.config('arena_center', 'Coordinates of the center.', default=mamarama_center)
-    Block.config('arena_height', 'Coordinates of the center.', default=mamarama_height)
-
+    
     Block.config('zoom_area', default=0.1)
     Block.config('arrow_length', default=0.02)
     
@@ -199,9 +194,8 @@ class ArenaDisplayTopZoom(LookupInfo, Block):
                         figsize=(self.config.width / 100.0,
                                  self.config.width / 100.0))
          
-
-        if self.arena_info:
-            plot_posts_xy(self.arena_info)
+ 
+        plot_posts_xy(self.arena_info)
     
         x = position[:, 0]
         y = position[ :, 1]
@@ -218,9 +212,11 @@ class ArenaDisplayTopZoom(LookupInfo, Block):
         
             
         Z = self.config.zoom_area
-        R = self.config.arena_radius
-        cx = self.config.arena_center[0]
-        cy = self.config.arena_center[1]
+        
+        
+        R = self.arena_info['arena']['diameter'] / 2 
+        cx = self.arena_info['arena']['origin'][0]
+        cy = self.arena_info['arena']['origin'][1]
          
         # draw arena
         theta = numpy.linspace(0, numpy.pi * 2.01, 500)
@@ -252,10 +248,7 @@ class ArenaDisplaySideZoom(LookupInfo, Block):
     
     Block.config('width', 'Image width in pixels.', default=320)
     Block.config('zoom_area', default=0.1)
-    Block.config('arena_radius', 'Radius of the arena (m).', default=mamarama_radius)
-    Block.config('arena_center', 'Coordinates of the center.', default=mamarama_center)
-    Block.config('arena_height', 'Coordinates of the center.', default=mamarama_height)
-    
+      
     Block.input('position', 'Assumed to be a numpy ') 
     
     
@@ -263,21 +256,24 @@ class ArenaDisplaySideZoom(LookupInfo, Block):
       
         
     def update(self):        
-        position = array(self.input.position)
+        R = self.arena_info['arena']['diameter'] / 2 
+        cx = self.arena_info['arena']['origin'][0]
+        cy = self.arena_info['arena']['origin'][1]
+        h = self.arena_info['arena']['height']
+
         
         width = self.config.width
-        ratio = self.config.arena_height / (2 * self.config.arena_radius)
+        ratio = h / (2 * R)
         height = ratio * width
         
         f = pylab.figure(frameon=False,
                         figsize=(width / 100.0,
                                  height / 100.0))
-             
+              
+        plot_posts_xz(self.arena_info)
     
-        if self.arena_info:
-            plot_posts_xz(self.arena_info)
-    
-    
+        position = array(self.input.position)
+        
         x = position[:, 0]
         z = position[:, 2]
         xl = x[-1]
@@ -285,10 +281,6 @@ class ArenaDisplaySideZoom(LookupInfo, Block):
          
         pylab.plot(x, z, 'b.')
             
-        R = self.config.arena_radius
-        cx = self.config.arena_center[0]
-        cy = self.config.arena_center[1]
-        h = self.config.arena_height
          
         # draw arena
         x = [cx - R, cx - R, cx + R, cx + R, cx - R]

@@ -27,10 +27,6 @@ def main():
      
         
     db = FlydraDB(options.db, False)
-        
-    directory = sys.argv[1]
-    
-    db = FlydraDB(directory)
     
     set_namespace('video_contrast')
     
@@ -41,7 +37,7 @@ def main():
     for id in samples:
         if db.has_rows(id) and db.has_table(id, 'contrast') and \
             db.has_table(id, 'luminance'):
-            config = {'sample': id, 'db': directory}
+            config = {'sample': id, 'db': options.db}
             comp(pg, 'flydra_display_contrast', config,
                  job_id="flydra_display_contrast:%s" % id)
 

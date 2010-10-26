@@ -1,12 +1,12 @@
 import numpy
 
+from procgraph.components.basic import register_simple_block
 import procgraph_flydra.optics_480x240 as optics
 from procgraph.components.images.copied_from_reprep import posneg, scale
 
 
 pixelmap = numpy.array(optics.pixelmap)    
 
-from procgraph.components.basic import register_simple_block
 
 def values2retina(values, background=numpy.NaN):
     

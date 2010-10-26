@@ -5,56 +5,37 @@ config sample "Sample to consider."
 config outdir = "${db}/out" "Output directory where to place the movie."
 config interval = 3
 
-|luminance:flydra_db_image db=$db sample=$sample image=luminance|
-|contrast:flydra_db_image db=$db sample=$sample image=contrast|
-|contrast_w:flydra_db_image db=$db sample=$sample image=contrast_w|
+# " Data sources "
+	|luminance:flydra_db_image db=$db sample=$sample image=luminance|
+	|contrast:flydra_db_image db=$db sample=$sample image=contrast|
+	|contrast_w:flydra_db_image db=$db sample=$sample image=contrast_w|
+	|data:flydra_db_source db=$db sample=$sample|
 
-luminance.image --> |plot_luminance| --> |image_label title=Luminance| --> lum_rgb
-contrast.image --> |plot_contrast|  --> |image_label title=Contrast| -->  contrast_rgb
-contrast_w.image --> |plot_contrast|  --> |image_label title="Contrast (only posts)"| -->  contrast_w_rgb
+# " Plot retinal quantities. "
+	luminance.image --> |plot_luminance| --> |image_label title=Luminance| --> lum_rgb
+	contrast.image --> |plot_contrast|  --> |image_label title=Contrast| -->  contrast_rgb
+	contrast_w.image --> |plot_contrast|  --> |image_label title="Contrast (only posts)"| -->  contrast_w_rgb
+	lum_rgb, contrast_rgb, contrast_w_rgb --> |sync| --> |grid cols = 1| --> retina
 
+# " Plot arena. "
+	data.position, data.attitude --> |flydra_arena db=$db sample=$sample| --> arena
 
-|data:flydra_db_source db=$db sample=$sample|
+# " Plot velocities. "
+	data.linear_velocity_modulus      --> |my_plot2 yl='m/s' t='Linear velocity'| --> lvel
+	data.linear_acceleration_modulus  --> |my_plot2 yl='m/s^2' t='Linear acceleration'| --> lacc
+	data.reduced_angular_velocity     --> |rad2deg| --> |my_plot2 yl='deg/s' t='Angular velocity' sym=1| --> avel
+	data.reduced_angular_acceleration --> |rad2deg| --> |my_plot2 yl='deg/s^2't='Angular acceleration' sym=1|--> aacc
+	
+	lvel,avel,lacc,aacc --> |sync| -> |grid cols=2| --> |image_label title='Statistics'| --> velocities
 
-data.position --> |history interval=$interval| --> position_history, time
-position_history[position], data.attitude[attitude]  -> |sync| -> |arena_display_top_zoom db=$db sample=$sample| -> |image_label title='Top zoom'| --> arena_top_zoom
+# " Put everything together. "
+	arena, velocities --> |sync| --> |grid cols=1| --> left
+	left, retina --> |sync| --> |grid cols=3| --> all
+	all --> |flydra_watermark sample=$sample title="FlyView"| --> rgb
 
-position_history  -> |arena_display_side_zoom db=$db sample=$sample| -> |image_label title='Side zoom'| --> arena_side_zoom
-
-position_history  --> |arena_display_top db=$db sample=$sample| --> |image_label title="Top view (x,y)"| --> arena_top
-position_history  --> |arena_display_side db=$db sample=$sample| --> |image_label title="Side view (x,z)"| --> arena_side
-
-
-
-arena_top, arena_side --> |sync| --> |grid cols=1| --> arena
-arena_top_zoom, arena_side_zoom --> |sync| --> |grid cols=1| --> arena_zoom
-
-#contrast.image --> |plot| --> contrast2
-
-lum_rgb, contrast_rgb, contrast_w_rgb --> |sync| --> |grid cols = 1| --> retina
-
-
-
-data.linear_velocity_modulus --> |my_plot2 t='Linear velocity'| --> lvel
-data.linear_acceleration_modulus -->  |my_plot2 t='Linear acceleration'| --> lacc
-data.reduced_angular_velocity  --> |my_plot2 t='Angular velocity' sym=1| --> avel
-data.reduced_angular_acceleration -->  |my_plot2 t='Angular acceleration' sym=1|--> aacc
-
-
-lvel,avel,lacc,aacc --> |sync| -> |grid cols=2| --> |image_label title='Statistics'| --> velocities
-
-
-
-
- 
-file = "${outdir}/flydra_display_contrast/${sample}.avi"
-
-arena, arena_zoom --> |sync| --> |grid cols=2| --> top_left
-top_left, velocities --> |sync| --> |grid cols=1| --> left
-
-left, retina --> |sync| --> |grid cols=3| --> rgb
- 
-rgb --> |flydra_watermark sample=$sample title="FlyView"|--> |mencoder file=$file|
+# " Output everything. "
+	file = "${outdir}/flydra_display_contrast/${sample}.avi"
+	rgb --> |mencoder file=$file|
 
 
 --- model my_plot2
@@ -63,9 +44,10 @@ input x
 output y
 config interval = 5
 config t "title"
+config yl "ylabel"
 config sym=0 "use symmetric graph"
 |input name=x| --> |historyt interval=$interval| --> h
 
-h -> |plot symmetric=$sym title="" width=258 height=160| --> |image_label title=$t| --> |output name=y|
+h -> |plot symmetric=$sym ylabel=$yl title="" width=258 height=160| --> |image_label title=$t| --> |output name=y|
 
 
