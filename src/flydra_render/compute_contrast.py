@@ -1,4 +1,4 @@
-import sys, numpy
+import numpy
 from optparse import OptionParser
 
 from flydra_render import logger
@@ -7,11 +7,11 @@ from flydra_render.progress import progress_bar
 from flydra_render.contrast import get_contrast_kernel
 
 try:
-    from fast_contrast import intrinsic_contrast
+    from fast_contrast import intrinsic_contrast #@UnresolvedImport @UnusedImport
 except:
     logger.error('I cannot load the "fast_contrast" extension. '
                  'I will fall back on the python implementation (20x slower).')
-    from  flydra_render.contrast  import intrinsic_contrast
+    from  flydra_render.contrast  import intrinsic_contrast  #@UnusedImport
 
 
 def main():
@@ -30,20 +30,13 @@ def main():
     parser.add_option("--target", default='contrast', help="Destination table")
 
     
-    # parser.add_option("--psyco", default=False,action="store_true")
-
     (options, args) = parser.parse_args()
-    
 
-    if options.db is None:
-        logger.error('Please specify a directory using --db.')
-        sys.exit(-1)
 
-    
     kernel = get_contrast_kernel(sigma_deg=options.sigma, eyes_interact=False)
     kernel = kernel.astype('float32').copy('C')
     
-    db = FlydraDB(options.db)
+    db = FlydraDB(options.db, False)
     
     if args:
         do_samples = args

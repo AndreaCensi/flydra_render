@@ -82,16 +82,24 @@ def get_good_smoothed_tracks(filename, obj_ids,
             # by 1000, so hopefully you can just determine that by looking at the data.
 
             # quick fix
-            if dynamic_model_name == "mamarama, units: mm" and not warned:
-                warned = True
-                logger.info("Warning: Implementing simple workaround for flydra's " \
-                      "units inconsistencies (multiplying xvel,yvel by 1000).")
+            if dynamic_model_name == "mamarama, units: mm":
                 
-                srows['xvel'] *= 1000
-                srows['yvel'] *= 1000
-                srows['xvel'] *= 1000
+                #and not warned:
+                #warned = True
+               # logger.info("Warning: Implementing simple workaround for flydra's " \
+               #       "units inconsistencies (multiplying xvel,yvel by 1000).")
+                
+                #srows['xvel'] *= 1000
+                #srows['yvel'] *= 1000
+                #srows['xvel'] *= 1000
 
                 v = numpy.hypot(srows['xvel'],srows['yvel'],srows['zvel'])
+                
+                perc = [1,5,50,95,99]
+                scores = map(lambda x:  scipy.stats.scoreatpercentile(v, x), perc)
+                
+                print "scores: %s" % map(lambda x: "%f " % x, scores)
+                
                 score95 = scipy.stats.scoreatpercentile(v, 95)
     
       
@@ -107,7 +115,7 @@ def get_good_smoothed_tracks(filename, obj_ids,
                 v = numpy.hypot(srows['xvel'],srows['yvel'],srows['zvel'])
                 final_score95 = scipy.stats.scoreatpercentile(v, 95)
                 
-                logger.info('After much deliberation, 95% score is %f.' % 
+                logger.info('After much deliberation, 95%% score is %f.' % 
                             final_score95)
                 
             yield obj_id, srows 

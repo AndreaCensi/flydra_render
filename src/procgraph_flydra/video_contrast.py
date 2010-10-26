@@ -2,12 +2,24 @@ import sys
 from flydra_render.db import FlydraDB
 from compmake import comp, batch_command, compmake_console, set_namespace
 from procgraph.scripts.pg import pg
+from optparse import OptionParser
 
+description = """
+This script runs the flydra_display_contrast procgraph model 
+for all samples.
+
+"""
 
 def main():
-    if len(sys.argv) != 2:
-        print "Usage: %s <db>" % sys.argv[0]
-        sys.exit(-1)
+    
+    parser = OptionParser(usage=description)
+    
+    parser.add_option("--db", default='flydra_db', help="FlydraDB directory")
+    
+    (options, args) = parser.parse_args()
+     
+        
+    db = FlydraDB(options.db, False)
         
     directory = sys.argv[1]
     

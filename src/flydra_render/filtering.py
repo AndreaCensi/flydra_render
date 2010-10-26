@@ -3,6 +3,7 @@ from numpy.testing.utils import assert_almost_equal
 from flydra_render.structures import additional_fields
 import scipy, scipy.signal
 from geometric_saccade_detector.math_utils import normalize_pi
+from flydra_render.render_saccades import rotz
 
 
 def compute_derivative(x, timestamp):
@@ -82,7 +83,7 @@ def filter_rows(rows, options):
         linear_velocity_world[i] = numpy.array([xvel[i], yvel[i], zvel[i]])
         linear_acceleration_world[i] = numpy.array([xacc[i], yacc[i], zacc[i]])
         linear_velocity_modulus[i] = numpy.linalg.norm(linear_velocity_world[i]) 
-        linear_acceleration_modulus[i]= numpy.linalg.norm(linear_acceleration_modulus[i])
+        linear_acceleration_modulus[i]= numpy.linalg.norm(linear_acceleration_world[i])
 
 
         if attitude_algo == 'ROLL0PITCH0':
@@ -98,7 +99,7 @@ def filter_rows(rows, options):
                 R = numpy.eye(3);
                 R[:, 0] = x_axis
                 R[:, 1] = y_axis
-                R[:, 2] = z_axis
+                R[:, 2] = z_axis                
                 attitude[i] = R;
                 #print linear_velocity_world[i]
                 #print R
@@ -115,6 +116,15 @@ def filter_rows(rows, options):
         reduced_angular_orientation[i] = numpy.arctan2(front[1], front[0])
 
                 
+#        theta_simple = numpy.arctan2(linear_velocity_world[i][1],
+#                     linear_velocity_world[i][0])
+#        R = rotz(theta_simple)
+        #print "Theta: %f deg   or  %f deg " % \
+        #    (numpy.radians(reduced_angular_orientation[i]),
+        #                numpy.radians(theta_simple))
+            
+        #print numpy.dot(R.T, attitude[i])                
+                
         # compute quantities in body reference
         linear_velocity_body[i] = numpy.dot(attitude[i].T, linear_velocity_world[i])
         linear_acceleration_body[i] = numpy.dot(attitude[i].T, linear_acceleration_world[i])
@@ -123,11 +133,15 @@ def filter_rows(rows, options):
 
     
     # Take care of rollover
-    v = compute_derivative(reduced_angular_orientation, [0, 1])
-    for i in range(len(v)):
-        extra['reduced_angular_velocity'][i] = normalize_pi(v[i]) / dt
     
-
+    reduced_angular_orientation[:] = straighten_up_theta(reduced_angular_orientation[:])
+#    
+#    v = compute_derivative(reduced_angular_orientation, [0, 1])
+#    for i in range(len(v)):
+#        extra['reduced_angular_velocity'][i] = normalize_pi(v[i]) / dt
+#    
+    extra['reduced_angular_velocity'] =  compute_derivative(reduced_angular_orientation, 
+                                                            extra['time'])
 
     # todo: make it smarter
     extra['reduced_angular_acceleration'] = \
@@ -151,6 +165,21 @@ def filter_rows(rows, options):
  
     return merge_fields(rows, extra)
 
+
+def straighten_up_theta(theta):
+    theta2 = numpy.ndarray(shape=theta.shape, dtype=theta.dtype)
+    theta2[0] = theta[0]
+    for i in range(1, len(theta)):
+        diff = normalize_pi(theta[i]-theta[i-1])
+        theta2[i] = theta2[i-1] + diff
+    return theta2
+        
+        
+        
+        
+        
+        
+    
 
 
         

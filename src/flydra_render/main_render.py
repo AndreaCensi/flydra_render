@@ -27,14 +27,9 @@ def main():
                        default=None)
     
     (options, args) = parser.parse_args()
-    
-
-    if options.db is None:
-        logger.error('Please specify a directory using --db.')
-        sys.exit(-1)
+     
         
-        
-    db = FlydraDB(options.db)
+    db = FlydraDB(options.db, False)
     
     if args:
         do_samples = args
@@ -54,20 +49,26 @@ def main():
         
         if not db.has_sample(sample_id):
             raise Exception('Sample %s not found in db.' % sample_id)
+        
         if not db.has_rows(sample_id):
             raise Exception('Sample %s does not have rows table.' % sample_id)
        
+        if not db.has_attr(sample_id, 'stimulus_xml'):
+            raise Exception('Sample %s does not have the "stimulus_xml" attribute.'%\
+                            sample_id)
+       
         if options.compute_mu:
             if db.has_table(sample_id, 'nearness') and not options.nocache:
-                print 'Already computed nearness for %s; skipping' % sample_id
+                logger.info('Already computed nearness for %s; skipping' % sample_id)
                 continue
         else:
             if db.has_table(sample_id, target) and not options.nocache:
-                print 'Already computed luminance for %s; skipping' % sample_id
+                logger.info('Already computed luminance for %s; skipping' % sample_id)
                 continue
         
         rows = db.get_rows(sample_id)
-        stimulus_xml = rows._v_attrs.stimulus_xml
+        
+        stimulus_xml = db.get_attr(sample_id, 'stimulus_xml')
         
         results = render(rows, stimulus_xml, host=options.host,
                          compute_mu=options.compute_mu, white=options.white)
@@ -78,7 +79,8 @@ def main():
             db.set_table(sample_id, 'nearness', results['nearness'])
             db.set_table(sample_id, 'retinal_velocities',
                          results['retinal_velocities'])
-            
+        
+        db.release_table(rows)    
    
 def render(rows, stimulus_xml, host=None, compute_mu=False,
            white=False):

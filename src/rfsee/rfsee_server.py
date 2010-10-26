@@ -28,6 +28,12 @@ from rfsee.communication import positive_answer, exit_with_error
 def go_render(vision, json, compute_mu, write_binary):
     position = numpy.array(json['position'])
     attitude = numpy.array(json['attitude'])
+    
+    # XXX hack to try orientation theory
+    # correcting for left-handeness
+    # should use a reflection instead, but it's all good because rotz
+    attitude = attitude.T
+    
     linear_velocity_body = numpy.array(json['linear_velocity_body'])
     angular_velocity_body = numpy.array(json['angular_velocity_body'])
     

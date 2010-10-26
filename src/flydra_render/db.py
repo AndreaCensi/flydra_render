@@ -20,6 +20,8 @@ class FlydraDB:
         
         if create:
             if not os.path.exists(directory):
+                logger.info('FlydraDB does not exist in directory %s; creating.' % \
+                            directory)
                 os.makedirs(directory)
         else:
             if not os.path.exists(directory):
@@ -30,11 +32,6 @@ class FlydraDB:
         
         self.directory = directory
         self.index = db_summary(directory)
-        # make sure we have the skeleton
-        if not 'flydra' in self.index.root:
-            self.index.createGroup('/', 'flydra')
-        if not 'samples' in self.index.root.flydra:
-            self.index.createGroup('/flydra', 'samples')
             
         self.samples = self.index.root.flydra.samples
     
@@ -198,30 +195,38 @@ def db_summary(directory):
         files = locate_roots('*.h5', directory)
         logger.info('Found %s h5 files.' % len(files))
         
-        pb = progress_bar('Opening files', len(files))
-        
         #summary_file = os.path.join(directory, 'index.h5')
         summary = tc_open_for_writing(summary_file)
-        for i, file in enumerate(files):
-            pb.update(i)
-            # do not consider the index itself
-            if os.path.basename(file).startswith('index'):
-                continue
-            
-            # print "Trying to open %s" % file
-            f = tc_open_for_reading(file)
-    
-            if not FLYDRA_ROOT in f.root:
-                print 'Ignoring file %s: no data belonging to Flydra DB' % \
-                    os.path.basename(file)
-                tc_close(f)
-                continue
-            
-            link_everything(src=f, dst=summary,
-                            src_filename=os.path.basename(file))
-         
-            tc_close(f)
         
+        if files:    
+            pb = progress_bar('Opening files', len(files))
+            for i, file in enumerate(files):
+                pb.update(i)
+                # do not consider the index itself
+                if os.path.basename(file).startswith('index'):
+                    continue
+                
+                # print "Trying to open %s" % file
+                f = tc_open_for_reading(file)
+        
+                if not FLYDRA_ROOT in f.root:
+                    print 'Ignoring file %s: no data belonging to Flydra DB' % \
+                        os.path.basename(file)
+                    tc_close(f)
+                    continue
+                
+                link_everything(src=f, dst=summary,
+                                src_filename=os.path.basename(file))
+             
+                tc_close(f)
+                        
+        # make sure we have the skeleton
+        # even though there's no data
+        if not 'flydra' in summary.root:
+            summary.createGroup('/', 'flydra')
+        if not 'samples' in summary.root.flydra:
+            summary.createGroup('/flydra', 'samples')
+            
         tc_close(summary)
         
     # now copy to our private copy

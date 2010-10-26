@@ -8,6 +8,7 @@ def create_eye_map(width, height):
     cr.translate(width / 2, height / 2)
     # note the minus here
     cr.scale(-width / 2, height / 2)
+    #cr.scale(width / 2, height / 2)
     
     cr.set_line_width(0.01)
     
