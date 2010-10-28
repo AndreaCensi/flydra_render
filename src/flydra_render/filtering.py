@@ -9,7 +9,7 @@ from flydra_render.render_saccades import rotz
 def compute_derivative(x, timestamp):
     dt = timestamp[1] - timestamp[0]
     deriv_filter = numpy.array([0.5, 0, -0.5]) / dt
-    d = scipy.signal.convolve(x, deriv_filter, mode=1) #@UndefinedVariable
+    d = scipy.signal.convolve(x, deriv_filter, mode='same', old_behavior=False) #@UndefinedVariable
     d[0] = d[1]
     d[-1] = d[-2]
     return d        
@@ -62,6 +62,12 @@ def filter_rows(rows, options):
     xvel = rows['xvel']
     yvel = rows['yvel']
     zvel = rows['zvel']
+    
+    # save it for reference
+    extra['zvel_debug'][:] = zvel[:]
+    zvel = compute_derivative(z, extra['time']) 
+    rows['zvel'][:] = zvel[:]
+    
     xacc = compute_derivative(xvel, extra['time'])
     yacc = compute_derivative(yvel, extra['time'])
     zacc = compute_derivative(zvel, extra['time'])

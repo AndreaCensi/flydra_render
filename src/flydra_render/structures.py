@@ -22,4 +22,8 @@ additional_fields = [
      ('reduced_angular_orientation', ('float64')),
      ('reduced_angular_velocity', ('float64')),
      ('reduced_angular_acceleration', ('float64')),
+     
+     
+     ('zvel_debug', ('float64')),
+     
 ]
