@@ -6,6 +6,7 @@ from compmake.jobs.progress import progress
 
 def weighted_average(A, Aweight, B, Bweight=1):
     """ Computes the weighted average of two quantities A,B. """
+    assert Aweight + Bweight > 0
     return (A * Aweight + B * Bweight) / (Aweight + Bweight)
 
 class Expectation:

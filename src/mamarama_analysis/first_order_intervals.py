@@ -22,9 +22,10 @@ def interval_fast(flydra_db, sample_id, rows):
     
       
     if score95 < 100.0:
-        print " score95 = %f, assuming m" % score95
+    #    print " score95 = %f, assuming m" % score95
+        pass
     else:
-        print " score95 = %f, assuming mm" % score95
+    #    print " score95 = %f, assuming mm" % score95
         threshold *= 1000
     
     # interval = linear_velocity_modulus > 0.05

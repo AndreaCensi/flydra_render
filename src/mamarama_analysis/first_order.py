@@ -18,6 +18,7 @@ from reprep.graphics.scale import scale
 from compmake.jobs.progress import progress
 from procgraph.components.statistics.cov2corr import cov2corr 
 from mamarama_analysis.covariance import Expectation
+from mamarama_analysis.first_order_gui import create_gui
 
 
 description = """
@@ -34,18 +35,20 @@ description = """
 signal_specs = [
      #   ('vx', 'Forward velocity', 'linear_velocity_body', 0),
      #   ('vy', 'Forward velocity', 'linear_velocity_body', 1),
-        ('vz', 'Forward velocity', 'linear_velocity_body', 2),
+        ('vz', 'Vertical velocity', 'linear_velocity_body', 2),
         ('avel', 'Angular velocity', 'reduced_angular_velocity', None),
         ('aacc', 'Angular acceleration', 'reduced_angular_acceleration', None)
 ]
 
-# (id, desc, function)
 
 def op_sign(x):
     return numpy.sign(x)
+
 def op_identity(x):
     return x
 
+
+# (id, desc, function)
 signal_op_specs = [
         ('sign', 'Sign', op_sign),
         ('id', 'Raw', op_identity)            
@@ -104,6 +107,8 @@ def main():
     
     all_reports = []
     
+    comp(create_gui, '%s/out/first_order/report/' % options.db)
+    
     for group_spec in group_specs:
         for interval_spec in interval_specs:
             for signal_spec in signal_specs:
@@ -152,12 +157,15 @@ Image: {image_id} --- {image_desc}
                         
                         comp(write_report, report, options.db, exp_id)
 
+    db.close()
+
     comp_prefix()
     
+    
     compmake_console()
+    
      
      
-print "reloaded2"
 def create_report(exp_id, data):
     r = Report(exp_id) 
 
@@ -181,10 +189,11 @@ def create_report(exp_id, data):
 
     return r
 
-def write_report(report, db, exp_id):
-    output_file = os.path.join(db, 'out/first_order/reports/%s_unique.html' % exp_id)
-    report.to_html(output_file)
 
+def write_report(report, db, exp_id):
+    output_file = os.path.join(db, 'out/first_order/report/%s.html' % exp_id)
+    resources = os.path.join(db, 'out/first_order/report/images/')
+    report.to_html(output_file, resources)
 
 
 def compute_signal_correlation_unique(
@@ -204,11 +213,13 @@ def compute_signal_correlation_unique(
     actions_ex = Expectation()
     
     # first compute mean
-    for actions, image_values in enumerate_data(db, samples, interval_function, 
+    for sample, actions, image_values in enumerate_data(db, samples, interval_function, 
                                                 image, signal, signal_component,
                                                 signal_op,  'first pass'):
-        n = image_values.shape[0] 
         
+        n = image_values.shape[0]
+        # we shouldn't receive empty subsets 
+        assert n > 0
         image_ex.update( image_values.mean(axis=0),  n)
         actions_ex.update( actions.mean(axis=0), n)
     
@@ -216,32 +227,28 @@ def compute_signal_correlation_unique(
     mean_action = actions_ex.get_value()
     mean_image = image_ex.get_value()
     
+    assert numpy.isfinite(mean_action).all()
+    assert numpy.isfinite(mean_image).all()
+    
     cov_z = Expectation()
     
     # do a second pass for computing the covariance    
-    for actions, image_values in enumerate_data(db, samples, interval_function, 
+    for sample, actions, image_values in enumerate_data(db, samples, interval_function, 
                                                 image, signal, signal_component,
                                                 signal_op, 'second pass'):
         actions = actions - mean_action
         image_values = image_values - mean_image
-        # hstack is pickly; reshape as column
+        # hstack is picky; reshape as column
         actions = actions.reshape((len(actions),1))
         z = numpy.hstack((actions, image_values))
-        cov_z.update(numpy.dot(z.T, z))
-        
-#        for k in range(n):
-#            a = actions[k] - mean_action
-#            y = image_values[k,:] - mean_image 
-#            z = numpy.hstack((a,y))
-#            
-#            cov_z.update( outer(z, z) )
+        cov_z.update(numpy.dot(z.T, z)) 
             
     covariance = cov_z.get_value()
     correlation = cov2corr(covariance, zero_diagonal=True)
 
     image_covariance = covariance[1:,1:]
     image_correlation= correlation[1:,1:]
-    action_variance = covariance[0]
+    action_variance = covariance[0,0]
     action_image_correlation = correlation[0,1:]
 
     print covariance.dtype
@@ -256,6 +263,8 @@ def compute_signal_correlation_unique(
            'image_mean': mean_image,
            'action_mean': mean_action
     }
+    
+    db.close()
     
     return data
 
@@ -289,6 +298,16 @@ def enumerate_data(db, samples, interval_function, image, signal, signal_compone
                            % (id, e))
             continue
         
+        if numpy.logical_not(interval).all():
+            logger.warning('Sample %s with interval function "%s" gives empty subset;'
+                           ' skipping. '%  (id, interval_function.__name__))
+            continue
+            
+        percentage = numpy.mean(interval * 1.0) * 100
+        
+        #logger.info('Sample %s: function "%s" selects %.1f%% of data.' % 
+        #            (id, interval_function.__name__, percentage)) 
+        
         # subset everything
         image_values = image_values[interval]
         rows = rows_table[interval]
@@ -303,7 +322,7 @@ def enumerate_data(db, samples, interval_function, image, signal, signal_compone
                 
         actions = signal_op(actions)
     
-        yield actions, image_values
+        yield id, actions, image_values
 
         
         db.release_table(rows_table)
