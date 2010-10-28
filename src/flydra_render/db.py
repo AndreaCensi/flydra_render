@@ -77,7 +77,8 @@ class FlydraDB:
         if attname in sample_group:
             # print "Removing previous link"
             sample_group._f_getChild(attname)._f_remove()
-            
+        
+        # TODO: make sure to use relative names
         self.index.createExternalLink(sample_group, attname,
                                       rows_table, warn16incompat=False)
         tc_close(f)
@@ -99,6 +100,12 @@ class FlydraDB:
         ref = self.get_sample_group(id)._f_getChild(attname)
         # dereference locally, so we keep a reference count
         filename, target = ref._get_filename_node()
+        
+        # resolve filename using relative names
+        base = self.directory
+        # not valid if we put the temp file somewhere else
+        # base = os.path.dirname(self.index.filename)
+        filename = os.path.join(base, filename)
         
         if mode == 'r':
             external = tc_open_for_reading(filename)
@@ -184,7 +191,22 @@ def db_summary(directory):
     '''
     
     summary_file = os.path.join(directory, 'index.h5')
-    
+
+    # directory for private indices    
+    temp_dir = os.path.join(directory, 'indices')
+    if not os.path.exists(temp_dir):
+        os.makedirs(temp_dir)
+        
+    # This will be our private index    
+    my_summary = tempfile.NamedTemporaryFile(suffix='.h5_priv', prefix='.index', dir=temp_dir)
+     # , dir=temp_dir)
+    my_summary_file = my_summary.name
+
+    #   fid, my_summary_file = tempfile.mkstemp(suffix='.h5_priv',
+    #                      prefix='index', dir=temp_dir)
+
+    # logger.info('Temporary file: %s' % my_summary_file)
+
     # if it does not exist or it is updated, recreate it 
     if not os.path.exists(summary_file) or \
         os.path.getmtime(directory) > os.path.getmtime(summary_file):
@@ -195,9 +217,8 @@ def db_summary(directory):
         logger.info('Looking for h5 files...')
         files = locate_roots('*.h5', directory)
         logger.info('Found %s h5 files.' % len(files))
-        
-        #summary_file = os.path.join(directory, 'index.h5')
-        summary = tc_open_for_writing(summary_file)
+                
+        summary = tc_open_for_writing(my_summary_file)
         
         if files:    
             pb = progress_bar('Opening files', len(files))
@@ -217,7 +238,8 @@ def db_summary(directory):
                     continue
                 
                 link_everything(src=f, dst=summary,
-                                src_filename=os.path.basename(file))
+                                src_filename=os.path.basename(file),
+                                dst_directory=directory)
              
                 tc_close(f)
                         
@@ -230,21 +252,18 @@ def db_summary(directory):
             
         tc_close(summary)
         
-    # now copy to our private copy
+        # now copy the temp_file to the main one
+        shutil.copyfile(my_summary_file, summary_file)
+        
+    else:
+        # if the index already exists, create a private copy
+        shutil.copyfile(summary_file, my_summary_file)
     
-    temp_dir = os.path.join(directory, 'indices')
-    if not os.path.exists(temp_dir):
-        os.makedirs(temp_dir)
-    fid, temp_file = tempfile.mkstemp(suffix='.h5_priv',
-                        prefix='index', dir=temp_dir)
-    # fid.close()
-    # copy over
-    shutil.copyfile(summary_file, temp_file)
-    # open it for writing
-    return tc_open_for_appending(temp_file)
+    # (re) open the private copy
+    return tc_open_for_appending(my_summary_file)
         
         
-def link_everything(src, dst, src_filename):
+def link_everything(src, dst, src_filename, dst_directory):
     ''' Makes a link to every field '''
     for group in src.walkGroups("/"): 
         if not group._v_pathname in dst:
@@ -257,8 +276,12 @@ def link_everything(src, dst, src_filename):
             child = table._v_name
 
             if not table._v_pathname in dst:
+                relname = os.path.relpath(src.filename, dst_directory)
+                url = "%s:%s" % (relname, table._v_pathname)
+                target = url
+                # target = table
                 dst.createExternalLink(parent, child,
-                                       table, warn16incompat=False)
+                                       target, warn16incompat=False)
 
 
     
