@@ -9,7 +9,7 @@ def main():
     
     N = 10000
     
-    x = numpy.random.rand(N, 1398)
+    x = numpy.random.rand(N, 1398).astype('float32')
     
     
     functions = [('numpy', corr_numpy)]
