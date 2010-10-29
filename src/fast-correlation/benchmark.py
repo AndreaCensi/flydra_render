@@ -17,12 +17,12 @@ def main():
     
     for id, f in functions:
         
-        start = time.time()
+        start = time.clock()
         
         C = f(x)
         
         print C.shape
-        T = time.time() - start
+        T = time.clock() - start
         
         print 'method: %15s  T: %s' % (id, T)
 
