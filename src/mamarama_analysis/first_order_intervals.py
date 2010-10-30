@@ -1,5 +1,4 @@
-import numpy
-import scipy
+import numpy 
 import scipy.stats
 
 # interval_function gets as arguments (FlydraDB, sample_id, rows)

@@ -166,7 +166,7 @@ def main():
         
         
         delayed = {}
-        delays = range(-5,6)
+        delays = range(-5,11)
         for delay in delays:
             job_id = 'timecorr%d' % delay
             delayed[delay] = comp(compute_signal_correlation_unique,
@@ -179,7 +179,8 @@ def main():
                 signal_op=signal_op_function,
                 delay=delay,
                 job_id=job_id)
-        comp(create_report_delayed, exp_id, delayed)
+        report_delayed = comp(create_report_delayed, exp_id, delayed)
+        comp(write_report, report_delayed, options.db, exp_id + '_delayed')
             
 
     # Compute general statistics 
