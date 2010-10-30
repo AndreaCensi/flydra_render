@@ -124,11 +124,6 @@ div.retinal_box P {
 
 img.retinal { width: 90%;  background-color: gray; }
 
-/*img#action { width: 640px; height: 420px; background-color: gray; }
-img#mean   { width: 640px; height: 420px; background-color: gray; }
-img#var    { width: 640px; height: 420px; background-color: gray; }
-*/
-
 p#status {
     clear: both; font-weight: bold; font-size: small;
 }

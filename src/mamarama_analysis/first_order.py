@@ -1,26 +1,27 @@
 from optparse import OptionParser
 import sys, os
+import itertools
+import numpy 
+import scipy.stats
 
-from compmake import comp, compmake_console, set_namespace, comp_prefix
+from compmake import comp, compmake_console, set_namespace, comp_prefix, progress
+
+from reprep import Report  
+from reprep.graphics.posneg import posneg
+from reprep.graphics.scale import scale 
 
 from flydra_render.db import FlydraDB
 from procgraph_flydra.values2retina import values2retina
 
 from mamarama_analysis import logger
-
-import numpy 
 from mamarama_analysis.first_order_intervals import interval_fast, interval_all ,\
     interval_between_saccades, interval_saccades
-
-from reprep import Report  
-from reprep.graphics.posneg import posneg
-from reprep.graphics.scale import scale
-from compmake.jobs.progress import progress
-from procgraph.components.statistics.cov2corr import cov2corr 
 from mamarama_analysis.covariance import Expectation
 from mamarama_analysis.first_order_gui import create_gui
-import scipy
-import scipy.stats
+from mamarama_analysis.first_order_timecorr import create_report_delayed
+
+from procgraph.components.statistics.cov2corr import cov2corr 
+
 
 description = """
 
@@ -106,87 +107,103 @@ def main():
     groups['posts'] = set(filter(
                       lambda x: db.get_attr(x, 'stimulus', None) != 'nopost',
                       groups['all']))
-    groups['noposts'] = set(filter(lambda x: db.get_attr(x, 'stimulus', None) == 'nopost',
+    groups['noposts'] = set(filter(lambda x: db.get_attr(x, 'stimulus', None) 
+                                   == 'nopost',
                       groups['all']))
     
     all_reports = []
     
     comp(create_gui, '%s/out/first_order/report/' % options.db)
-    
-    for group_spec in group_specs:
-        for interval_spec in interval_specs:
-            for signal_spec in signal_specs:
-                for signal_op_spec in signal_op_specs:
-                    for image_spec in image_specs:
+     
+    for group_spec, interval_spec, signal_spec, signal_op_spec, image_spec \
+        in itertools.product(group_specs, interval_specs, signal_specs,
+                             signal_op_specs, image_specs):
                                                 
-                        group_id, group_desc = group_spec
-                        samples = groups[group_id]
-                        
-                        interval_id, interval_desc, interval_function = interval_spec
-                        signal_id, signal_desc, signal, signal_component = signal_spec
-                        signal_op_id, signal_op_desc, signal_op_function = signal_op_spec
-                        image_id, image_desc = image_spec
-                        
-                        # Skip uninteresting combinations
-                        if image_id.endswith('_w') and group_id == 'noposts':
-                            continue
- 
-                        exp_id = '{image_id}-{signal_id}-{signal_op_id}' \
-                                '-{group_id}-{interval_id}' .format(**locals())
-                                 
-                        description = """
-Experiment-ID: {exp_id}
+        group_id, group_desc = group_spec
+        samples = groups[group_id]
+        
+        interval_id, interval_desc, interval_function = interval_spec
+        signal_id, signal_desc, signal, signal_component \
+            = signal_spec
+        signal_op_id, signal_op_desc, signal_op_function \
+            = signal_op_spec
+        image_id, image_desc = image_spec
+        
+        # Skip uninteresting combinations
+        if image_id.endswith('_w') and group_id == 'noposts':
+            continue
+        
+        exp_id = '{image_id}-{signal_id}-{signal_op_id}' \
+                '-{group_id}-{interval_id}' .format(**locals())
+                 
+        description = """
+        Experiment-ID: {exp_id}
+        
+        Group: {group_id} --- {group_desc}
+        Interval: {interval_id} --- {interval_desc}
+        Signal: {signal_id} --- {signal_desc}
+        SignalOp: {signal_op_id} --- {signal_desc}
+        Image: {image_id} --- {image_desc}
+        """.format(**locals())
+            
+        
+        comp_prefix(exp_id)
+        
+        data = comp(compute_signal_correlation_unique,
+            db=options.db,
+            interval_function=interval_function,
+            samples=samples,
+            image=image_id,
+            signal=signal,
+            signal_component=signal_component,
+            signal_op=signal_op_function,
+            delay=0
+        )
+        
+        report = comp(create_report, exp_id, data)
+        
+        comp(write_report, report, options.db, exp_id)
+        
+        
+        delayed = {}
+        delays = range(-5,6)
+        for delay in delays:
+            job_id = 'timecorr%d' % delay
+            delayed[delay] = comp(compute_signal_correlation_unique,
+                db=options.db,
+                interval_function=interval_function,
+                samples=samples,
+                image=image_id,
+                signal=signal,
+                signal_component=signal_component,
+                signal_op=signal_op_function,
+                delay=delay,
+                job_id=job_id)
+        comp(create_report_delayed, exp_id, delayed)
+            
 
-Group: {group_id} --- {group_desc}
-Interval: {interval_id} --- {interval_desc}
-Signal: {signal_id} --- {signal_desc}
-SignalOp: {signal_op_id} --- {signal_desc}
-Image: {image_id} --- {image_desc}
-""".format(**locals())
-                           
-                    
-                        
-                        
-                        comp_prefix(exp_id)
-                        
-                        data = comp(compute_signal_correlation_unique,
-                            db=options.db,
-                            interval_function=interval_function,
-                            samples=samples,
-                            image=image_id,
-                            signal=signal,
-                            signal_component=signal_component,
-                            signal_op=signal_op_function
-                        )
-                        
-                        report = comp(create_report, exp_id, data)
-                        
-                        comp(write_report, report, options.db, exp_id)
+    # Compute general statistics 
+    for group_spec, interval_spec, signal_spec  \
+        in itertools.product(group_specs, interval_specs, signal_specs):
 
-
-    # Compute general statistics
-    
-    for group_spec in group_specs:
-        for interval_spec in interval_specs:
-            for signal_spec in signal_specs:
-                group_id, group_desc = group_spec
-                samples = groups[group_id]
-                        
-                interval_id, interval_desc, interval_function = interval_spec
-                signal_id, signal_desc, signal, signal_component = signal_spec
-                        
-                data_id = '{signal_id}-{group_id}-{interval_id}' .format(**locals())
+        group_id, group_desc = group_spec
+        samples = groups[group_id]
                 
-                comp_prefix(data_id)
+        interval_id, interval_desc, interval_function = interval_spec
+        signal_id, signal_desc, signal, signal_component = signal_spec
                 
-                report = comp(compute_general_statistics,
-                    id=data_id,
-                     db=options.db, 
-                     samples=samples, 
-                     interval_function=interval_function, 
-                     signal=signal, signal_component=signal_component)
+        data_id = '{signal_id}-{group_id}-{interval_id}' .format(**locals())
+        
+        comp_prefix(data_id)
+        
+        report = comp(compute_general_statistics,
+            id=data_id,
+             db=options.db, 
+             samples=samples, 
+             interval_function=interval_function, 
+             signal=signal, signal_component=signal_component)
     
-                comp(write_report, report, options.db, data_id)
+        comp(write_report, report, options.db, data_id)
 
     db.close()
 
@@ -195,7 +212,6 @@ Image: {image_id} --- {image_desc}
     
     compmake_console()
     
-     
      
 def create_report(exp_id, data):
     r = Report(exp_id) 
@@ -237,8 +253,8 @@ def cut_tails(x, percent=0.1):
     lower = scipy.stats.scoreatpercentile(x, percent)
     upper = scipy.stats.scoreatpercentile(x, 100-percent)
     
-    remove_upper = x >= upper
-    remove_lower = x <= lower
+    remove_upper = x > upper
+    remove_lower = x < lower
     
     x[remove_upper] = upper
     x[remove_lower] = lower
@@ -248,10 +264,13 @@ def cut_tails(x, percent=0.1):
     
     return x, percentage_removed
 
-def compute_general_statistics(id, db, samples, interval_function, signal, signal_component):
+
+def compute_general_statistics(id, db, samples, interval_function, 
+                               signal, signal_component):
     r = Report(id)
     
-    x = get_all_data_for_signal(db, samples, interval_function, signal, signal_component)
+    x = get_all_data_for_signal(db, samples, interval_function, 
+                                signal, signal_component)
     
     limit = 0.3
     
@@ -280,6 +299,7 @@ def compute_general_statistics(id, db, samples, interval_function, signal, signa
      
     return r
 
+
 def compute_signal_correlation_unique(
         db,
         samples,
@@ -287,7 +307,8 @@ def compute_signal_correlation_unique(
         image,
         signal,
         signal_component,
-        signal_op
+        signal_op,
+        delay=0
                         ):
     
      
@@ -325,6 +346,19 @@ def compute_signal_correlation_unique(
         image_values = image_values - mean_image
         # hstack is picky; reshape as column
         actions = actions.reshape((len(actions),1))
+        
+        if delay > 0:
+            actions = actions[delay:,:]
+            image_values = image_values[:-delay,:]
+        elif delay < 0:
+            d = -delay
+            image_values = image_values[d:,:]
+            actions = actions[:-d,:]
+        else:
+            # we are all good
+            pass
+        
+        
         z = numpy.hstack((actions, image_values))
         cov_z.update(numpy.dot(z.T, z)) 
             
@@ -344,7 +378,8 @@ def compute_signal_correlation_unique(
            'action_variance': action_variance,
            'action_image_correlation': action_image_correlation,
            'image_mean': mean_image,
-           'action_mean': mean_action
+           'action_mean': mean_action,
+           'delay': delay,
     }
     
     db.close()
@@ -397,11 +432,11 @@ def extract_signal(rows, signal, signal_component):
             actions[i] = rows[i][signal]
     return actions
     
+    
 def enumerate_data(db, samples, interval_function, image, signal, signal_component,
                        signal_op, what='enumerate_data'):
     for k, id in enumerate(samples):
         progress(what, (k, len(samples)), "Sample %s" % id)
-        
         
         if not db.has_rows(id):
             logger.warning('Could not find rows table for %s; skipping.' % 
@@ -412,7 +447,6 @@ def enumerate_data(db, samples, interval_function, image, signal, signal_compone
             logger.warning('Could not find table "%s" for %s; skipping.' % 
                            (image, id))
             continue
-            
         
         rows_table = db.get_rows(id)
         image_table = db.get_table(id, image)
@@ -423,11 +457,13 @@ def enumerate_data(db, samples, interval_function, image, signal, signal_compone
         except Exception as e:
             logger.warning('Cannot compute interval for sample %s: %s '\
                            % (id, e))
+            db.release_table(rows_table)
             continue
         
         if numpy.logical_not(interval).all():
             logger.warning('Sample %s with interval function "%s" gives empty subset;'
                            ' skipping. '%  (id, interval_function.__name__))
+            db.release_table(rows_table)
             continue
             
         percentage = numpy.mean(interval * 1.0) * 100
@@ -446,7 +482,8 @@ def enumerate_data(db, samples, interval_function, image, signal, signal_compone
         actions, removed_percentage = cut_tails(actions, percent=0.3)
         
         if removed_percentage > 1:
-            logger.warning('Too much tail removed (%.3f%%),' % removed_percentage)
+            logger.warning('Too much tail removed (%.3f%%) for %s/%s,' % 
+                           (removed_percentage, id, signal))
                     
         actions = signal_op(actions)
     
