@@ -27,6 +27,8 @@ function update_gui() {
     
     exp_id = image+"-"+signal+"-"+signal_op+"-"+group+"-"+interval;
     
+    data_id = signal + "-" + group + "-" + interval;
+    
     dir = "images/";
     
     /* Example image url:
@@ -55,9 +57,12 @@ function update_gui() {
     
     if(url_exists(action_url)){
         $('#status').text('');
-message = '<span>Showing <a target="_blank" href="{exp_id}.html">{title}</a> (click for details).</span>'.format(
-            {'exp_id':exp_id, 'title': exp_id});
-
+            message = (
+'<span>See details for combination <a target="_blank" href="{exp_id}.html">{title}</a>. '+
+' See details for action <a target="_blank" href="{data_id}.html">{data_title}</a>.' +
+'</span>').format(
+                           {'exp_id':exp_id, 'title': exp_id, 
+                           'data_id': data_id, 'data_title': data_id});
         
         $('#status').html(message);
             
@@ -184,11 +189,12 @@ footer = """
 def write_select(f,name, choices, onchange=""):
     '''Writes the <select> element to f. choices is a tuple of (value, desc).''' 
     f.write('<select id="%s" name="%s">\n' % (name, name))
-    for choice in choices:
+    for i, choice in enumerate(choices):
         value = choice[0]
         desc = choice[1]
-        f.write('\t<option value="%s">%s</option>\n' %
-                (value, desc))
+        selected = 'selected="selected"' if i==0 else ""
+        f.write('\t<option value="%s" %s>%s</option>\n' %
+                (value, selected, desc))
               
     f.write('</select>\n\n')    
 

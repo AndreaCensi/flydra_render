@@ -19,7 +19,8 @@ from compmake.jobs.progress import progress
 from procgraph.components.statistics.cov2corr import cov2corr 
 from mamarama_analysis.covariance import Expectation
 from mamarama_analysis.first_order_gui import create_gui
-
+import scipy
+import scipy.stats
 
 description = """
 
@@ -35,9 +36,12 @@ description = """
 signal_specs = [
      #   ('vx', 'Forward velocity', 'linear_velocity_body', 0),
      #   ('vy', 'Forward velocity', 'linear_velocity_body', 1),
-        ('vz', 'Vertical velocity', 'linear_velocity_body', 2),
         ('avel', 'Angular velocity', 'reduced_angular_velocity', None),
-        ('aacc', 'Angular acceleration', 'reduced_angular_acceleration', None)
+        ('aacc', 'Angular acceleration', 'reduced_angular_acceleration', None),
+        
+        #('vx', 'Forward velocity', 'linear_velocity_body', 0),
+        ('vz', 'Vertical velocity', 'linear_velocity_body', 2),
+        ('az', 'Vertical velocity', 'linear_acceleration_body', 2),
 ]
 
 
@@ -50,8 +54,8 @@ def op_identity(x):
 
 # (id, desc, function)
 signal_op_specs = [
-        ('sign', 'Sign', op_sign),
-        ('id', 'Raw', op_identity)            
+        ('id', 'Raw', op_identity),
+        ('sign', 'Sign', op_sign),            
 ]
 
 
@@ -116,6 +120,8 @@ def main():
                     for image_spec in image_specs:
                                                 
                         group_id, group_desc = group_spec
+                        samples = groups[group_id]
+                        
                         interval_id, interval_desc, interval_function = interval_spec
                         signal_id, signal_desc, signal, signal_component = signal_spec
                         signal_op_id, signal_op_desc, signal_op_function = signal_op_spec
@@ -139,7 +145,7 @@ Image: {image_id} --- {image_desc}
 """.format(**locals())
                            
                     
-                        samples = groups[group_id]
+                        
                         
                         comp_prefix(exp_id)
                         
@@ -156,6 +162,31 @@ Image: {image_id} --- {image_desc}
                         report = comp(create_report, exp_id, data)
                         
                         comp(write_report, report, options.db, exp_id)
+
+
+    # Compute general statistics
+    
+    for group_spec in group_specs:
+        for interval_spec in interval_specs:
+            for signal_spec in signal_specs:
+                group_id, group_desc = group_spec
+                samples = groups[group_id]
+                        
+                interval_id, interval_desc, interval_function = interval_spec
+                signal_id, signal_desc, signal, signal_component = signal_spec
+                        
+                data_id = '{signal_id}-{group_id}-{interval_id}' .format(**locals())
+                
+                comp_prefix(data_id)
+                
+                report = comp(compute_general_statistics,
+                    id=data_id,
+                     db=options.db, 
+                     samples=samples, 
+                     interval_function=interval_function, 
+                     signal=signal, signal_component=signal_component)
+    
+                comp(write_report, report, options.db, data_id)
 
     db.close()
 
@@ -196,6 +227,59 @@ def write_report(report, db, exp_id):
     report.to_html(output_file, resources)
 
 
+def cut_tails(x, percent=0.1):
+    ''' Removes the tails correspondint to the top and bottom
+        percentile. 
+        Returns a tuple (x', percentage_removed).
+        
+    '''
+    
+    lower = scipy.stats.scoreatpercentile(x, percent)
+    upper = scipy.stats.scoreatpercentile(x, 100-percent)
+    
+    remove_upper = x >= upper
+    remove_lower = x <= lower
+    
+    x[remove_upper] = upper
+    x[remove_lower] = lower
+    
+    remove = numpy.logical_or(remove_upper, remove_lower)
+    percentage_removed = (remove*1.0).mean() * 100
+    
+    return x, percentage_removed
+
+def compute_general_statistics(id, db, samples, interval_function, signal, signal_component):
+    r = Report(id)
+    
+    x = get_all_data_for_signal(db, samples, interval_function, signal, signal_component)
+    
+    limit = 0.3
+    
+    perc = [0.001, limit, 1, 10, 25, 50, 75, 90, 99, 100-limit, 100-0.001]
+    xp = map(lambda p: "%.3f" % scipy.stats.scoreatpercentile(x, p), perc)
+    
+    lower = scipy.stats.scoreatpercentile(x, limit)
+    upper = scipy.stats.scoreatpercentile(x, 100-limit)
+    
+    f = r.figure()
+    
+    with r.data_pylab('histogram') as pylab:
+        bins =numpy. linspace(lower, upper, 100)
+        pylab.hist(x,bins=bins)
+        
+    f.sub('histogram')
+
+    
+    labels = map(lambda p: "%.3f%%" % p, perc)
+    
+    
+    r.table("percentiles", data=[xp], cols=labels, caption="Percentiles")
+    
+    r.table("stats", data=[[x.mean(), x.std()]], cols=['mean', 'std.dev.'], 
+            caption="Other statistics")
+     
+    return r
+
 def compute_signal_correlation_unique(
         db,
         samples,
@@ -207,7 +291,7 @@ def compute_signal_correlation_unique(
                         ):
     
      
-    db = FlydraDB(db)
+    db = FlydraDB(db, False)
 
     image_ex = Expectation()
     actions_ex = Expectation()
@@ -236,7 +320,8 @@ def compute_signal_correlation_unique(
     for sample, actions, image_values in enumerate_data(db, samples, interval_function, 
                                                 image, signal, signal_component,
                                                 signal_op, 'second pass'):
-        actions = actions - mean_action
+        # do not remove the mean (should be 0)
+        # actions = actions - mean_action
         image_values = image_values - mean_image
         # hstack is picky; reshape as column
         actions = actions.reshape((len(actions),1))
@@ -250,9 +335,7 @@ def compute_signal_correlation_unique(
     image_correlation= correlation[1:,1:]
     action_variance = covariance[0,0]
     action_image_correlation = correlation[0,1:]
-
-    print covariance.dtype
-    
+ 
     data = {
            'covariance': covariance,
            'correlation': correlation,
@@ -269,7 +352,51 @@ def compute_signal_correlation_unique(
     return data
 
 
-
+def get_all_data_for_signal(db, samples, interval_function, signal, signal_component):
+    
+    db = FlydraDB(db, False)
+    
+    all = []
+    for k, id in enumerate(samples):
+        
+        if not db.has_rows(id):
+            logger.warning('Could not find rows table for %s; skipping.' % 
+                           (id))
+            continue
+        
+        rows_table = db.get_rows(id)
+        
+        try:
+            interval = interval_function(db, id, rows_table) 
+        except Exception as e:
+            logger.warning('Cannot compute interval for sample %s: %s '\
+                           % (id, e))
+            db.release_table(rows_table)
+            continue
+        
+        rows = rows_table[interval]
+        
+        s = extract_signal(rows, signal, signal_component)
+        
+        all.append(s)
+        
+        db.release_table(rows_table)
+    
+    
+    db.close()
+    
+    return numpy.concatenate(all)
+        
+        
+def extract_signal(rows, signal, signal_component):
+    actions = numpy.zeros(shape=(len(rows),), dtype='float32')
+    for i in range(len(rows)):
+        if signal_component is not None:
+            actions[i] = rows[i][signal][signal_component]
+        else:
+            actions[i] = rows[i][signal]
+    return actions
+    
 def enumerate_data(db, samples, interval_function, image, signal, signal_component,
                        signal_op, what='enumerate_data'):
     for k, id in enumerate(samples):
@@ -313,13 +440,14 @@ def enumerate_data(db, samples, interval_function, image, signal, signal_compone
         rows = rows_table[interval]
         
         # get the action vector
-        actions = numpy.zeros(shape=(len(rows),), dtype='float32')
-        for i in range(len(rows)):
-            if signal_component is not None:
-                actions[i] = rows[i][signal][signal_component]
-            else:
-                actions[i] = rows[i][signal]
-                
+        actions = extract_signal(rows, signal, signal_component)
+        
+        # remove the tails
+        actions, removed_percentage = cut_tails(actions, percent=0.3)
+        
+        if removed_percentage > 1:
+            logger.warning('Too much tail removed (%.3f%%),' % removed_percentage)
+                    
         actions = signal_op(actions)
     
         yield id, actions, image_values
