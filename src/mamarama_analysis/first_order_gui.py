@@ -140,7 +140,7 @@ header = """
     <head>
         <title> Smooth analysis GUI </title>
         <style type="text/css">{css}</style>
-        <script type="text/javascript" src="jquery.js"></script>   
+        <script type="text/javascript" src="images/static/jquery/jquery.js"></script>   
         <script type="text/javascript">                                         
           {script}                                        
         </script>      

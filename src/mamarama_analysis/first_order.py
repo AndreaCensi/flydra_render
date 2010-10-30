@@ -41,7 +41,7 @@ signal_specs = [
         
         #('vx', 'Forward velocity', 'linear_velocity_body', 0),
         ('vz', 'Vertical velocity', 'linear_velocity_body', 2),
-        ('az', 'Vertical velocity', 'linear_acceleration_body', 2),
+        ('az', 'Vertical acceleration', 'linear_acceleration_body', 2),
 ]
 
 
