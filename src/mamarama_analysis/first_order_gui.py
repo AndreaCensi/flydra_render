@@ -40,6 +40,7 @@ function update_gui() {
     mean_url = dir + "/" + exp_id + ":image_mean.png";
     timecorr_url = dir + "/" + exp_id + "_delayed:mean.png";
     timecorrbest_url = dir + "/" + exp_id + "_delayed:best_delay.png";
+    autocorr_url = dir + "/" + data_id + ":cross_correlation.png";
     
     /* Change urls */
     
@@ -48,6 +49,7 @@ function update_gui() {
     $("img#var").attr("src", var_url);
     $("img#timecorr").attr("src", timecorr_url);
     $("img#timecorrbest").attr("src", timecorrbest_url);
+    $("img#autocorr").attr("src", autocorr_url);
      
     /* Change image names */
     
@@ -57,10 +59,8 @@ function update_gui() {
     $('.image_name').text(image_name);
     $('.signal_name').text(signal_name);
     $('.exp_id').text(exp_id);
-    
-    if(url_exists(action_url)){
-        $('#status').text('');
-            message = (
+        
+    message = (
 '<span>See details for combination <a target="_blank" href="{exp_id}.html">{title}</a>. '+
 ' See details for action <a target="_blank" href="{data_id}.html">{data_title}</a>.' +
 '</span>').format(
@@ -69,9 +69,17 @@ function update_gui() {
         
         $('#status').html(message);
             
-    } else {
-        $('#status').text('Combination not present; tell Andrea to generate ' 
+
+    try {
+    if(!url_exists(action_url)) {
+        $('#error').text('Combination not present; tell Andrea to generate ' 
         + exp_id );
+    } else {
+        $('#error').text('');
+    } 
+    
+    } catch(error) {
+        $('#error').text('Could not determine if configuration exists - does not work locally.');
     }
     
 }
@@ -126,10 +134,13 @@ div.retinal_box P {
 }
 
 img.retinal { width: 90%;  background-color: gray; }
+div#timecorrbest_box { clear: left; }
 
-p#status {
+#status {
     clear: both; font-weight: bold; font-size: small;
 }
+
+#error { color: red; font-weight: bold; }
 
 """
 
@@ -144,10 +155,14 @@ header = """
         </script>      
     </head>
 <body>
-    """.format(script=script,css=css)
+    """.format(script=script, css=css)
 
 main = """
-    
+<p>    
+<span id="status">?</span>
+<span id="error">?</span>
+</p>
+
 <div id="display_area">
 
 <div id="action_box" class="retinal_box">
@@ -170,11 +185,6 @@ main = """
     <p> Variance of <span class="image_name">?</span> </p>
 </div>
 
-<div id="timecorr_box" class="retinal_box">
-    <img id="timecorr" class="retinal" />
-    <p> Autocorrelation of <span class="signal_name">?</span> </p>
-</div>
-
 <div id="timecorrbest_box" class="retinal_box">
     <img id="timecorrbest" class="retinal" />
     <p> Best correlation between 
@@ -184,12 +194,27 @@ main = """
     </p>
 </div>
 
+<div id="timecorr_box" class="retinal_box">
+    <img id="timecorr" class="retinal" />
+    <p> Correlation in time between 
+        <span class="image_name">?</span>
+        and
+        <span class="signal_name">?</span>.
+    </p>
+</div>
+
+<div id="autocorr_box" class="retinal_box">
+    <img id="autocorr" class="retinal" />
+    <p> Autocorrelation of
+        <span class="signal_name">?</span>.
+    </p>
+</div>
+
 
 </div>
 
-<p id="status">
-    ?
-</p>
+
+
 
 """
 
@@ -199,14 +224,14 @@ footer = """
 """
 
 
-def write_select(f,name, choices, onchange=""):
+def write_select(f, name, choices, onchange=""):
     '''Writes the <select> element to f. choices is a tuple of (value, desc).''' 
     f.write('<select id="%s" name="%s">\n' % (name, name))
     for i, choice in enumerate(choices):
         value = choice[0]
         desc = choice[1]
-        selected = 'selected="selected"' if i==0 else ""
-        f.write('\t<option value="%s" %s>%s</option>\n' %
+        selected = 'selected="selected"' if i == 0 else ""
+        f.write('\t<option value="%s" %s>%s</option>\n' % 
                 (value, selected, desc))
               
     f.write('</select>\n\n')    
@@ -218,7 +243,7 @@ def write_select_box(f, desc, name, choices):
     f.write('</div>\n\n')
     
 def create_gui(dir):
-    from mamarama_analysis.first_order import interval_specs, group_specs,\
+    from mamarama_analysis.first_order import interval_specs, group_specs, \
     signal_specs, signal_op_specs, image_specs
 
     if not os.path.exists(dir):
@@ -231,11 +256,11 @@ def create_gui(dir):
     f.write(header)
     
     f.write('<div id="allselectors">\n')
-    write_select_box(f,'Retinal quantity', 'image', image_specs)                     
-    write_select_box(f,'Signal','signal', signal_specs)
-    write_select_box(f,'Signal operation', 'signal_op', signal_op_specs)
-    write_select_box(f,'Sample group', 'group', group_specs)
-    write_select_box(f,'Interval','interval', interval_specs)
+    write_select_box(f, 'Retinal quantity', 'image', image_specs)                     
+    write_select_box(f, 'Signal', 'signal', signal_specs)
+    write_select_box(f, 'operation', 'signal_op', signal_op_specs)
+    write_select_box(f, 'Sample group', 'group', group_specs)
+    write_select_box(f, 'Interval', 'interval', interval_specs)
     f.write('<span style="clear:both"></span>')
     f.write('</div>')
     
