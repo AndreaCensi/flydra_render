@@ -1,4 +1,5 @@
 import os
+from string import Template
 
 script = """
 
@@ -35,21 +36,25 @@ function update_gui() {
      images/contrast-vz-sign-noposts-between:image_mean.png
      */
 
-    action_url = dir + "/" + exp_id + ":action.png";
-    var_url = dir + "/" + exp_id + ":image_var.png";
-    mean_url = dir + "/" + exp_id + ":image_mean.png";
-    timecorr_url = dir + "/" + exp_id + "_delayed:mean.png";
-    timecorrbest_url = dir + "/" + exp_id + "_delayed:best_delay.png";
-    autocorr_url = dir + "/" + data_id + ":cross_correlation.png";
+    images2url = {
+        'action': dir + "/" + exp_id + ":action.png",
+        'var': dir + "/" + exp_id + ":image_var.png",
+        'mean':  dir + "/" + exp_id + ":image_mean.png",
+        'timecorr':  dir + "/" + exp_id + "_delayed:mean.png",
+        'timecorrbest': dir + "/" + exp_id + "_delayed:best_delay.png",
+        'autocorr': dir + "/" + data_id + ":cross_correlation.png"
+    }
     
     /* Change urls */
     
-    $("img#action").attr("src", action_url);
-    $("img#mean").attr("src", mean_url);
-    $("img#var").attr("src", var_url);
-    $("img#timecorr").attr("src", timecorr_url);
-    $("img#timecorrbest").attr("src", timecorrbest_url);
-    $("img#autocorr").attr("src", autocorr_url);
+    for(image in images2url) {
+        imgelement = "img#"+image;
+        url = images2url[image];
+        $(imgelement).attr("src", url);
+        
+        $(imgelement).parent().attr("href", url);
+        
+    }
      
     /* Change image names */
     
@@ -144,18 +149,28 @@ div#timecorrbest_box { clear: left; }
 
 """
 
-header = """
+header = Template("""
 <html>
     <head>
         <title> Smooth analysis GUI </title>
-        <style type="text/css">{css}</style>
+        <style type="text/css">${css}</style>
         <script type="text/javascript" src="images/static/jquery/jquery.js"></script>   
         <script type="text/javascript">                                         
-          {script}                                        
+          ${script}                                        
         </script>      
+        
+        <!-- Image zoom -->
+        <script type="text/javascript" src="images/static/jquery/jquery.imageZoom.js"></script>
+        <link rel="stylesheet" href="images/static/jquery/jquery.imageZoom.css"/>
+        <script type="text/javascript"> 
+            $$(document).ready( function () {
+                $$('.zoomable').imageZoom();
+            });       
+        </script>
+
     </head>
 <body>
-    """.format(script=script, css=css)
+    """).substitute(script=script, css=css)
 
 main = """
 <p>    
@@ -166,7 +181,9 @@ main = """
 <div id="display_area">
 
 <div id="action_box" class="retinal_box">
-    <img id="action" class="retinal"/>
+    <a class="zoomable" href="">
+        <img id="action" class="retinal"/>
+    </a>
     <p> Correlation between 
         <span class="image_name">?</span>
         and
@@ -175,18 +192,24 @@ main = """
 </div>
 
 <div id="mean_box" class="retinal_box">
-    <img id="mean" class="retinal"/>
+    <a class="zoomable" href="">
+        <img id="mean" class="retinal"/>
+    </a>
     <p> Expectation of <span class="image_name">?</span> </p>
     </p>
 </div>
 
 <div id="var_box" class="retinal_box">
-    <img id="var" class="retinal" />
+    <a class="zoomable" href="">
+        <img id="var" class="retinal" />
+    </a>
     <p> Variance of <span class="image_name">?</span> </p>
 </div>
 
 <div id="timecorrbest_box" class="retinal_box">
-    <img id="timecorrbest" class="retinal" />
+    <a class="zoomable" href="">
+        <img id="timecorrbest" class="retinal" />
+    </a>
     <p> Best correlation between 
         <span class="image_name">?</span>
         and
@@ -195,7 +218,9 @@ main = """
 </div>
 
 <div id="timecorr_box" class="retinal_box">
-    <img id="timecorr" class="retinal" />
+    <a class="zoomable" href="">
+        <img id="timecorr" class="retinal" />
+    </a>
     <p> Correlation in time between 
         <span class="image_name">?</span>
         and
@@ -204,7 +229,9 @@ main = """
 </div>
 
 <div id="autocorr_box" class="retinal_box">
-    <img id="autocorr" class="retinal" />
+    <a class="zoomable" href="">
+        <img id="autocorr" class="retinal" />
+    </a>
     <p> Autocorrelation of
         <span class="signal_name">?</span>.
     </p>
