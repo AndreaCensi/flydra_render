@@ -98,11 +98,13 @@ function update_gui() {
         $('#error').text('Combination not present; tell Andrea to generate ' 
         + exp_id );
     } else {
-        $('#error').text('');
+      /*  $('#error').text(''); */
     } 
     
     } catch(error) {
-        $('#error').text('Could not determine if configuration exists - does not work locally.');
+    /*   
+    $('#error').text('Could not determine if configuration exists - does not work locally.');
+      */  
     }
     
     
@@ -216,7 +218,7 @@ header = Template("""
 main = """
 <p>    
 <span id="status">?</span>
-<span id="error">?</span>
+<!--<span id="error">?</span>-->
 </p>
 
 <div id="display_area">
