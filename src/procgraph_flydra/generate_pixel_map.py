@@ -67,8 +67,8 @@ def create_lines(width, height):
 
 
 if __name__ == '__main__':
-    width, height = 480, 240
-    
+    # width, height = 480, 240
+    width, height = 640, 240
     create_lines(width, height)
     create_eye_map(width, height)
     

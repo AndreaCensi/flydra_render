@@ -106,7 +106,9 @@ if __name__ == '__main__':
         values = map(lambda p: random.random(), xrange(1398))
         filename = "fsee_cairo_test.png"
         print "Writing to %s" % filename
-        quick_draw_to_file(values=values, width=600, height=300,
+        width, height = 640, 240
+
+        quick_draw_to_file(values=values, width=width, height=height,
                            filename=filename)
     else:
         for i in xrange(2000):
