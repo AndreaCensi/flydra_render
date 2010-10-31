@@ -1,11 +1,13 @@
 import numpy
 
 from procgraph.components.basic import register_simple_block
-import procgraph_flydra.optics_480x240 as optics
-import procgraph_flydra.optics_reflines_480x240 as optics_reflines
+#import procgraph_flydra.optics_480x240 as optics
+#import procgraph_flydra.optics_reflines_480x240 as optics_reflines
 from procgraph.components.images.copied_from_reprep import posneg, scale
 from procgraph.components.images.blend import blend
 
+import procgraph_flydra.optics_640x240 as optics
+import procgraph_flydra.optics_reflines_640x240 as optics_reflines
 
 pixelmap = numpy.array(optics.pixelmap)    
 reflines = numpy.array(optics_reflines.reflines)
