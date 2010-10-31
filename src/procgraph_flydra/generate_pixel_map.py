@@ -51,11 +51,17 @@ def create_eye_map(width, height):
 
 def create_lines(width, height):
     surface, cr = setup_surface(width, height)
-    cr.scale(-1, 1) # strange bug
-    draw_reference_lines(cr)
 
     data = numpy.frombuffer(surface.get_data(), numpy.uint8)
     data.shape = (height, width, 4)
+    # transparent green
+    data[:, :, 3] = 0
+    data[:, :, 2] = 0
+    data[:, :, 1] = 255
+    data[:, :, 0] = 255
+
+    cr.scale(-1, 1) # strange bug
+    draw_reference_lines(cr)
     
     print (data == 0).all()
     
