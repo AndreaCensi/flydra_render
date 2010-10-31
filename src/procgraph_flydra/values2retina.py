@@ -2,14 +2,14 @@ import numpy
 
 from procgraph.components.basic import register_simple_block
 import procgraph_flydra.optics_480x240 as optics
+import procgraph_flydra.optics_reflines_480x240 as optics_reflines
 from procgraph.components.images.copied_from_reprep import posneg, scale
 
 
 pixelmap = numpy.array(optics.pixelmap)    
+reflines = numpy.array(optics_reflines.reflines)
 
-
-def values2retina(values, background=numpy.NaN):
-    
+def values2retina(values, background=numpy.NaN):    
     n = len(values)
     valuesp = numpy.ndarray(shape=(n + 1,))
     
@@ -18,6 +18,8 @@ def values2retina(values, background=numpy.NaN):
     
     return valuesp[pixelmap]
 
+def add_reflines(rgb):
+    return blend(rgb, reflines)
 
 register_simple_block(values2retina)
 
