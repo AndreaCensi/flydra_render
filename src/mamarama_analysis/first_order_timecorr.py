@@ -60,7 +60,7 @@ def create_report_delayed(exp_id, delayed):
     f = r.figure('stats')
     f.sub('mean')
         
-    a = delayed[peak]['action_image_correlation']
+    a = delayed[int(delays[peak])]['action_image_correlation']
     r.data_rgb('best_delay', add_reflines(posneg(values2retina(a))))
     
     return r 
