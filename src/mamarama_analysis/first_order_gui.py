@@ -3,6 +3,10 @@ from string import Template
 
 script = """
 
+dir = "images/";
+    
+
+
 function url_exists(url) {
     var http = new XMLHttpRequest();
     http.open('HEAD', url, false);
@@ -18,20 +22,42 @@ String.prototype.format = function(args) {
         return formatted;
 };
 
-function update_gui() {
-
-    image  = $('#image').val()
+function get_exp_id() {
+   image  = $('#image').val()
     signal = $('#signal').val()
     group  = $('#group').val()
     signal_op  = $('#signal_op').val()
     interval  = $('#interval').val()
     
     exp_id = image+"-"+signal+"-"+signal_op+"-"+group+"-"+interval;
+    return exp_id;
+}
+
+function get_data_id() {
+    signal = $('#signal').val()
+    group  = $('#group').val()
+    interval  = $('#interval').val()
     
     data_id = signal + "-" + group + "-" + interval;
-    
-    dir = "images/";
-    
+     
+    return data_id;
+}
+
+
+function update_images(images2url) {
+    for(image in images2url) {
+        imgelement = "img#"+image;
+        url = images2url[image];
+        $(imgelement).attr("src", url);
+        $(imgelement).parent().attr("href", url);
+    }
+}
+
+
+function update_gui() {
+    exp_id = get_exp_id();
+    data_id = get_data_id();
+
     /* Example image url:
      images/contrast-vz-sign-noposts-between:image_mean.png
      */
@@ -46,16 +72,8 @@ function update_gui() {
     }
     
     /* Change urls */
+    update_images(images2url);
     
-    for(image in images2url) {
-        imgelement = "img#"+image;
-        url = images2url[image];
-        $(imgelement).attr("src", url);
-        
-        $(imgelement).parent().attr("href", url);
-        
-    }
-     
     /* Change image names */
     
     image_name = $('#image :selected').text()    
@@ -87,13 +105,32 @@ function update_gui() {
         $('#error').text('Could not determine if configuration exists - does not work locally.');
     }
     
+    
+    $('#slider').slider("value", 0);
+}
+
+function slider_change(event, ui) {
+    /*$('.delay').text(0);*/
+
+    /*delay = $("#slider")*/
+    delay = ui.value;
+    
+    exp_id = get_exp_id();
+
+    $('.delay').text(delay);
+
+    images2url = {
+        timecorrdelay: dir + "/" + exp_id + ":delay" + delay + ".png"
+    }
+    update_images(images2url);
 }
 
 
-$(document).ready(update_gui);
-
 $(document).ready( function () {
+    $("#slider").slider({min:-5,max:10,step:1,slide:slider_change, change:slider_change});
     $('select').change(update_gui);
+    
+    update_gui(); /* will call slide() value */
 });
  
 
@@ -139,7 +176,7 @@ div.retinal_box P {
 }
 
 img.retinal { width: 90%;  background-color: gray; }
-div#timecorrbest_box { clear: left; }
+div#timecorrdelay_box { clear: left; }
 
 #status {
     clear: both; font-weight: bold; font-size: small;
@@ -158,10 +195,14 @@ header = Template("""
         <script type="text/javascript">                                         
           ${script}                                        
         </script>      
+        <script type="text/javascript" src="images/static/jquery/jquery.ui.js"></script>   
         
         <!-- Image zoom -->
         <script type="text/javascript" src="images/static/jquery/jquery.imageZoom.js"></script>
         <link rel="stylesheet" href="images/static/jquery/jquery.imageZoom.css"/>
+        
+        <link rel="stylesheet" href="images/static/jquery/ui-lightness/jquery-ui-1.8.5.custom.css"/>
+        
         <script type="text/javascript"> 
             $$(document).ready( function () {
                 $$('.zoomable').imageZoom();
@@ -180,6 +221,17 @@ main = """
 
 <div id="display_area">
 
+<div id="timecorrbest_box" class="retinal_box">
+    <a class="zoomable" href="">
+        <img id="timecorrbest" class="retinal" />
+    </a>
+    <p> Best correlation between 
+        <span class="image_name">?</span>
+        and
+        <span class="signal_name">?</span>.
+    </p>
+</div>
+<!--
 <div id="action_box" class="retinal_box">
     <a class="zoomable" href="">
         <img id="action" class="retinal"/>
@@ -189,7 +241,7 @@ main = """
         and
         <span class="signal_name">?</span>.
     </p>
-</div>
+</div>-->
 
 <div id="mean_box" class="retinal_box">
     <a class="zoomable" href="">
@@ -206,16 +258,19 @@ main = """
     <p> Variance of <span class="image_name">?</span> </p>
 </div>
 
-<div id="timecorrbest_box" class="retinal_box">
+
+<div id="timecorrdelay_box" class="retinal_box">
     <a class="zoomable" href="">
-        <img id="timecorrbest" class="retinal" />
+        <img id="timecorrdelay" class="retinal" />
     </a>
-    <p> Best correlation between 
+    <p> <div id="slider" style="background-color: red;"></div> </p>
+    <p> Correlation between 
         <span class="image_name">?</span>
         and
-        <span class="signal_name">?</span>.
+        <span class="signal_name">?</span> (delayed by <span class="delay">?</span>).
     </p>
 </div>
+
 
 <div id="timecorr_box" class="retinal_box">
     <a class="zoomable" href="">
