@@ -5,26 +5,26 @@ from reprep import Report
 from mamarama_analysis.first_order_data import get_all_data_for_signal
 
 
-def compute_general_statistics(id, db, samples, interval_function, 
+def compute_general_statistics(id, db, samples, interval_function,
                                signal, signal_component):
     r = Report(id)
     
-    x = get_all_data_for_signal(db, samples, interval_function, 
+    x = get_all_data_for_signal(db, samples, interval_function,
                                 signal, signal_component)
     
     limit = 0.3
     
-    perc = [0.001, limit, 1, 10, 25, 50, 75, 90, 99, 100-limit, 100-0.001]
+    perc = [0.001, limit, 1, 10, 25, 50, 75, 90, 99, 100 - limit, 100 - 0.001]
     xp = map(lambda p: "%.3f" % scipy.stats.scoreatpercentile(x, p), perc)
     
     lower = scipy.stats.scoreatpercentile(x, limit)
-    upper = scipy.stats.scoreatpercentile(x, 100-limit)
+    upper = scipy.stats.scoreatpercentile(x, 100 - limit)
     
     f = r.figure()
     
     with r.data_pylab('histogram') as pylab:
-        bins =numpy. linspace(lower, upper, 100)
-        pylab.hist(x,bins=bins)
+        bins = numpy. linspace(lower, upper, 100)
+        pylab.hist(x, bins=bins)
         
     f.sub('histogram')
 
@@ -34,7 +34,7 @@ def compute_general_statistics(id, db, samples, interval_function,
     
     r.table("percentiles", data=[xp], cols=labels, caption="Percentiles")
     
-    r.table("stats", data=[[x.mean(), x.std()]], cols=['mean', 'std.dev.'], 
+    r.table("stats", data=[[x.mean(), x.std()]], cols=['mean', 'std.dev.'],
             caption="Other statistics")
 
     print "Computing correlation..."
@@ -42,11 +42,10 @@ def compute_general_statistics(id, db, samples, interval_function,
     print "...done."
 
     with r.data_pylab('cross_correlation') as pylab:
-        delta = (1.0/60) * lags
+        delta = (1.0 / 60) * lags * 1000;
         pylab.plot(delta, corr, 'o-')
-        
         pylab.axis([min(delta), max(delta), -0.7, 1.1])
-    
+        pylab.xlabel('delay (ms)')
     
     f = r.figure()
     f.sub('cross_correlation')

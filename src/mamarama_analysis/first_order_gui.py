@@ -5,8 +5,6 @@ script = """
 
 dir = "images/";
     
-
-
 function url_exists(url) {
     var http = new XMLHttpRequest();
     http.open('HEAD', url, false);
@@ -119,7 +117,9 @@ function slider_change(event, ui) {
     
     exp_id = get_exp_id();
 
-    $('.delay').text(delay);
+    delay_ms = Math.round( 1000 * delay * (1.0/60) );
+    
+    $('.delay').text( delay_ms + "ms"  );
 
     images2url = {
         timecorrdelay: dir + "/" + exp_id + ":delay" + delay + ".png"
