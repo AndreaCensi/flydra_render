@@ -38,14 +38,17 @@ function update_gui() {
     action_url = dir + "/" + exp_id + ":action.png";
     var_url = dir + "/" + exp_id + ":image_var.png";
     mean_url = dir + "/" + exp_id + ":image_mean.png";
+    timecorr_url = dir + "/" + exp_id + "_delayed:mean.png";
+    timecorrbest_url = dir + "/" + exp_id + "_delayed:best_delay.png";
     
     /* Change urls */
     
     $("img#action").attr("src", action_url);
     $("img#mean").attr("src", mean_url);
     $("img#var").attr("src", var_url);
-    
-    
+    $("img#timecorr").attr("src", timecorr_url);
+    $("img#timecorrbest").attr("src", timecorrbest_url);
+     
     /* Change image names */
     
     image_name = $('#image :selected').text()    
@@ -166,6 +169,21 @@ main = """
     <img id="var" class="retinal" />
     <p> Variance of <span class="image_name">?</span> </p>
 </div>
+
+<div id="timecorr_box" class="retinal_box">
+    <img id="timecorr" class="retinal" />
+    <p> Autocorrelation of <span class="signal_name">?</span> </p>
+</div>
+
+<div id="timecorrbest_box" class="retinal_box">
+    <img id="timecorrbest" class="retinal" />
+    <p> Best correlation between 
+        <span class="image_name">?</span>
+        and
+        <span class="signal_name">?</span>.
+    </p>
+</div>
+
 
 </div>
 

@@ -12,6 +12,7 @@ import procgraph_flydra.optics_reflines_640x240 as optics_reflines
 pixelmap = numpy.array(optics.pixelmap)    
 reflines = numpy.array(optics_reflines.reflines)
 
+
 def values2retina(values, background=numpy.NaN):    
     n = len(values)
     valuesp = numpy.ndarray(shape=(n + 1,))
@@ -20,6 +21,7 @@ def values2retina(values, background=numpy.NaN):
     valuesp[n] = background
     
     return valuesp[pixelmap]
+
 
 def add_reflines(rgb):
     return blend(rgb, reflines)
@@ -67,7 +69,6 @@ def plot_nearness(values):
 register_simple_block(plot_nearness)
 
 
-
 def plot_contrast(values):
     #print 'contrast', min(values), max(values)
     # im = values2retina(values, background=numpy.NaN)
@@ -78,7 +79,6 @@ def plot_contrast(values):
 register_simple_block(plot_contrast)
 
 
-
 def plot_rv(values):
     vx = values[ :, 1]
     #vy = values[1, :]
@@ -87,8 +87,5 @@ def plot_rv(values):
     
     return posneg(image)
 
-
 register_simple_block(plot_rv)
 
-    
-    

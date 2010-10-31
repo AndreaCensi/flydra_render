@@ -181,7 +181,7 @@ def main():
                 signal_op=signal_op_function,
                 delay=delay,
                 job_id=job_id)
-        report_delayed = comp(create_report_delayed, exp_id, delayed)
+        report_delayed = comp(create_report_delayed, exp_id+'_delayed', delayed)
         comp(write_report, report_delayed, options.db, exp_id + '_delayed')
             
 
