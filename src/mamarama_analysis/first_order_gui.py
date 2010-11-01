@@ -122,7 +122,7 @@ function slider_change(event, ui) {
     $('.delay').text( delay_ms + "ms"  );
 
     images2url = {
-        timecorrdelay: dir + "/" + exp_id + ":delay" + delay + ".png"
+        timecorrdelay: dir + "/" + exp_id + "_delayed:delay" + delay + ".png"
     }
     update_images(images2url);
 }
