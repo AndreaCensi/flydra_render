@@ -57,10 +57,20 @@ def draw_reference_lines(cr):
     colors = {0: {0:gray, pi / 2:gray, pi  : [0, 0, 0]},
               1: {0:gray, -pi / 2:gray, -pi  : [0, 0, 0]}}
               
-    for eye in [0, 1]:
-        
+    for eye in [0, 1]:        
         # find width of 1 pixel
         width = cr.device_to_user_distance(1, 0)[0]
+        
+        thetas = sorted(colors[eye].keys())
+        thetas = numpy.linspace(thetas[-1], thetas[0], 100)
+        S = map(lambda theta: numpy.dot(rotz(theta), [1, 0, 0]), thetas)
+        points = map(lambda x: sphere2surface(x, eye * 800), S)
+        cr.set_source_rgba(gray[0], gray[1], gray[2], 10)
+        cr.set_line_width(width * 3.0)
+        cr.set_antialias(cairo.ANTIALIAS_NONE)
+        draw_path(cr, points)
+        
+    for eye in [0, 1]:
         cr.set_line_width(width * 1.0)    
         cr.set_antialias(cairo.ANTIALIAS_NONE)
         
@@ -72,15 +82,6 @@ def draw_reference_lines(cr):
             S = map(lambda s: numpy.dot(rotz(theta), s), S)
             points = map(lambda x: sphere2surface(x, eye * 800), S)
             draw_path(cr, points)
-        
-        thetas = sorted(colors[eye].keys())
-        thetas = numpy.linspace(thetas[0], thetas[-1], 100)
-        S = map(lambda theta: numpy.dot(rotz(theta), [1, 0, 0]), thetas)
-        points = map(lambda x: sphere2surface(x, eye * 800), S)
-        
-        cr.set_source_rgba(gray[0], gray[1], gray[2], 1)
-        cr.set_line_width(width * 2.0)
-        draw_path(cr, points)
                 
 
 def quick_draw_to_file(values, width, height, filename):

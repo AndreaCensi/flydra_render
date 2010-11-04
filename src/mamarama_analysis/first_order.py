@@ -11,10 +11,10 @@ from reprep.graphics.posneg import posneg
 from reprep.graphics.scale import scale 
 
 from flydra_render.db import FlydraDB
-from procgraph_flydra.values2retina import values2retina
+from procgraph_flydra.values2retina import values2retina, add_reflines
 
 from mamarama_analysis import logger
-from mamarama_analysis.first_order_intervals import interval_fast, interval_all ,\
+from mamarama_analysis.first_order_intervals import interval_fast, interval_all , \
     interval_between_saccades, interval_saccades
 from mamarama_analysis.covariance import Expectation
 from mamarama_analysis.first_order_gui import create_gui
@@ -58,7 +58,7 @@ def op_identity(x):
 # (id, desc, function)
 signal_op_specs = [
         ('id', 'Raw', op_identity),
-        ('sign', 'Sign', op_sign),            
+        ('sign', 'Sign', op_sign),
 ]
 
 
@@ -126,9 +126,9 @@ def main():
         
         interval_id, interval_desc, interval_function = interval_spec
         signal_id, signal_desc, signal, signal_component \
-            = signal_spec
+ = signal_spec
         signal_op_id, signal_op_desc, signal_op_function \
-            = signal_op_spec
+ = signal_op_spec
         image_id, image_desc = image_spec
         
         # Skip uninteresting combinations
@@ -168,7 +168,7 @@ def main():
         
         
         delayed = {}
-        delays = range(-5,11)
+        delays = range(-5, 11)
         for delay in delays:
             job_id = 'timecorr%d' % delay
             delayed[delay] = comp(compute_signal_correlation_unique,
@@ -181,7 +181,7 @@ def main():
                 signal_op=signal_op_function,
                 delay=delay,
                 job_id=job_id)
-        report_delayed = comp(create_report_delayed, exp_id+'_delayed', delayed)
+        report_delayed = comp(create_report_delayed, exp_id + '_delayed', delayed)
         comp(write_report, report_delayed, options.db, exp_id + '_delayed')
             
 
@@ -201,9 +201,9 @@ def main():
         
         report = comp(compute_general_statistics,
             id=data_id,
-             db=options.db, 
-             samples=samples, 
-             interval_function=interval_function, 
+             db=options.db,
+             samples=samples,
+             interval_function=interval_function,
              signal=signal, signal_component=signal_component)
     
         comp(write_report, report, options.db, data_id)
@@ -223,10 +223,10 @@ def create_report(exp_id, data):
     image_covariance = data['image_covariance']
     image_variance = image_covariance.diagonal()
     
-    r.data_rgb('image_mean', scale(values2retina(image_mean)))
-    r.data_rgb('image_var', scale(values2retina(image_variance)))
+    r.data_rgb('image_mean', add_reflines(scale(values2retina(image_mean))))
+    r.data_rgb('image_var', add_reflines(scale(values2retina(image_variance))))
     a = data['action_image_correlation']
-    r.data_rgb('action', posneg(values2retina(a)))
+    r.data_rgb('action', add_reflines(posneg(values2retina(a))))
                 
     f = r.figure()
     f.sub('action', 'Correlation between action and image')
@@ -265,15 +265,15 @@ def compute_signal_correlation_unique(
     actions_ex = Expectation()
     
     # first compute mean
-    for sample, actions, image_values in enumerate_data(db, samples, interval_function, 
+    for sample, actions, image_values in enumerate_data(db, samples, interval_function,
                                                 image, signal, signal_component,
-                                                signal_op,  'first pass'):
+                                                signal_op, 'first pass'):
         
         n = image_values.shape[0]
         # we shouldn't receive empty subsets 
         assert n > 0
-        image_ex.update( image_values.mean(axis=0),  n)
-        actions_ex.update( actions.mean(axis=0), n)
+        image_ex.update(image_values.mean(axis=0), n)
+        actions_ex.update(actions.mean(axis=0), n)
     
     
     mean_action = actions_ex.get_value()
@@ -285,22 +285,22 @@ def compute_signal_correlation_unique(
     cov_z = Expectation()
     
     # do a second pass for computing the covariance    
-    for sample, actions, image_values in enumerate_data(db, samples, interval_function, 
+    for sample, actions, image_values in enumerate_data(db, samples, interval_function,
                                                 image, signal, signal_component,
                                                 signal_op, 'second pass'):
         # do not remove the mean (should be 0)
         # actions = actions - mean_action
         image_values = image_values - mean_image
         # hstack is picky; reshape as column
-        actions = actions.reshape((len(actions),1))
+        actions = actions.reshape((len(actions), 1))
         
         if delay > 0:
-            actions = actions[delay:,:]
-            image_values = image_values[:-delay,:]
+            actions = actions[delay:, :]
+            image_values = image_values[:-delay, :]
         elif delay < 0:
             d = -delay
-            image_values = image_values[d:,:]
-            actions = actions[:-d,:]
+            image_values = image_values[d:, :]
+            actions = actions[:-d, :]
         else:
             # we are all good
             pass
@@ -312,10 +312,10 @@ def compute_signal_correlation_unique(
     covariance = cov_z.get_value()
     correlation = cov2corr(covariance, zero_diagonal=True)
 
-    image_covariance = covariance[1:,1:]
-    image_correlation= correlation[1:,1:]
-    action_variance = covariance[0,0]
-    action_image_correlation = correlation[0,1:]
+    image_covariance = covariance[1:, 1:]
+    image_correlation = correlation[1:, 1:]
+    action_variance = covariance[0, 0]
+    action_image_correlation = correlation[0, 1:]
  
     data = {
            'covariance': covariance,
