@@ -165,6 +165,7 @@ div#display_area {
 }
 
 div.retinal_box {
+    display: block;
     float: left;
     width: 32%;
 }
