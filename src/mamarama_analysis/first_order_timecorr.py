@@ -32,8 +32,6 @@ def create_report_delayed(exp_id, delayed):
         f.sub(id, caption = caption)
     
     
-    
-        
     timestamp2ms = lambda x: x * (1.0/60) * 1000
     
     peak = numpy.argmax(corr_mean)
