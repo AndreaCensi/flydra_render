@@ -21,20 +21,20 @@ String.prototype.format = function(args) {
 };
 
 function get_exp_id() {
-   image  = $('#image').val()
-    signal = $('#signal').val()
-    group  = $('#group').val()
-    signal_op  = $('#signal_op').val()
-    interval  = $('#interval').val()
+    image      = $('#image'    ).val();
+    signal     = $('#signal'   ).val();
+    group      = $('#group'    ).val();
+    signal_op  = $('#signal_op').val();
+    interval   = $('#interval' ).val();
     
     exp_id = image+"-"+signal+"-"+signal_op+"-"+group+"-"+interval;
     return exp_id;
 }
 
 function get_data_id() {
-    signal = $('#signal').val()
-    group  = $('#group').val()
-    interval  = $('#interval').val()
+    signal   = $('#signal'  ).val();
+    group    = $('#group'   ).val();
+    interval = $('#interval').val();
     
     data_id = signal + "-" + group + "-" + interval;
      
