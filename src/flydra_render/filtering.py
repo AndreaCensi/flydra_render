@@ -173,6 +173,9 @@ def filter_rows(rows, options):
 
 
 def straighten_up_theta(theta):
+    if not numpy.isfinite(theta).all():
+        raise ValueError('Some values are inf or nan, and I cannot use them.')
+    
     theta2 = numpy.ndarray(shape=theta.shape, dtype=theta.dtype)
     theta2[0] = theta[0]
     for i in range(1, len(theta)):
