@@ -49,9 +49,9 @@ def get_sample_for_distribution(pd, n):
     # sort the probabilities least 
     pd = numpy.array(pd)
     
-    approx = numpy.ceil(  pd * n )
+    approx = numpy.ceil(pd * n)
     
-    toomany = int( approx.sum() - n )
+    toomany = int(approx.sum() - n)
     
     # remove some from the 
     # print pd
@@ -105,7 +105,7 @@ def main():
     # look for samples with the rows table
     do_samples = db.list_samples()
     do_samples = filter(lambda x: db.has_rows(x) and 
-                        db.get_attr(x,'stimulus') == 'nopost', 
+                        db.get_attr(x, 'stimulus') == 'nopost',
                         do_samples)
     if not do_samples:
         raise Exception('Cannot find samples to hallucinate about.')
@@ -160,6 +160,7 @@ def main():
         
         db.release_table(rows)    
     
+    db.close()
 
 if __name__ == '__main__':
     main()

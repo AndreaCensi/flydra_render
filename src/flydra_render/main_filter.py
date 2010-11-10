@@ -62,7 +62,7 @@ def main():
     for i in range(n):
         (filename, obj_ids, stim_fname) = good_files[i]
         
-        logger.info( 'Sample %s/%s: %s' % (i + 1, n, filename) )
+        logger.info('Sample %s/%s: %s' % (i + 1, n, filename))
         
         
         # only maintain basename
@@ -112,7 +112,7 @@ def main():
         db.set_attr(sample_id, 'filter_python_version', platform.python_version())
         db.set_attr(sample_id, 'filter_numpy_version', numpy.version.version)
          
-
+    db.close()
     sys.exit(0)
 
 

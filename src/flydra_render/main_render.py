@@ -54,7 +54,7 @@ def main():
             raise Exception('Sample %s does not have rows table.' % sample_id)
        
         if not db.has_attr(sample_id, 'stimulus_xml'):
-            raise Exception('Sample %s does not have the "stimulus_xml" attribute.'%\
+            raise Exception('Sample %s does not have the "stimulus_xml" attribute.' % \
                             sample_id)
        
         if options.compute_mu:
@@ -81,6 +81,8 @@ def main():
                          results['retinal_velocities'])
         
         db.release_table(rows)    
+   
+    db.close()
    
 def render(rows, stimulus_xml, host=None, compute_mu=False,
            white=False):

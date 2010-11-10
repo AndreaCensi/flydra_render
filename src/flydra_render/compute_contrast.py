@@ -51,7 +51,7 @@ def main():
     
     for i, sample_id in enumerate(do_samples):
         
-        logger.info( 'Sample %s/%s: %s' % (i + 1, len(do_samples), sample_id))
+        logger.info('Sample %s/%s: %s' % (i + 1, len(do_samples), sample_id))
         
         if not db.has_sample(sample_id):
             raise Exception('Sample %s not found in db.' % sample_id)
@@ -72,7 +72,7 @@ def main():
         db.set_table(sample_id, options.target, contrast)
         
         db.release_table(luminance)
-        
+    db.close()
 
 def compute_contrast_for_table(luminance, kernel): 
     contrast = numpy.ndarray(shape=luminance.shape, dtype=luminance.dtype)
