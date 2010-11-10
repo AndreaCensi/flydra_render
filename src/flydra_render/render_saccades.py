@@ -23,11 +23,17 @@ Two tables are created:
 - ``saccades_view_stop_luminance``: view at the end of the saccade, 
   given by the field ``orientation_stop``.
   
+- ``saccades_view_rstop_luminance``: view according to data sample 
+
+- ``saccades_view_random_luminance``: view according to random position
+
+
+  
 Each of these tables is as big as the saccades table.
 
 If ``--white`` is specified, the arena walls are displayed in white. 
-In this case, the tables are named ``saccades_view_start_luminance_w`` 
-and ``saccades_view_stop_luminance_w``.
+In this case, the tables are named ``saccades_view_start_luminance_w``,
+``saccades_view_stop_luminance_w``
 
 The ``--host`` option allows you to use a remote fsee instance.
 See the documentation for ``flydra_render`` for details.

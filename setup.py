@@ -10,6 +10,7 @@ setup(name='flydra_render',
          'console_scripts': [
            'flydra_render_filter      = flydra_render.main_filter:main',
            'flydra_render             = flydra_render.main_render:main',
+           'flydra_render_hallucinations = flydra_render.main_render_hallucinations:main',
            'flydra_db_check           = flydra_render.db_check:main',
            'flydra_render_contrast    = flydra_render.compute_contrast:main',
            'flydra_video_contrast     = procgraph_flydra.video_contrast:main',
