@@ -72,7 +72,27 @@ def get_sample_for_distribution(pd, n):
             yield i
     
         
+def get_stimulus_to_use(db, n):
+    ''' Returns a list of n tuples (stimulus, stimulus_xml) representing
+        a representative sample of the stimuli present in the logs with posts.
+    '''
 
+    stats = list(get_db_stimulus_stats(db))
+    for stimulus, xml, probability in stats: #@UnusedVariable
+        print "stimulus %s  %.3f" % (stimulus, probability)
+  
+    # get probability distribution
+    pd = map(lambda x: x[2], stats)
+    
+    stimulus_for_sample_index = list(get_sample_for_distribution(pd, n))
+   
+
+    for i in stimulus_for_sample_index:
+        stimulus =    stats[i][0]
+        stimulus_xml =  stats[i][1]
+        yield stimulus, stimulus_xml
+        
+        
 def main():
     
     parser = OptionParser()
@@ -96,11 +116,6 @@ def main():
         
     db = FlydraDB(options.db, False)
     
-
-    stats = list(get_db_stimulus_stats(db))
-
-    for stimulus, xml, probability in stats: #@UnusedVariable
-        print "stimulus %s  %.3f" % (stimulus, probability)
         
     # look for samples with the rows table
     do_samples = db.list_samples()
@@ -109,13 +124,11 @@ def main():
                         do_samples)
     if not do_samples:
         raise Exception('Cannot find samples to hallucinate about.')
-    # probabilities:
-    pd = map(lambda x: x[2], stats)
-    
-    stimulus_for_sample_index = list(get_sample_for_distribution(pd, len(do_samples)))
+      
+    stimulus_to_use = list(get_stimulus_to_use(db, len(do_samples)))
     
     for i, sample in enumerate(do_samples):
-        stimulus = stats[stimulus_for_sample_index[i]][0]
+        stimulus = stimulus_to_use[i][0]
         print sample, stimulus 
     
     if options.white:
@@ -124,9 +137,8 @@ def main():
         target = 'hluminance'
     
     for i, sample_id in enumerate(do_samples):
-        stimulus = stats[stimulus_for_sample_index[i]][0]
-        stimulus_xml = stats[stimulus_for_sample_index[i]][1]
-        
+        stimulus = stimulus_to_use[i][0]
+        stimulus_xml = stimulus_to_use[i][1]
             
         print 'Sample %s/%s: %s' % (i + 1, len(do_samples), sample_id)
         

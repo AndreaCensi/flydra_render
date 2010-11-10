@@ -1,5 +1,5 @@
 import flydra.a2.xml_stimulus as xml_stimulus
-import contextlib, os, tempfile, shutil, math, sets
+import contextlib, os, tempfile, shutil, math
 import numpy, sys
 
 import fsee
@@ -203,7 +203,8 @@ class StimulusWithOSG(xml_stimulus.Stimulus):
                 yield real_osg_fname
             return
 
-        all_assets = sets.Set(all_assets) # remove redundant copies
+        #all_assets = sets.Set(all_assets) # remove redundant copies
+        all_assets = set(all_assets) # remove redundant copies
         m = osgwriter.MatrixTransform(numpy.eye(4))
         m.append(geode)
 

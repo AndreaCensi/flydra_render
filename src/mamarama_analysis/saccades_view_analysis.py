@@ -107,6 +107,7 @@ def main():
     filename = 'out/saccade_view_analysis/%s.html' % options.image
     comp(write_report, all_reports, options.db, filename)
     
+    db.close()
     
     if options.interactive:
         # start interactive session

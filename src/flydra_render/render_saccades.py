@@ -26,9 +26,7 @@ Four tables are created:
 - ``saccades_view_rstop_luminance``: view according to data sample 
 
 - ``saccades_view_random_luminance``: view according to random position
-
-
-  
+ 
 Each of these tables is as big as the saccades table.
 
 If ``--white`` is specified, the arena walls are displayed in white. 
@@ -122,6 +120,7 @@ def main():
         db.set_table(sample_id, target_rstop, view_rstop)
         db.set_table(sample_id, target_random, view_random)
          
+    db.close()
    
 def render_saccades_view(saccades, stimulus_xml, host=None, white=False):
    
