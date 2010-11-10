@@ -15,7 +15,7 @@ Usage: ::
 This program iterates over the ``saccades`` table, and renders the scene 
 at the beginning and end of the saccade.
 
-Two tables are created:
+Four tables are created:
 
 - ``saccades_view_start_luminance``: view at the beginning of the 
   saccade, given by the field ``orientation_start``.
@@ -80,7 +80,7 @@ def main():
     image = 'luminance_w' if options.white else 'luminance'
         
     target_start = 'saccades_view_start_%s' % image
-    target_stop =  'saccades_view_stop_%s' % image
+    target_stop = 'saccades_view_stop_%s' % image
     target_rstop = 'saccades_view_rstop_%s' % image
     target_random = 'saccades_view_random_%s' % image
     
