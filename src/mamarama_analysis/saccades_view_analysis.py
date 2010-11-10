@@ -5,7 +5,7 @@ from optparse import OptionParser
 from reprep import Report
 from reprep.graphics.posneg import posneg
 from reprep.graphics.scale import scale
-from compmake import comp, compmake_console, comp_prefix, set_namespace,\
+from compmake import comp, compmake_console, comp_prefix, set_namespace, \
     batch_command
 
 from flydra_render.db import FlydraDB
@@ -27,7 +27,7 @@ def main():
 
     parser.add_option("--db", default='flydra_db', help="Data directory")
 
-    parser.add_option("--interactive", 
+    parser.add_option("--interactive",
                       help="Start compmake interactive session."
                       " Otherwise run in batch mode",
                       default=False, action="store_true")
@@ -117,13 +117,10 @@ def main():
         batch_command('make all')
         # start the console if we are not done
         # (that is, make all failed for some reason)
-        todo = parse_job_list('todo') 
+        todo = list(parse_job_list('todo')) 
         if todo:
             logger.info('Still %d jobs to do.' % len(todo))
-            sys.exit(-2)
-
-
-    
+            sys.exit(-2)    
 
 def create_report(group_name, data, image_name):
     r = Report(group_name)
@@ -136,7 +133,7 @@ def create_report(group_name, data, image_name):
     data['random_minus_rstop'] = data['mean_random']['all'] - data['mean_rstop']['all']
     
     for a in ['start', 'stop', 'rstop']:
-        data['%s_minus_random' %a ] = data['mean_%s' % a]['all'] - data['mean_random']['all']
+        data['%s_minus_random' % a ] = data['mean_%s' % a]['all'] - data['mean_random']['all']
 
 
     keys = ['mean_start', 'mean_stop', 'mean_rstop', 'mean_random']
@@ -153,7 +150,7 @@ def create_report(group_name, data, image_name):
 
 
     keys = ['start_minus_random', 'stop_minus_random', 'rstop_minus_random',
-            'stop_minus_start','rstop_minus_start','rstop_minus_stop']
+            'stop_minus_start', 'rstop_minus_start', 'rstop_minus_stop']
     for k in keys:
         #std = data['var_random']['all']
         #val = data[k] / std

@@ -17,7 +17,7 @@ def main():
     parser.add_option("--filter", help="Which procgraph filter to use to plot.",
                       default="flydra_simple_video_filter")
   
-    parser.add_option("--interactive", 
+    parser.add_option("--interactive",
                       help="Start compmake interactive session."
                       " Otherwise run in batch mode",
                       default=False, action="store_true")
@@ -67,7 +67,7 @@ def main():
         batch_command('make all')
         # start the console if we are not done
         # (that is, make all failed for some reason)
-        todo = parse_job_list('todo') 
+        todo = list(parse_job_list('todo')) 
         if todo:
             print('Still %d jobs to do.' % len(todo))
             sys.exit(-2)

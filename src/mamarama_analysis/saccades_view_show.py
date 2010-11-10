@@ -1,7 +1,7 @@
 import sys     
 from optparse import OptionParser
 
-from compmake import comp, compmake_console, comp_prefix, set_namespace,\
+from compmake import comp, compmake_console, comp_prefix, set_namespace, \
     batch_command
 from reprep import Report
 
@@ -27,7 +27,7 @@ def main():
                       help="Rendered image to use -- "
             " corresponding to image 'saccades_view_{start,stop}_X'")
     
-    parser.add_option("--interactive", 
+    parser.add_option("--interactive",
                       help="Start an interactive compmake session."
                       " Otherwise run in batch mode. ",
                       default=False, action="store_true")
@@ -70,7 +70,7 @@ def main():
         batch_command('make all')
         # start the console if we are not done
         # (that is, make all failed for some reason)
-        todo = parse_job_list('todo') 
+        todo = list(parse_job_list('todo')) 
         if todo:
             logger.info('Still %d jobs to do.' % len(todo))
             sys.exit(-2)

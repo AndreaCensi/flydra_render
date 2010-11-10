@@ -28,11 +28,11 @@ def main():
     parser = OptionParser(usage=description)
     
     parser.add_option("--db", default='flydra_db', help="FlydraDB directory")
-    parser.add_option("--model",  help="ProcGraph model name.")
-    parser.add_option("--needs",  help="Comma-separated list of tables required",
+    parser.add_option("--model", help="ProcGraph model name.")
+    parser.add_option("--needs", help="Comma-separated list of tables required",
                       default="rows,luminance")
     
-    parser.add_option("--interactive", 
+    parser.add_option("--interactive",
                       help="Start compmake interactive session."
                       " Otherwise run in batch mode",
                       default=False, action="store_true")
@@ -57,7 +57,7 @@ def main():
     
     num_ok = 0
     for id in samples:
-        enough = all( map( lambda t: db.has_table(id,t), tables))
+        enough = all(map(lambda t: db.has_table(id, t), tables))
         
         if not enough:
             continue 
@@ -77,7 +77,7 @@ def main():
         batch_command('make all')
         # start the console if we are not done
         # (that is, make all failed for some reason)
-        todo = parse_job_list('todo') 
+        todo = list(parse_job_list('todo')) 
         if todo:
             logger.info('Still %d jobs to do.' % len(todo))
             sys.exit(-2)

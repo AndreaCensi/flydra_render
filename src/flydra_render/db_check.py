@@ -1,4 +1,3 @@
-import sys
 from flydra_render.db import FlydraDB
 import numpy
 from optparse import OptionParser

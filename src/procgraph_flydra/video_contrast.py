@@ -4,7 +4,7 @@ from compmake import comp, batch_command, compmake_console, set_namespace
 from procgraph.scripts.pg import pg
 from optparse import OptionParser
 from compmake.jobs.syntax.parsing import parse_job_list
-from flydra_render import logger
+
 
 description = """
 This script runs the flydra_display_contrast procgraph model 
@@ -18,12 +18,12 @@ def main():
     
     parser.add_option("--db", default='flydra_db', help="FlydraDB directory")
     
-    parser.add_option("--interactive", 
+    parser.add_option("--interactive",
                       help="Start compmake interactive session."
                       " Otherwise run in batch mode",
                       default=False, action="store_true")
 
-    (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args() #@UnusedVariable
      
         
     db = FlydraDB(options.db, False)
@@ -50,7 +50,7 @@ def main():
         batch_command('make all')
         # start the console if we are not done
         # (that is, make all failed for some reason)
-        todo = parse_job_list('todo') 
+        todo = list(parse_job_list('todo')) 
         if todo:
             print('Still %d jobs to do.' % len(todo))
             sys.exit(-2)
