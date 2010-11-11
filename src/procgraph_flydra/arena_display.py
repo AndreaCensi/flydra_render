@@ -5,7 +5,7 @@ from matplotlib import pylab
 from procgraph  import Block
 from procgraph.components.gui.plot import pylab2rgb 
 from StringIO import StringIO
-from flydra_render.db import FlydraDB
+from flydra_db import FlydraDB
 
 def get_posts_info(xml):
     from flydra.a2 import xml_stimulus

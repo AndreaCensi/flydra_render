@@ -1,6 +1,7 @@
 import numpy
 import unittest 
-from flydra_render.filtering import compute_derivative
+
+from flydra_render.main_filter_meat import compute_derivative
 
 
 class UtilsTest(unittest.TestCase): 

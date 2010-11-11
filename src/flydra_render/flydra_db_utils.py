@@ -1,7 +1,9 @@
-from flydra.a2 import core_analysis
+from flydra.a2 import core_analysis, xml_stimulus
 from flydra_render import logger
 import numpy
 import scipy.stats
+import os 
+from flydra_db.db import locate_roots
 
 warned_fixed_dt = False
 
@@ -86,8 +88,8 @@ def get_good_smoothed_tracks(filename, obj_ids,
                 
                 #and not warned:
                 #warned = True
-               # logger.info("Warning: Implementing simple workaround for flydra's " \
-               #       "units inconsistencies (multiplying xvel,yvel by 1000).")
+                # logger.info("Warning: Implementing simple workaround for flydra's " \
+                #       "units inconsistencies (multiplying xvel,yvel by 1000).")
                 
                 #srows['xvel'] *= 1000
                 #srows['yvel'] *= 1000
@@ -125,3 +127,90 @@ def get_good_smoothed_tracks(filename, obj_ids,
             continue 
         
     ca.close()
+
+
+
+def get_good_files(where, pattern="*.kh5", fanout_template="fanout.xml", verbose=False, confirm_problems=False):
+    """ Looks for .kh5 files in the filesystem. 
+    
+        @where can be either:
+        1) a filename
+        2) a directory name
+        3) a list with files and directory names
+    
+        Returns an array of tuples   (filename, obj_ids, stimulus)  for the valid files
+    """
+    
+    all_files = locate_roots(pattern, where)
+    
+    logger.info("Found %d  %s files in locations %s" % (len(all_files), pattern, str(where)))
+    
+    good_files = []
+
+    for filename in all_files:
+        well_formed, use_obj_ids, stim_xml = consider_stimulus(filename, fanout_name=fanout_template)
+
+        if not(well_formed):
+            if confirm_problems:
+                logger.error("File %s not well described; skipping" % filename)
+                raw_input("Are you aware of this?")
+        else:
+            good_files.append((filename, use_obj_ids, stim_xml))
+
+
+    logger.info("Of these, %d have entries in fanout.xml" % (len(good_files),))
+    
+    return good_files
+
+
+
+def  consider_stimulus(h5file, verbose_problems=False, fanout_name="fanout.xml"):
+    """ Parses the corresponding fanout XML and finds IDs to use as well as the stimulus.
+        Returns 3 values: valid, use_objs_ids, stimulus.  
+        valid is false if something was wrong"""
+   
+    try:
+        dir = os.path.dirname(h5file)
+        fanout_xml = os.path.join(dir, fanout_name)
+        if not(os.path.exists(fanout_xml)):
+            if verbose_problems:
+                logger.error("Stim_xml path not found '%s' for file '%s'" % (h5file, fanout_xml))
+            return False, None, None
+
+        ca = core_analysis.get_global_CachingAnalyzer()
+        (obj_ids, use_obj_ids, is_mat_file, data_file, extra) = ca.initial_file_load(h5file) #@UnusedVariable
+
+        file_timestamp = timestamp_string_from_filename(h5file)
+
+        fanout = xml_stimulus.xml_fanout_from_filename(fanout_xml)
+        include_obj_ids, exclude_obj_ids = fanout.get_obj_ids_for_timestamp(timestamp_string=file_timestamp)
+        if include_obj_ids is not None:
+            use_obj_ids = include_obj_ids
+        if exclude_obj_ids is not None:
+            use_obj_ids = list(set(use_obj_ids).difference(exclude_obj_ids))
+
+#        stim_xml = fanout.get_stimulus_for_timestamp(timestamp_string=file_timestamp)
+
+        (single_episode, kh5_file, stim_fname) = fanout._get_episode_for_timestamp(timestamp_string=file_timestamp)
+         
+        return True, use_obj_ids, stim_fname
+
+    except xml_stimulus.WrongXMLTypeError:
+        if verbose_problems:
+            logger.error("Caught WrongXMLTypeError for '%s'" % file_timestamp)
+        return False, None, None
+    except ValueError, ex:
+        if verbose_problems:
+            logger.error("Caught ValueError for '%s': %s" % (file_timestamp, ex))
+        return False, None, None 
+    except Exception, ex:
+        logger.error('Not predicted exception while reading %s; %s' % (h5file, ex))
+        return False, None, None
+    
+
+
+def timestamp_string_from_filename(filename):
+    """Extracts timestamp string from filename"""
+    ### TODO: check validity
+    data_file_path, data_file_base = os.path.split(filename) #@UnusedVariable
+    return data_file_base[4:19]

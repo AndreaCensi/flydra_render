@@ -1,12 +1,13 @@
-import sys, numpy
+import numpy
 from optparse import OptionParser
 
 from rfsee.rfsee_client import ClientTCP, ClientProcess
 
-from flydra_render import logger
-from flydra_render.db import FlydraDB
-from flydra_render.progress import progress_bar
+from flydra_db import FlydraDB
 
+from flydra_render import logger
+from flydra_db.progress import progress_bar
+ 
 
 def main():
     

@@ -1,7 +1,7 @@
 
 
-from procgraph import Block, Generator
-from flydra_render.db import FlydraDB
+from procgraph import Block, Generator 
+from flydra_db  import FlydraDB
 
 fields = [
      'obj_id',
@@ -38,7 +38,7 @@ class FlydraData(Generator):
     Block.output('stimulus_xml')
     
     def init(self):
-        self.db = FlydraDB(self.config.db)
+        self.db = FlydraDB(self.config.db, False)
         self.rows = self.db.get_rows(self.config.sample)
         self.next_index = 0
 

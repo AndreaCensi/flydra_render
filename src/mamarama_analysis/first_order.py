@@ -1,16 +1,16 @@
 from optparse import OptionParser
 import sys, os
 import itertools
-import numpy 
-import scipy.stats
+import numpy  
 
-from compmake import comp, compmake_console, set_namespace, comp_prefix, progress
+from compmake import comp, compmake_console, set_namespace, comp_prefix
 
 from reprep import Report  
 from reprep.graphics.posneg import posneg
 from reprep.graphics.scale import scale 
 
-from flydra_render.db import FlydraDB
+from flydra_db import FlydraDB
+
 from procgraph_flydra.values2retina import values2retina, add_reflines
 
 from mamarama_analysis import logger

@@ -1,6 +1,8 @@
-from flydra_render.db import FlydraDB
 import numpy
 from optparse import OptionParser
+
+from flydra_db import FlydraDB
+
 
 def main():
     parser = OptionParser()

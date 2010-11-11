@@ -5,7 +5,8 @@ from compmake import comp, compmake_console, comp_prefix, set_namespace, \
     batch_command
 from reprep import Report
 
-from flydra_render.db import FlydraDB
+from flydra_db import FlydraDB
+
 from procgraph_flydra.values2retina import  plot_luminance
 
 from mamarama_analysis import logger

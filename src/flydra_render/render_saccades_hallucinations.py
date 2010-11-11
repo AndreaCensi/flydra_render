@@ -1,10 +1,7 @@
-import sys, numpy
 from optparse import OptionParser
 
+from flydra_db import FlydraDB
 from flydra_render import logger
-from flydra_render.db import FlydraDB
-from flydra_render.progress import progress_bar
-from flydra_render.main_render import get_rfsee_client
 from flydra_render.main_render_hallucinations import get_stimulus_to_use
 from flydra_render.render_saccades import render_saccades_view
 
@@ -120,7 +117,9 @@ def main():
         db.set_table(sample_id, target_stop, view_stop)
         db.set_table(sample_id, target_rstop, view_rstop)
         db.set_table(sample_id, target_random, view_random)
-         
+        
+        db.release_table(saccades)
+        
     db.close()
 
 if __name__ == '__main__':

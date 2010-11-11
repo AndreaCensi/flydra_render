@@ -1,16 +1,15 @@
- 
-from geometric_saccade_detector.filesystem_utils import locate_roots
-import tables
-import os
-import tempfile
+import shutil, os, tempfile, numpy, tables
 
-from flydra_render.tables_cache import tc_open_for_reading, \
+from flydra_db.tables_cache import tc_open_for_reading, \
     tc_open_for_writing,tc_open_for_appending, tc_close
-import shutil
-from flydra_render import logger
-from flydra_render.progress import progress_bar
-from contextlib import contextmanager
-import numpy
+
+
+from flydra_db.progress import progress_bar
+
+from contextlib import contextmanager 
+
+import fnmatch
+from flydra_db.log import logger
 
 FLYDRA_ROOT = 'flydra'
 
@@ -198,8 +197,8 @@ def db_summary(directory):
         os.makedirs(temp_dir)
         
     # This will be our private index    
-    my_summary = tempfile.NamedTemporaryFile(suffix='.h5_priv', prefix='.index', dir=temp_dir)
-     # , dir=temp_dir)
+    my_summary = tempfile.NamedTemporaryFile(suffix='.h5_priv', 
+                                             prefix='.index', dir=temp_dir)
     my_summary_file = my_summary.name
 
     #   fid, my_summary_file = tempfile.mkstemp(suffix='.h5_priv',
@@ -283,6 +282,30 @@ def link_everything(src, dst, src_filename, dst_directory):
                 dst.createExternalLink(parent, child,
                                        target, warn16incompat=False)
 
+def locate_roots(pattern, where):
+    "where: list of files or directories where to look for pattern"
+    if not(type(where) == list):
+        where = [where];
+
+    all_files = []
+    for w in where:
+        if not(os.path.exists(w)):
+            raise ValueError, "Path %s does not exist" % w
+        if os.path.isfile(w):
+            all_files.append(w)
+        elif os.path.isdir(w):
+            all_files.extend(set(locate(pattern=pattern, root=w)))
+
+    return all_files
+
+
+def locate(pattern, root):
+    '''Locate all files matching supplied filename pattern in and below
+    supplied root directory.'''
+    for path, dirs, files in os.walk(os.path.abspath(root)): #@UnusedVariable
+        for filename in fnmatch.filter(files, pattern):
+            yield os.path.join(path, filename)
+            
 
     
     

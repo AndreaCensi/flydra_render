@@ -1,10 +1,10 @@
 import numpy
 from optparse import OptionParser
 
+from flydra_db import FlydraDB
 from flydra_render import logger
-from flydra_render.db import FlydraDB
-from flydra_render.progress import progress_bar
 from flydra_render.contrast import get_contrast_kernel
+from flydra_db.progress import progress_bar
 
 try:
     from fast_contrast import intrinsic_contrast #@UnresolvedImport @UnusedImport

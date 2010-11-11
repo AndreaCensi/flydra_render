@@ -1,10 +1,11 @@
-
+import numpy
 from optparse import OptionParser
+
+from flydra_db import FlydraDB
  
 from flydra_render import logger
-from flydra_render.db import FlydraDB 
-import numpy
 from flydra_render.main_render import render
+
 
 def get_db_stimulus_stats(db):
     """
@@ -68,7 +69,7 @@ def get_sample_for_distribution(pd, n):
     assert approx.sum() == n
 
     for i, num in enumerate(approx):
-        for k in range(int(num)):
+        for k in range(int(num)): #@UnusedVariable
             yield i
     
         

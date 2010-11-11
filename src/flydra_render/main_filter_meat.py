@@ -1,9 +1,8 @@
 import numpy
 from numpy.testing.utils import assert_almost_equal
 from flydra_render.structures import additional_fields
-import scipy, scipy.signal
+import scipy.signal
 from geometric_saccade_detector.math_utils import normalize_pi
-from flydra_render.render_saccades import rotz
 
 
 def compute_derivative(x, timestamp):

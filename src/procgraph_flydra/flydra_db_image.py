@@ -1,5 +1,5 @@
 from procgraph import Block, Generator
-from flydra_render.db import FlydraDB
+from flydra_db import FlydraDB
 
 
 class FlydraImage(Generator):
