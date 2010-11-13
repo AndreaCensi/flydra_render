@@ -441,7 +441,7 @@ def compute_stats(db, samples, image):
             
             yield id, values
             db.release_table(data)
-            db.release_rable(rows)
+            db.release_table(rows)
 
     progress('Computing stats', (0, 2), 'First pass')
     # first compute the mean
