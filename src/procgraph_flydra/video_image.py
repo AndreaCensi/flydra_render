@@ -1,10 +1,12 @@
-from optparse import OptionParser
-from flydra_render.db import FlydraDB
 import sys
+from optparse import OptionParser
+
+from flydra_db import FlydraDB
 
 from compmake import comp, set_namespace, compmake_console, batch_command
-from procgraph.scripts.pg import pg
 from compmake.jobs.syntax.parsing import parse_job_list
+
+from procgraph.scripts.pg import pg
 
 def main():
     

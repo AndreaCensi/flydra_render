@@ -66,8 +66,10 @@ signal_op_specs = [
 image_specs = [
         ('luminance', 'Raw luminance'),
         ('luminance_w', 'Raw luminance (only posts)'),
-        ('contrast', 'Contrast'),
+        ('contrast', 'Contrast'),        
         ('contrast_w', 'Contrast (only posts)'),
+        ('hcontrast', 'Hallucinated Contrast'),
+        ('hcontrast_w', 'Hallucinated Contrast (only posts)'),
 ]
 
 # (id, desc, interval_function)
@@ -121,8 +123,7 @@ def main():
         in itertools.product(group_specs, interval_specs, signal_specs,
                              signal_op_specs, image_specs):
                                                 
-        group_id, group_desc = group_spec
-        samples = groups[group_id]
+        group_id, group_desc = group_spec       
         
         interval_id, interval_desc, interval_function = interval_spec
         signal_id, signal_desc, signal, signal_component \
@@ -133,7 +134,18 @@ def main():
         
         # Skip uninteresting combinations
         if image_id.endswith('_w') and group_id == 'noposts':
+            # if there are not posts, it's useless 
             continue
+        
+        if image_id.startswith('h') and group_id == 'posts':
+            # we only hallucinate the ones without posts
+            continue
+        
+        # find the sample which have the image
+        samples = filter(lambda x: db.has_table(x, image_id), groups[group_id])
+        
+        if not samples:
+            raise Exception('No samples for %s/%s' % (group_id, image_id))
         
         exp_id = '{image_id}-{signal_id}-{signal_op_id}' \
                 '-{group_id}-{interval_id}' .format(**locals())
@@ -278,7 +290,8 @@ def compute_signal_correlation_unique(
     
     mean_action = actions_ex.get_value()
     mean_image = image_ex.get_value()
-    
+
+    print mean_action.shape, mean_action.dtype    
     assert numpy.isfinite(mean_action).all()
     assert numpy.isfinite(mean_image).all()
     

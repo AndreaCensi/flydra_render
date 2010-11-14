@@ -4,7 +4,7 @@ from compmake import progress
 import scipy.stats
 
 from flydra_render import logger
-from flydra_render.db import FlydraDB
+from flydra_db import FlydraDB
 
 def get_all_data_for_signal(db, samples, interval_function, 
                             signal, signal_component):
@@ -36,6 +36,7 @@ def get_all_data_for_signal(db, samples, interval_function,
         all.append(s)
         
         db.release_table(rows_table)
+    
     
     
     db.close()

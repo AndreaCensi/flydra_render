@@ -1,6 +1,6 @@
 from optparse import OptionParser
 import sys
-from flydra_render.db import FlydraDB
+from flydra_db import FlydraDB
 from flydra_render import logger
 import scipy
 import scipy.stats

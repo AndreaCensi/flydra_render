@@ -1,5 +1,5 @@
 import sys
-from flydra_render.db import FlydraDB
+from flydra_db import FlydraDB
 from compmake import comp, batch_command, compmake_console, set_namespace
 from procgraph.scripts.pg import pg
 from optparse import OptionParser
