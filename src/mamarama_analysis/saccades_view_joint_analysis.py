@@ -236,15 +236,30 @@ def add_comparisons(all_experiments, outdir):
     r = Report('comparisons')
     
     for dir in ['alldir', 'left', 'right']:
+        # statistics over the whole trajectory
+        key = ('posts', 'contrast_w')
+        real_traj = all_experiments[key]
+        key = ('noposts', 'hcontrast_w')
+        hall_traj = all_experiments[key]
+        
         key = Exp(image='contrast_w', group='posts', view='start', dir=dir)
         real = all_experiments[key]
+        
         key = Exp(image='hcontrast_w', group='noposts', view='start', dir=dir)
         hall = all_experiments[key]
+        
+        
         
         case = r.node('analysis_%s' % dir)
         
         diff = real.mean - hall.mean
         
+        case.data('real_traj', real.mean).data_rgb('retina',
+                add_reflines(scale(values2retina(real_traj.var))))
+        
+        case.data('hall_traj', real.mean).data_rgb('retina',
+                add_reflines(scale(values2retina(hall_traj.var))))
+
         case.data('real', real.mean).data_rgb('retina',
                 add_reflines(scale(values2retina(real.mean))))
         
@@ -292,6 +307,8 @@ def add_comparisons(all_experiments, outdir):
 
     
         f = case.figure(shape=(3, 2))
+        f.sub('real_traj', caption='mean over all trajectory (real)')
+        f.sub('hall_traj', caption='mean over all trajectory (hallucinated)')
         f.sub('real', caption='real response')
         f.sub('hall', caption='hallucinated response')
         f.sub('mean', caption='mean comparison')
@@ -415,13 +432,16 @@ def compute_stats(db, samples, image):
             if not (db.has_sample(id) and db.has_table(id, image)):
                 raise ValueError('No table "%s" for id %s' % (image, id))
             
+            rows = db.get_rows(id)
             data = db.get_table(id, image)
             
-            # select = condition(saccades)
-            values = data[:]['value']
+            select = rows[:]['linear_velocity_modulus'] > 0.1
+            #select = condition(rows)
+            values = data[select]['value']
             
             yield id, values
             db.release_table(data)
+            db.release_table(rows)
 
     progress('Computing stats', (0, 2), 'First pass')
     # first compute the mean
