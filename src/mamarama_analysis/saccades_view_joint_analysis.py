@@ -18,9 +18,56 @@ from compmake.jobs.syntax.parsing import parse_job_list
 from compmake.jobs.progress import progress
 
 from collections import namedtuple
+import itertools
 
+def choose_saccades_right(saccades):
+    return saccades[:]['sign'] == -1
+
+def choose_saccades_left(saccades):
+    return saccades[:]['sign'] == +1
+
+def choose_all_saccades(saccades):
+    return saccades[:]['sign'] != 0
+
+
+Option = namedtuple('Option', 'id desc')
+
+images = [
+        Option('luminance', 'Raw luminance'),
+        Option('luminance_w', 'Raw luminance (only posts)'),
+        Option('contrast', 'Contrast'),
+        Option('contrast_w', 'Contrast (only posts)'),
+        Option('hluminance', 'Hallucinated raw luminance'),
+        Option('hluminance_w', 'Hallucinated raw luminance (only posts)'),
+        Option('hcontrast', 'Hallucinated contrast'),
+        Option('hcontrast_w', 'Hallucinated contrast (only posts)')
+]
+
+views = [
+    Option('start', 'At saccade start'),
+    Option('stop', 'At saccade stop'),
+    Option('rstop', 'At random stop according to dist'),
+    Option('random', 'At random orientation'),
+]
+
+groups = [
+    Option('posts', 'Samples with posts'),
+    Option('noposts', 'Samples without posts'),
+]
+
+# possible directions
+Dir = namedtuple('Dir', 'id desc func')
+dirs = [ 
+    Dir('alldir', 'saccading', choose_all_saccades),
+    Dir('right', 'saccading right', choose_saccades_right),
+    Dir('left', 'saccading left', choose_saccades_left),
+]
+
+
+        
 # describes an experiment
 Exp = namedtuple('Exp', 'image group view dir')
+ 
 
 description = """
 
@@ -29,8 +76,10 @@ description = """
 
 """
 
+
+    
 def main():
-    parser = OptionParser()
+    parser = OptionParser(usage=description)
 
     parser.add_option("--db", default='flydra_db', help="Data directory")
 
@@ -54,16 +103,14 @@ def main():
         
     set_namespace('saccade_view_joint_analysis')
     
-    images = ['luminance', 'contrast', 'hluminance', 'hcontrast',
-              'luminance_w', 'contrast_w', 'hluminance_w', 'hcontrast_w']
-    
     # for each image we do a different report
     data = {}
     for image in images:
         
         # For each image we have different tables
-        views = ['start', 'stop', 'rstop', 'random']
-        tables = map(lambda x: "saccades_view_%s_%s" % (x, image), views)
+        tables = []
+        for view in views:
+            tables.append("saccades_view_%s_%s" % (view.id, image.id))
 
         # We find the sample which have all of those tables
         check_available = lambda x: db.has_saccades(x) and \
@@ -71,47 +118,43 @@ def main():
         all_available = filter(check_available, db.list_samples()) 
         
         # We further divide these in post and nopost
-        groups = {}
-        groups['posts'] = filter(
-            lambda s: db.get_attr(s, 'stimulus') != 'nopost',
-                                 all_available)
-        groups['noposts'] = filter(
-            lambda s: db.get_attr(s, 'stimulus') == 'nopost',
-                                 all_available)
-                
+        groups_samples = {
+            'posts':
+                filter(lambda s: db.get_attr(s, 'stimulus') != 'nopost', all_available),
+            'noposts':
+                filter(lambda s: db.get_attr(s, 'stimulus') == 'nopost', all_available)
+        }
+        
         # now, for each group
-        for group_name, group_samples in groups.items():
-            
-            if not group_samples:
-                print "Warning: no samples for %s/%s" % (image, group_name)
+        for group in groups:
+            samples = groups_samples[group.id] 
+            if not samples:
+                print "Warning: no samples for %s/%s" % (image.id, group.id)
                 continue 
             
             # global statistics
-            key = (group_name, image)
+            key = (group.id, image.id)
             job_id = "%s-%s" % key
             data[key] = comp(compute_stats, options.db,
-                             group_samples, image, job_id=job_id)
+                             samples, image.id, job_id=job_id)
 
             for i, view in enumerate(views):                
                 table = tables[i]
                 
-                for dir, func in [('alldir', choose_all_saccades),
-                                  ('right', choose_saccades_right),
-                                  ('left', choose_saccades_left)]: 
-                    key = Exp(image=image, group=group_name,
-                              view=view, dir=dir)
+                for direction in dirs: 
+                    key = Exp(image=image.id, group=group.id,
+                              view=view.id, dir=direction.id)
                     job_id = "%s-%s-%s-%s" % key
-                    data[key] = \
-                        comp(compute_saccade_stats, options.db,
-                            group_samples, table, func, job_id=job_id)
+                    data[key] = comp(compute_saccade_stats, options.db,
+                             samples, table, direction.func, job_id=job_id)
                 
-            
-    comp_prefix()
-    outdir = os.path.join(options.db, 'out/saccade_view_joint_analysis')
-    
-    comp(add_comparisons, data, outdir)
-        
     db.close()
+    
+    outdir = os.path.join(options.db, 'out/saccade_view_joint_analysis')
+    comp(add_comparisons, data, outdir)
+            
+    comp(visualize_all, data, outdir)
+    
     
     if options.interactive:
         # start interactive session
@@ -120,13 +163,53 @@ def main():
         # batch mode
         # try to do everything
         batch_command('make all')
-        # start the console if we are not done
+        # exit with error if we are not done
         # (that is, make all failed for some reason)
         todo = list(parse_job_list('todo')) 
         if todo:
             logger.info('Still %d jobs to do.' % len(todo))
             sys.exit(-2)    
-#
+
+
+def visualize_all(all_experiments, outdir):
+    r = Report('visualize_all')
+    
+    everything = itertools.product(images, groups, dirs)
+    for image, group, dir in everything:
+        
+        if not Exp(image=image.id, group=group.id,
+                    view=views[0].id, dir=dir.id) in all_experiments:
+            continue
+        
+        
+        n = r.node('%s-%s-%s' % (image.id, group.id, dir.id))
+        
+        for view in views:
+            key = Exp(image=image.id, group=group.id,
+                      view=view.id, dir=dir.id)
+            if not key in all_experiments:
+                continue
+
+            stats = all_experiments[key]
+            
+            nv = n.node(view.id)
+            add_scaled(nv, 'mean', stats.mean)
+            add_scaled(nv, 'var', stats.var)
+            #add_scaled(nv, 'min', stats.min)
+            #add_scaled(nv, 'max', stats.max)
+        
+        
+        f = n.figure(shape=(3, 4))
+        for what in ['mean', 'var']: #, 'min', 'max']:
+            for view in views:
+                f.sub('%s/%s' % (view.id, what),
+                         caption='%s/%s' % (view.id, what))
+        
+        
+    output_file = os.path.join(outdir, '%s.html' % r.id)
+    resources_dir = os.path.join(outdir, 'images')
+    r.to_html(output_file, resources_dir=resources_dir)
+    
 #
 #def create_report(image_name, group_name, data):
 #    r = Report('%s_%s' % (image_name, group_name))
@@ -230,57 +313,101 @@ def main():
 ##        fall.sub('random-%s' % id)
 #
 #    return r
+def add_scaled(report, id, x, **kwargs):
+    n = report.data(id, x)
+    
+    n.data_rgb('retina',
+            add_reflines(scale(values2retina(x), **kwargs)))
+    
+    #with n.data_pylab('plot') as pylab:
+    #    pylab.plot(x, '.')
+        
+    return n
+        
+def add_posneg(report, id, x, **kwargs):
+    n = report.data(id, x)
+    
+    n.data_rgb('retina',
+            add_reflines(posneg(values2retina(x), **kwargs)))
+    
+    #with n.data_pylab('plot') as pylab:
+    #    pylab.plot(x, '.')
+        
+    return n
 
 def add_comparisons(all_experiments, outdir): 
+        
     
     r = Report('comparisons')
-    
-    for dir in ['alldir', 'left', 'right']:
-        # statistics over the whole trajectory
+
+    generic = r.node('generic')
+    if 1:
         key = ('posts', 'contrast_w')
         real_traj = all_experiments[key]
         key = ('noposts', 'hcontrast_w')
         hall_traj = all_experiments[key]
+        diff = real_traj.mean - hall_traj.mean
         
-        key = Exp(image='contrast_w', group='posts', view='start', dir=dir)
+        max_value = numpy.max(numpy.max(real_traj.mean),
+                              numpy.max(hall_traj.mean))
+        add_scaled(generic, 'real_traj', real_traj.mean, max_value=max_value)
+        add_scaled(generic, 'hall_traj', hall_traj.mean, max_value=max_value)
+        add_posneg(generic, 'diff_traj', diff)
+        with generic.data_pylab('diff_traj_plot') as pylab:
+            pylab.plot(real_traj.mean, 'b.', label='real')
+            pylab.plot(hall_traj.mean, 'r.', label='hallucination')
+        
+        
+        f = generic.figure(shape=(3, 2))
+        f.sub('real_traj', caption='signal over all trajectory (real)')
+        f.sub('hall_traj', caption='signal over all trajectory (hallucinated)')
+        f.sub('diff_traj_plot', caption='real - hallucination')
+        f.sub('diff_traj', caption='real - hallucination')
+        
+    for view, dir in itertools.product(['start' ],
+                                       ['left', 'right']):
+        # statistics over the whole trajectory
+        
+        
+        key = Exp(image='contrast_w', group='posts', view=view, dir=dir)
         real = all_experiments[key]
         
-        key = Exp(image='hcontrast_w', group='noposts', view='start', dir=dir)
+        key = Exp(image='hcontrast_w', group='noposts', view=view, dir=dir)
         hall = all_experiments[key]
+         
         
-        
-        
-        case = r.node('analysis_%s' % dir)
+        case = r.node('analysis_%s_%s' % (view, dir))
         
         diff = real.mean - hall.mean
-        
-        case.data('real_traj', real.mean).data_rgb('retina',
-                add_reflines(scale(values2retina(real_traj.var))))
-        
-        case.data('hall_traj', real.mean).data_rgb('retina',
-                add_reflines(scale(values2retina(hall_traj.var))))
 
-        case.data('real', real.mean).data_rgb('retina',
-                add_reflines(scale(values2retina(real.mean))))
+        max_value = numpy.max(numpy.max(real.mean),
+                              numpy.max(hall.mean))
+        add_scaled(case, 'real', real.mean, max_value=max_value)
+        add_scaled(case, 'hall', hall.mean, max_value=max_value)
+        add_posneg(case, 'diff', diff)
         
-        case.data('hall', real.mean).data_rgb('retina',
-                add_reflines(scale(values2retina(hall.mean))))
-        
-        case.data('diff', diff).data_rgb('retina',
-                add_reflines(posneg(values2retina(diff))))
+        real_minus_traj = real.mean - real_traj.mean
+        hall_minus_traj = hall.mean - hall_traj.mean
+        rmt_minus_hmt = numpy.maximum(0, real_minus_traj) - \
+                        numpy.maximum(0, hall_minus_traj)
+        M = numpy.max(numpy.abs(real_minus_traj).max(),
+                      numpy.abs(hall_minus_traj).max())
+        add_posneg(case, 'real_minus_traj', real_minus_traj, max_value=M)
+        add_posneg(case, 'hall_minus_traj', hall_minus_traj, max_value=M)
+        add_posneg(case, 'rmt_minus_hmt', rmt_minus_hmt)
         
         from scipy import polyfit
         (ar, br) = polyfit(real.mean, hall.mean, 1)
         case.text('case', 'Best linear fit: a = %f, b = %f.' % (ar, br))
         
         diffr = (ar * real.mean + br) - hall.mean
-        case.data('diffr', diff).data_rgb('retina',
-                add_reflines(posneg(values2retina(diffr))))
+        add_posneg(case, 'diffr', diffr)
         
         diffn = diff / numpy.sqrt(hall.var)
-        case.data('diffn', diffn).data_rgb('retina',
-                add_reflines(posneg(values2retina(diffr))))
+        add_posneg(case, 'diffn', diffn)
         
+        with case.data_pylab('diffn_plot') as pylab:
+            pylab.plot(diffn, 'k.')
         
         with case.data_pylab('linear-fit') as pylab:
             pylab.plot(real.mean, hall.mean, '.')
@@ -307,31 +434,24 @@ def add_comparisons(all_experiments, outdir):
 
     
         f = case.figure(shape=(3, 2))
-        f.sub('real_traj', caption='mean over all trajectory (real)')
-        f.sub('hall_traj', caption='mean over all trajectory (hallucinated)')
-        f.sub('real', caption='real response')
-        f.sub('hall', caption='hallucinated response')
-        f.sub('mean', caption='mean comparison')
-        f.sub('var', caption='variance comparison')
+        case = " (%s, %s)" % (dir, view)
+        f.sub('real', caption='real response' + case)
+        f.sub('hall', caption='hallucinated response' + case)
+        f.sub('mean', caption='mean comparison' + case)
+        f.sub('var', caption='variance comparison' + case)
         f.sub('linear-fit', caption='Linear fit between the two (a=%f, b=%f)' % (ar, br))
-        f.sub('diff', caption='difference (real - hallucinated)')
-        f.sub('diffr', caption='difference (real*a- hallucinated)')
-        f.sub('diffn', caption='Normalized difference')
+        f.sub('diff', caption='difference (real - hallucinated)' + case)
+        f.sub('diffr', caption='difference (real*a- hallucinated)' + case)
+        f.sub('diffn', caption='Normalized difference' + case)
+        f.sub('diffn_plot', caption='Normalized difference' + case)
+        f.sub('diffn_plot', caption='Normalized difference' + case)
         
+        f.sub('real_minus_traj', 'Difference between saccading and trajectory (real)' + case)
+        f.sub('hall_minus_traj', 'Difference between saccading and trajectory (hall)' + case)
+        f.sub('rmt_minus_hmt', 'diff-diff')
     output_file = os.path.join(outdir, '%s.html' % r.id)
     resources_dir = os.path.join(outdir, 'images')
-    r.to_html(output_file, resources_dir=resources_dir)
-#    
-#
-#def write_report(reports, outdir, page_id):
-#    output_file = os.path.join(outdir, page_id + '.html')
-#    resources_dir = os.path.join(outdir, 'images')
-#    
-#        
-#    r = Report(page_id, children=reports)
-#    
-#    print "Writing to %s" % output_file
-#    r.to_html(output_file, resources_dir=resources_dir)
+    r.to_html(output_file, resources_dir=resources_dir) 
  
 
 Stats = namedtuple('Stats', 'mean var min max')
@@ -399,16 +519,6 @@ def compute_saccade_stats(db, samples, image, condition):
     db.close()
     
     return result 
-
-def choose_saccades_right(saccades):
-    return saccades[:]['sign'] == -1
-
-def choose_saccades_left(saccades):
-    return saccades[:]['sign'] == +1
-
-def choose_all_saccades(saccades):
-    return saccades[:]['sign'] != 0
-
 
 
 def compute_stats(db, samples, image):
