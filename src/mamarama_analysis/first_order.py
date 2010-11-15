@@ -133,11 +133,14 @@ def main():
         image_id, image_desc = image_spec
         
         # Skip uninteresting combinations
-        if image_id.endswith('_w') and group_id == 'noposts':
+        is_hallucination = image_id.startswith('h')
+        white_arena = image_id.endswith('_w') 
+        
+        if (not is_hallucination) and white_arena and (group_id == 'noposts'):
             # if there are not posts, it's useless 
             continue
         
-        if image_id.startswith('h') and group_id == 'posts':
+        if is_hallucination  and (group_id == 'posts'):
             # we only hallucinate the ones without posts
             continue
         
@@ -174,7 +177,7 @@ def main():
             delay=0
         )
         
-        report = comp(create_report, exp_id, data)
+        report = comp(create_report, exp_id, data, description=description)
         
         comp(write_report, report, options.db, exp_id)
         
@@ -193,7 +196,8 @@ def main():
                 signal_op=signal_op_function,
                 delay=delay,
                 job_id=job_id)
-        report_delayed = comp(create_report_delayed, exp_id + '_delayed', delayed)
+        report_delayed = comp(create_report_delayed, exp_id + '_delayed', delayed,
+                description)
         comp(write_report, report_delayed, options.db, exp_id + '_delayed')
             
 
@@ -228,15 +232,16 @@ def main():
     compmake_console()
     
      
-def create_report(exp_id, data):
+def create_report(exp_id, data, description):
     r = Report(exp_id) 
+    r.text('description', description)
 
     image_mean = data['image_mean']
     image_covariance = data['image_covariance']
     image_variance = image_covariance.diagonal()
     
-    r.data_rgb('image_mean', add_reflines(scale(values2retina(image_mean))))
-    r.data_rgb('image_var', add_reflines(scale(values2retina(image_variance))))
+    r.data_rgb('image_mean', add_reflines(scale(values2retina(image_mean), min_value=0)))
+    r.data_rgb('image_var', add_reflines(scale(values2retina(image_variance), min_value=0)))
     a = data['action_image_correlation']
     r.data_rgb('action', add_reflines(posneg(values2retina(a))))
                 

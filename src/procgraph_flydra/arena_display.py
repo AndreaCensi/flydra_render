@@ -1,7 +1,5 @@
 import numpy
 from numpy import array
-from matplotlib import pylab
-
 from procgraph  import Block
 from procgraph.components.gui.plot import pylab2rgb 
 from StringIO import StringIO
@@ -57,12 +55,16 @@ class ArenaDisplayTop(LookupInfo, Block):
             
     def update(self):        
         position = array(self.input.position)
+        import matplotlib
+        matplotlib.use('agg', warn=False)
+        from matplotlib import pylab
+        
         f = pylab.figure(frameon=False,
                         figsize=(self.config.width / 100.0,
                                  self.config.width / 100.0))
     
         if self.arena_info:
-            plot_posts_xy(self.arena_info)
+            plot_posts_xy(pylab, self.arena_info)
     
     
         x = position[:, 0]
@@ -93,13 +95,13 @@ class ArenaDisplayTop(LookupInfo, Block):
         pylab.close(f.number)
 
    
-def plot_posts_xy(info):
+def plot_posts_xy(pylab, info):
     for post in info['posts']:
         p1 = post['verts'][0]
         p2 = post['verts'][1]        
         pylab.plot([p1[0], p2[0]], [p1[1], p2[1]], 'k-', linewidth=3)
 
-def plot_posts_xz(info):
+def plot_posts_xz(pylab, info):
     for post in info['posts']:
         p1 = post['verts'][0]
         p2 = post['verts'][1]        
@@ -123,7 +125,7 @@ class ArenaDisplaySide(LookupInfo, Block):
     Block.output('rgb', 'RGB image.')
       
         
-    def update(self):        
+    def update(self):
         position = array(self.input.position)
         
         R = self.arena_info['arena']['diameter'] / 2 
@@ -134,12 +136,17 @@ class ArenaDisplaySide(LookupInfo, Block):
         width = self.config.width
         height = h / (2 * R) * width
         
+        
+        import matplotlib
+        matplotlib.use('agg', warn=False)
+        from matplotlib import pylab
+        
         f = pylab.figure(frameon=False,
                         figsize=(width / 100.0,
                                  height / 100.0)) 
     
         
-        plot_posts_xz(self.arena_info)
+        plot_posts_xz(pylab, self.arena_info)
         
             
         x = position[:, 0]
@@ -189,12 +196,17 @@ class ArenaDisplayTopZoom(LookupInfo, Block):
         
     def update(self):        
         position = array(self.input.position)
+        
+        import matplotlib
+        matplotlib.use('agg', warn=False)
+        from matplotlib import pylab
+        
         f = pylab.figure(frameon=False,
                         figsize=(self.config.width / 100.0,
                                  self.config.width / 100.0))
          
  
-        plot_posts_xy(self.arena_info)
+        plot_posts_xy(pylab, self.arena_info)
     
         x = position[:, 0]
         y = position[ :, 1]
@@ -211,7 +223,6 @@ class ArenaDisplayTopZoom(LookupInfo, Block):
         
             
         Z = self.config.zoom_area
-        
         
         R = self.arena_info['arena']['diameter'] / 2 
         cx = self.arena_info['arena']['origin'][0]
@@ -265,11 +276,16 @@ class ArenaDisplaySideZoom(LookupInfo, Block):
         ratio = h / (2 * R)
         height = ratio * width
         
+        
+        import matplotlib
+        matplotlib.use('agg', warn=False)
+        from matplotlib import pylab
+        
         f = pylab.figure(frameon=False,
                         figsize=(width / 100.0,
                                  height / 100.0))
               
-        plot_posts_xz(self.arena_info)
+        plot_posts_xz(pylab, self.arena_info)
     
         position = array(self.input.position)
         

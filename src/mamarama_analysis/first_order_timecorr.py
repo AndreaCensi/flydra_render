@@ -3,11 +3,13 @@ from reprep import Report
 from reprep.graphics.posneg import posneg
 from procgraph_flydra.values2retina import values2retina, add_reflines
 
-def create_report_delayed(exp_id, delayed):
+def create_report_delayed(exp_id, delayed, description):
     
     delays = numpy.array(sorted(delayed.keys()))
     
     r = Report(exp_id)
+    r.text('description', description)
+    
     f = r.figure(shape=(3,3))
     
     # max and sum of correlation for each delay
@@ -22,8 +24,7 @@ def create_report_delayed(exp_id, delayed):
         id = 'delay%d' % delay
         
         #rr = r.node('delay%d' % delay)
-        
-        r.data_rgb(id, add_reflines(posneg(values2retina(a))))
+        r.data(id, a).data_rgb('retina', add_reflines(posneg(values2retina(a))))
         
         corr_mean.append(numpy.abs(a).mean()) 
         
