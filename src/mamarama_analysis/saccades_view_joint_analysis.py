@@ -5,8 +5,7 @@ from optparse import OptionParser
 from reprep import Report
 from reprep.graphics.posneg import posneg
 from reprep.graphics.scale import scale
-from compmake import comp, compmake_console, comp_prefix, set_namespace, \
-    batch_command
+from compmake import comp, compmake_console, set_namespace, batch_command, progress
 
 from flydra_db import FlydraDB
 
@@ -15,7 +14,6 @@ from procgraph_flydra.values2retina import values2retina, add_reflines
 from mamarama_analysis import logger
 from mamarama_analysis.covariance import Expectation
 from compmake.jobs.syntax.parsing import parse_job_list
-from compmake.jobs.progress import progress
 
 from collections import namedtuple
 import itertools
@@ -46,7 +44,8 @@ images = [
 views = [
     Option('start', 'At saccade start'),
     Option('stop', 'At saccade stop'),
-    Option('rstop', 'At random stop according to dist'),
+    Option('rstop', 'At random amplitude stop according to dist'),
+    Option('sstop', 'At random amplitude stop (same sign)'),
     Option('random', 'At random orientation'),
 ]
 
@@ -182,24 +181,32 @@ def visualize_all(all_experiments, outdir):
             continue
         
         
-        n = r.node('%s-%s-%s' % (image.id, group.id, dir.id))
+        print 'processing', image, group, dir
         
-        for view in views:
-            key = Exp(image=image.id, group=group.id,
-                      view=view.id, dir=dir.id)
-            if not key in all_experiments:
-                continue
+        def iterate_views():
+            for view in views:
+                key = Exp(image=image.id, group=group.id,
+                          view=view.id, dir=dir.id)
+                if not key in all_experiments:
+                    continue
 
-            stats = all_experiments[key]
-            
+                stats = all_experiments[key]
+                yield view, stats
+                
+        # first compute max value
+        mean_max = max(map(lambda x: numpy.max(x[1].mean), iterate_views()) )
+        var_max = max(map(lambda x: numpy.max(x[1].var), iterate_views()) )
+                
+        n = r.node('%s-%s-%s' % (image.id, group.id, dir.id))
+        for view, stats in iterate_views():
             nv = n.node(view.id)
-            add_scaled(nv, 'mean', stats.mean)
-            add_scaled(nv, 'var', stats.var)
+            add_scaled(nv, 'mean', stats.mean, max_value=mean_max)
+            add_scaled(nv, 'var', stats.var, max_value=var_max)
             #add_scaled(nv, 'min', stats.min)
             #add_scaled(nv, 'max', stats.max)
         
         
-        f = n.figure(shape=(3, 4))
+        f = n.figure(shape=(3, 5))
         for what in ['mean', 'var']: #, 'min', 'max']:
             for view in views:
                 f.sub('%s/%s' % (view.id, what),
@@ -208,111 +215,9 @@ def visualize_all(all_experiments, outdir):
         
     output_file = os.path.join(outdir, '%s.html' % r.id)
     resources_dir = os.path.join(outdir, 'images')
+    print "Writing to %s" % output_file
     r.to_html(output_file, resources_dir=resources_dir)
-    
-#
-#def create_report(image_name, group_name, data):
-#    r = Report('%s_%s' % (image_name, group_name))
-#    # general description
-#    s = ""
-#    data = dict(**data) 
-#    
-#    data['stop_minus_start'] = data['mean_stop']['all'] - data['mean_start']['all']
-#    data['rstop_minus_start'] = data['mean_rstop']['all'] - data['mean_start']['all']
-#    data['rstop_minus_stop'] = data['mean_rstop']['all'] - data['mean_stop']['all']
-#    data['random_minus_rstop'] = data['mean_random']['all'] - data['mean_rstop']['all']
-#    
-#    for a in ['start', 'stop', 'rstop']:
-#        data['%s_minus_random' % a ] = \
-#            data['mean_%s' % a]['all'] - data['mean_random']['all']
-#
-#
-#    keys = ['mean_start', 'mean_stop', 'mean_rstop', 'mean_random']
-#    max_value = numpy.max(map(lambda x: numpy.max(data[x]['all']), keys))
-#    s += """
-#    Max value for mean: %f
-#    """ % max_value
-#    
-#    #max_value = 0.025
-#    
-#    for k in keys:
-#        val = data[k]['all']
-#        val = val / val.sum()
-#        
-#        r.data(k , val).data_rgb('retina',
-#     #       add_reflines(scale(values2retina(val), max_value=max_value)))
-#            add_reflines(scale(values2retina(val))))
-#    
-#        s += "%s: max %f  sum %f\n\n" % (k, val.max(), val.sum())
-#    
-#        for d in ['left', 'right']:
-#            kd = k + '_' + d
-#            val = data[kd]['all']
-#            val = val / val.sum()
-#                
-#            s += "%s: max %f  sum %f\n\n" % (kd, val.max(), val.sum())
-#            
-#            r.data(kd , val).data_rgb('retina',
-#              add_reflines(scale(values2retina(val))))
-#    
-#    
-#    s += """
-#    Used max value for mean: %f
-#    """ % max_value
-#    
-#
-#    keys = ['var_start', 'var_stop', 'var_rstop', 'var_random']
-#    keys = keys + map(lambda s: s + '_left', keys) + map(lambda s: s + '_right', keys)
-#    max_value = numpy.max(map(lambda x: numpy.max(data[x]['all']), keys))
-#    for k in keys:
-#        val = data[k]['all']
-#        r.data(k, val).data_rgb('retina',
-#            add_reflines(scale(values2retina(val), max_value=max_value)))
-#    
-#    s += """
-#    Max value for var: %f
-#    """ % max_value
-#    
-#
-#
-#    keys = ['start_minus_random', 'stop_minus_random', 'rstop_minus_random',
-#            'stop_minus_start', 'rstop_minus_start', 'rstop_minus_stop']
-#    for k in keys:
-#        val = data[k]  
-#        r.data(k, val).data_rgb('retina',
-#            add_reflines(posneg(values2retina(val))))
-#        
-#    r.text('description', s)
-#    
-#    f = r.figure(shape=(3, 4))
-#    f.sub('mean_start', 'Mean %s at saccade start' % image_name)
-#    f.sub('mean_stop', 'Mean %s at saccade stop' % image_name)
-#    f.sub('mean_rstop', 'Mean %s at random stop' % image_name)
-#    f.sub('mean_random', 'Mean %s at random direction' % image_name)
-#    f.sub('var_start', 'Variance %s at saccade start' % image_name)
-#    f.sub('var_stop', 'Variance %s at saccade stop' % image_name)
-#    f.sub('var_rstop', 'Variance %s at random stop' % image_name)
-#    f.sub('var_random', 'Variance %s at random direction' % image_name)
-#    f.sub('stop_minus_start')
-#    f.sub('rstop_minus_start')
-#    f.sub('rstop_minus_stop')
-#    f.sub('start_minus_random')
-#    f.sub('stop_minus_random')
-#    f.sub('rstop_minus_random')
-#    
-#    f = r.figure(shape=(3, 2))
-#    f.sub('mean_start_left', 'Mean %s at saccade start, turning left' % image_name)
-#    f.sub('mean_start_right', 'Mean %s at saccade start, turning right' % image_name)
-#    f.sub('mean_stop_left', 'Mean %s at saccade stop, having turned left' % image_name)
-#    f.sub('mean_stop_right', 'Mean %s at saccade stop, having turned right' % image_name)
-#    
-##    
-##    fall = r.figure('samples', shape=(3, 4))
-##    for id, value in  data['mean_random']['samples'].items():
-##        r.data_rgb('random-%s' % id, scale(values2retina(value)))
-##        fall.sub('random-%s' % id)
-#
-#    return r
+     
 def add_scaled(report, id, x, **kwargs):
     n = report.data(id, x)
     

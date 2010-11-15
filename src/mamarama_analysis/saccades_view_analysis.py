@@ -5,6 +5,7 @@ from optparse import OptionParser
 from reprep import Report
 from reprep.graphics.posneg import posneg
 from reprep.graphics.scale import scale
+
 from compmake import comp, compmake_console, comp_prefix, set_namespace, \
     batch_command
 

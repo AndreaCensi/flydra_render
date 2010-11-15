@@ -8,6 +8,7 @@ scripts = [
     
     ('mamarama_first_order', 'mamarama_analysis.first_order'),
     ('mamarama_check_stats', 'mamarama_analysis.check_stats'),
+    ('mamarama_env_stats', 'mamarama_analysis.environment_stats'),
     
     # videos / procgraph
     ('flydra_video_contrast', 'procgraph_flydra.video_contrast'),

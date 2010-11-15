@@ -4,44 +4,10 @@ from flydra_db import FlydraDB
 from flydra_render import logger
 from flydra_render.main_render_hallucinations import get_stimulus_to_use
 from flydra_render.render_saccades import render_saccades_view
-
-description = """
-
-Usage: ::
-
-    $ flydra_render_saccades --db <flydra db>  [--white] [--nocache] [IDs]
-
-This program iterates over the ``saccades`` table, and renders the scene 
-at the beginning and end of the saccade.
-
-Four tables are created:
-
-- ``saccades_view_start_luminance``: view at the beginning of the 
-  saccade, given by the field ``orientation_start``.
-  
-- ``saccades_view_stop_luminance``: view at the end of the saccade, 
-  given by the field ``orientation_stop``.
-  
-- ``saccades_view_rstop_luminance``: view according to data sample 
-
-- ``saccades_view_random_luminance``: view according to random position
-
-
-  
-Each of these tables is as big as the saccades table.
-
-If ``--white`` is specified, the arena walls are displayed in white. 
-In this case, the tables are named ``saccades_view_start_luminance_w``,
-``saccades_view_stop_luminance_w``
-
-The ``--host`` option allows you to use a remote fsee instance.
-See the documentation for ``flydra_render`` for details.
-
-"""
-
+ 
 def main():
     
-    parser = OptionParser(usage=description)
+    parser = OptionParser()
 
     parser.add_option("--db", default='flydra_db', help="FlydraDB directory")
 
@@ -78,6 +44,7 @@ def main():
     target_start = 'saccades_view_start_%s' % image
     target_stop = 'saccades_view_stop_%s' % image
     target_rstop = 'saccades_view_rstop_%s' % image
+    target_sstop = 'saccades_view_sstop_%s' % image
     target_random = 'saccades_view_random_%s' % image
     
     for i, sample_id in enumerate(do_samples):
@@ -99,6 +66,7 @@ def main():
         if db.has_table(sample_id, target_start) and \
             db.has_table(sample_id, target_stop) and \
             db.has_table(sample_id, target_rstop) and \
+            db.has_table(sample_id, target_sstop) and \
             db.has_table(sample_id, target_random) and \
             not options.nocache:
             logger.info('Targets already computed for %s; skipping' % sample_id)
@@ -107,15 +75,17 @@ def main():
         # Get the stimulus description
         saccades = db.get_saccades(sample_id)
         
-        view_start, view_stop, view_rstop, view_random = render_saccades_view(
-            saccades=saccades,
-            stimulus_xml=stimulus_xml,
-            host=options.host,
-            white=options.white)
+        view_start, view_stop, view_rstop, view_random, view_sstop = \
+            render_saccades_view(
+                saccades=saccades,
+                stimulus_xml=stimulus_xml,
+                host=options.host,
+                white=options.white)
    
         db.set_table(sample_id, target_start, view_start)
         db.set_table(sample_id, target_stop, view_stop)
         db.set_table(sample_id, target_rstop, view_rstop)
+        db.set_table(sample_id, target_sstop, view_sstop)
         db.set_table(sample_id, target_random, view_random)
         
         db.release_table(saccades)
