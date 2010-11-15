@@ -16,7 +16,11 @@ from mamarama_analysis.covariance import Expectation
 from compmake.jobs.syntax.parsing import parse_job_list
 
 from collections import namedtuple
-import itertools
+from itertools import product as prod
+from saccade_analysis.tammero.tammero_analysis import add_position_information
+from contextlib import contextmanager
+
+from saccade_analysis.analysis201009.master_plot_gui import create_gui_new
 
 def choose_saccades_right(saccades):
     return saccades[:]['sign'] == -1
@@ -27,8 +31,20 @@ def choose_saccades_left(saccades):
 def choose_all_saccades(saccades):
     return saccades[:]['sign'] != 0
 
+def choose_saccades_center(saccades):
+    return saccades['distance_from_center'] < 0.5
 
-Option = namedtuple('Option', 'id desc')
+def choose_saccades_border(saccades):
+    return saccades['distance_from_center'] >= 0.5
+
+# describes an experiment
+Exp = namedtuple('Exp', 'image group view dir saccades_set')
+
+class Option:
+    def __init__(self, id, desc=None, args=None):
+        self.id = id
+        self.desc = desc
+        self.args = args
 
 images = [
         Option('luminance', 'Raw luminance'),
@@ -54,18 +70,28 @@ groups = [
     Option('noposts', 'Samples without posts'),
 ]
 
-# possible directions
-Dir = namedtuple('Dir', 'id desc func')
-dirs = [ 
-    Dir('alldir', 'saccading', choose_all_saccades),
-    Dir('right', 'saccading right', choose_saccades_right),
-    Dir('left', 'saccading left', choose_saccades_left),
+saccades_sets = [
+    Option('allsac', 'All saccades',  choose_all_saccades ),
+    Option('center', 'Saccades < 0.5m from center', choose_saccades_center),
+    Option('border', 'Saccades > 0.5m from center', choose_saccades_border),
 ]
 
 
-        
-# describes an experiment
-Exp = namedtuple('Exp', 'image group view dir')
+dirs = [ 
+    Option('alldir', 'both', choose_all_saccades),
+    Option('right', 'right', choose_saccades_right),
+    Option('left', 'left', choose_saccades_left),
+]
+
+def make_page_id(image,group,saccades_set,dir):
+    return "%s.%s.%s.%s" % (image,group,saccades_set,dir)
+
+menus = [
+    ('image', 'Stimulus', [(x.id, x.desc) for x in images]),
+    ('group', 'Sample group',  [(x.id, x.desc) for x in groups]),
+    ('saccades_set', 'Saccade position',  [(x.id, x.desc) for x in saccades_sets]),
+    ('dir', 'Saccade direction',  [(x.id, x.desc) for x in dirs]),
+]
  
 
 description = """
@@ -97,6 +123,7 @@ def main():
         logger.error('Please specify a directory using --db.')
         sys.exit(-1)
 
+    outdir = os.path.join(options.db, 'out/saccade_view_joint_analysis')
 
     db = FlydraDB(options.db, False)
         
@@ -137,22 +164,37 @@ def main():
             data[key] = comp(compute_stats, options.db,
                              samples, image.id, job_id=job_id)
 
-            for i, view in enumerate(views):                
-                table = tables[i]
+            for saccades_set, direction in prod(saccades_sets, dirs): 
+             
                 
-                for direction in dirs: 
+                view2result = {}
+                for i, view in enumerate(views):                
+                    table = tables[i]
                     key = Exp(image=image.id, group=group.id,
-                              view=view.id, dir=direction.id)
-                    job_id = "%s-%s-%s-%s" % key
-                    data[key] = comp(compute_saccade_stats, options.db,
-                             samples, table, direction.func, job_id=job_id)
+                              view=view.id, dir=direction.id,
+                              saccades_set=saccades_set.id)
+                    job_id = "%s-%s-%s-%s-%s" % key
+                    
+                    result = comp(compute_saccade_stats, options.db,
+                             samples, table, 
+                             [direction.args, saccades_set.args], 
+                             job_id=job_id)
+                    
+                    data[key] = result
+                    view2result[view.id]= result
+          
+                page_id = make_page_id(image=image.id, group=group.id, 
+                           dir=direction.id, saccades_set=saccades_set.id)
+                
+                comp(render_page, view2result, outdir, page_id, job_id=page_id)
                 
     db.close()
     
-    outdir = os.path.join(options.db, 'out/saccade_view_joint_analysis')
     comp(add_comparisons, data, outdir)
-            
-    comp(visualize_all, data, outdir)
+    
+
+    filename = os.path.join(outdir, 'gui.html')   
+    comp(create_gui_new, filename, menus)
     
     
     if options.interactive:
@@ -168,61 +210,44 @@ def main():
         if todo:
             logger.info('Still %d jobs to do.' % len(todo))
             sys.exit(-2)    
+ 
+def render_page(view2result, outdir, page_id):
 
-
-def visualize_all(all_experiments, outdir):
-    r = Report('visualize_all')
+    def iterate_views():
+        for view in views: 
+            yield view, view2result[view.id]
+            
+    # first compute max value
+    mean_max = max(map(lambda x: numpy.max(x[1].mean), iterate_views()) )
+    var_max = max(map(lambda x: numpy.max(x[1].var), iterate_views()) )
+             
+    n = Report(page_id)
+    f = n.figure(shape=(3, 3))
+    for view, stats in iterate_views():
+        nv = n.node(view.id)
+        add_scaled(nv, 'mean', stats.mean, max_value=mean_max)
+        add_scaled(nv, 'var', stats.var, max_value=var_max)
+        #add_scaled(nv, 'min', stats.min)
+        #add_scaled(nv, 'max', stats.max)
     
-    everything = itertools.product(images, groups, dirs)
-    for image, group, dir in everything:
-        
-        if not Exp(image=image.id, group=group.id,
-                    view=views[0].id, dir=dir.id) in all_experiments:
-            continue
-        
-        
-        print 'processing', image, group, dir
-        
-        def iterate_views():
-            for view in views:
-                key = Exp(image=image.id, group=group.id,
-                          view=view.id, dir=dir.id)
-                if not key in all_experiments:
-                    continue
-
-                stats = all_experiments[key]
-                yield view, stats
-                
-        # first compute max value
-        mean_max = max(map(lambda x: numpy.max(x[1].mean), iterate_views()) )
-        var_max = max(map(lambda x: numpy.max(x[1].var), iterate_views()) )
-                
-        n = r.node('%s-%s-%s' % (image.id, group.id, dir.id))
-        for view, stats in iterate_views():
-            nv = n.node(view.id)
-            add_scaled(nv, 'mean', stats.mean, max_value=mean_max)
-            add_scaled(nv, 'var', stats.var, max_value=var_max)
-            #add_scaled(nv, 'min', stats.min)
-            #add_scaled(nv, 'max', stats.max)
-        
-        
-        f = n.figure(shape=(3, 5))
-        for what in ['mean', 'var']: #, 'min', 'max']:
-            for view in views:
-                f.sub('%s/%s' % (view.id, what),
-                         caption='%s/%s' % (view.id, what))
-        
-        
-    output_file = os.path.join(outdir, '%s.html' % r.id)
+    for view in views:
+        what = 'mean'
+    #for what, view in prod(['mean', 'var'], views):
+        f.sub('%s/%s' % (view.id, what),
+              caption='%s (%s)' % (view.desc, what))
+    
+    output_file = os.path.join(outdir, '%s.html' % n.id)
     resources_dir = os.path.join(outdir, 'images')
     print "Writing to %s" % output_file
-    r.to_html(output_file, resources_dir=resources_dir)
-     
+    n.to_html(output_file, resources_dir=resources_dir)
+    
+
+
 def add_scaled(report, id, x, **kwargs):
     n = report.data(id, x)
     
     n.data_rgb('retina',
-            add_reflines(scale(values2retina(x), **kwargs)))
+            add_reflines(scale(values2retina(x), min_value=0,**kwargs)))
     
     #with n.data_pylab('plot') as pylab:
     #    pylab.plot(x, '.')
@@ -269,8 +294,7 @@ def add_comparisons(all_experiments, outdir):
         f.sub('diff_traj_plot', caption='real - hallucination')
         f.sub('diff_traj', caption='real - hallucination')
         
-    for view, dir in itertools.product(['start' ],
-                                       ['left', 'right']):
+    for view, dir in prod(['start' ],   ['left', 'right']):
         # statistics over the whole trajectory
         
         
@@ -361,72 +385,97 @@ def add_comparisons(all_experiments, outdir):
 
 Stats = namedtuple('Stats', 'mean var min max')
 
-def compute_saccade_stats(db, samples, image, condition):
+def compute_saccade_stats(flydra_db_directory, samples, image, conditions):
     '''
-    Computes the stats of an image for the saccades that respect a condition.
+    Computes the stats of an image for the saccades that respect a 
+    set of conditions.
      
     db: FlydraDB directory
     samples: list of IDs
     
     condition: saccade table -> true/false selector
     '''
-    db = FlydraDB(db, False) 
-    
-    def data_pass(name):
-        for i, id in enumerate(samples):
-            progress(name, (i, len(samples)), "Sample %s" % id)
+    with safe_flydra_db_open(flydra_db_directory) as db:
         
-            if not db.has_saccades(id):
-                raise ValueError('No saccades for %s' % id)
-            if not (db.has_sample(id) and db.has_table(id, image)):
-                raise ValueError('No table "%s" for id %s' % (image, id))
+        def data_pass(name):
+            num_saccades = 0
+            num_selected = 0
+            for i, id in enumerate(samples):
+                progress(name, (i, len(samples)), "Sample %s" % id)
             
-            saccades = db.get_saccades(id)
-            data = db.get_table(id, image)
-            
-            select = condition(saccades)
-            values = data[select]['value']
-            
-            yield id, values
-            db.release_table(data)
-            db.release_table(saccades)
-
-    progress('Computing stats', (0, 2), 'First pass')
-    # first compute the mean
-    group_mean = Expectation()
-    group_min = None
-    group_max = None
-    for sample, values in data_pass('computing mean'): #@UnusedVariable
-        sample_mean = numpy.mean(values, axis=0)
-        sample_min = numpy.min(values, axis=0)
-        sample_max = numpy.max(values, axis=0)
-        if group_min is None:
-            group_min = sample_min
-            group_max = sample_max
-        else:
-            group_min = numpy.minimum(sample_min, group_min)
-            group_max = numpy.maximum(sample_max, group_max)
-            
-        group_mean.update(sample_mean, len(values))
-
-    group_mean = group_mean.get_value()
-
-    group_var = Expectation() 
-    progress('Computing stats', (1, 2), 'Second pass')
-    for sample, values in data_pass('computing var'): #@UnusedVariable
-        err = values - group_mean
-        sample_var = numpy.mean(numpy.square(err), axis=0)
-        group_var.update(sample_var, len(values))
-    group_var = group_var.get_value()
+                if not db.has_saccades(id):
+                    raise ValueError('No saccades for %s' % id)
+                if not (db.has_sample(id) and db.has_table(id, image)):
+                    raise ValueError('No table "%s" for id %s' % (image, id))
+                
+                saccades_table = db.get_saccades(id)
+                
+                saccades = add_position_information(saccades_table)
+                
+                data = db.get_table(id, image)
+                
+                # computes and of all conditions
+                select = reduce(numpy.logical_and, 
+                                map(lambda c:c(saccades), conditions))
+                
+                values = data[select]['value']
+                
+                if len(values) == 0:
+                    print ("No saccades selected for %s (out of %d)." % 
+                           (id, len(saccades)))
+                else:
+                    yield id, values
+                
+                num_saccades += len(select)
+                num_selected += (select * 1).sum()
+                db.release_table(data)
+                db.release_table(saccades_table)
+            ratio = 100.0 / num_saccades * num_selected
+            print "Selected %.2f %% of saccades" % ratio
     
-    result = Stats(mean=group_mean, var=group_var,
-                   min=group_min, max=group_max)
-    db.close()
+        progress('Computing stats', (0, 2), 'First pass')
+        # first compute the mean
+        group_mean = Expectation()
+        group_min = None
+        group_max = None
+        for sample, values in data_pass('computing mean'): #@UnusedVariable
+            sample_mean = numpy.mean(values, axis=0)
+            sample_min = numpy.min(values, axis=0)
+            sample_max = numpy.max(values, axis=0)
+            if group_min is None:
+                group_min = sample_min
+                group_max = sample_max
+            else:
+                group_min = numpy.minimum(sample_min, group_min)
+                group_max = numpy.maximum(sample_max, group_max)
+                
+            group_mean.update(sample_mean, len(values))
     
-    return result 
+        group_mean = group_mean.get_value()
+    
+        group_var = Expectation() 
+        progress('Computing stats', (1, 2), 'Second pass')
+        for sample, values in data_pass('computing var'): #@UnusedVariable
+            err = values - group_mean
+            sample_var = numpy.mean(numpy.square(err), axis=0)
+            group_var.update(sample_var, len(values))
+        group_var = group_var.get_value()
+        
+        result = Stats(mean=group_mean, var=group_var,
+                       min=group_min, max=group_max)
+        
+        return result 
 
+@contextmanager
+def safe_flydra_db_open(flydra_db_directory):
+    ''' Context manager to remember to close the .h5 files. '''
+    db = FlydraDB(flydra_db_directory, False)
+    try:
+        yield db
+    finally:
+        db.close()
 
-def compute_stats(db, samples, image):
+def compute_stats(flydra_db_directory, samples, image):
     '''
     Computes the stats of an image.
     
@@ -438,56 +487,56 @@ def compute_stats(db, samples, image):
       
     image: name of a table
     '''
-    db = FlydraDB(db, False) 
     
-    def data_pass(name):
-        for i, id in enumerate(samples):
-            progress(name, (i, len(samples)), "Sample %s" % id)
+    with safe_flydra_db_open(flydra_db_directory) as db:
+         
+        def data_pass(name):
+            for i, id in enumerate(samples):
+                progress(name, (i, len(samples)), "Sample %s" % id)
+            
+                if not (db.has_sample(id) and db.has_table(id, image)):
+                    raise ValueError('No table "%s" for id %s' % (image, id))
+                
+                rows = db.get_rows(id)
+                data = db.get_table(id, image)
+                
+                select = rows[:]['linear_velocity_modulus'] > 0.1
+                #select = condition(rows)
+                values = data[select]['value']
+                
+                yield id, values
+                db.release_table(data)
+                db.release_table(rows)
+    
+        progress('Computing stats', (0, 2), 'First pass')
+        # first compute the mean
+        group_mean = Expectation()
+        group_min = None
+        group_max = None
+        for sample, values in data_pass('computing mean'): #@UnusedVariable
+            sample_mean = numpy.mean(values, axis=0)
+            sample_min = numpy.min(values, axis=0)
+            sample_max = numpy.max(values, axis=0)
+            if group_min is None:
+                group_min = sample_min
+                group_max = sample_max
+            else:
+                group_min = numpy.minimum(sample_min, group_min)
+                group_max = numpy.maximum(sample_max, group_max)
+                
+            group_mean.update(sample_mean, len(values))
+    
+        group_mean = group_mean.get_value()
+    
+        group_var = Expectation() 
+        progress('Computing stats', (1, 2), 'Second pass')
+        for sample, values in data_pass('computing var'): #@UnusedVariable
+            err = values - group_mean
+            sample_var = numpy.mean(numpy.square(err), axis=0)
+            group_var.update(sample_var, len(values))
+        group_var = group_var.get_value()
         
-            if not (db.has_sample(id) and db.has_table(id, image)):
-                raise ValueError('No table "%s" for id %s' % (image, id))
-            
-            rows = db.get_rows(id)
-            data = db.get_table(id, image)
-            
-            select = rows[:]['linear_velocity_modulus'] > 0.1
-            #select = condition(rows)
-            values = data[select]['value']
-            
-            yield id, values
-            db.release_table(data)
-            db.release_table(rows)
-
-    progress('Computing stats', (0, 2), 'First pass')
-    # first compute the mean
-    group_mean = Expectation()
-    group_min = None
-    group_max = None
-    for sample, values in data_pass('computing mean'): #@UnusedVariable
-        sample_mean = numpy.mean(values, axis=0)
-        sample_min = numpy.min(values, axis=0)
-        sample_max = numpy.max(values, axis=0)
-        if group_min is None:
-            group_min = sample_min
-            group_max = sample_max
-        else:
-            group_min = numpy.minimum(sample_min, group_min)
-            group_max = numpy.maximum(sample_max, group_max)
-            
-        group_mean.update(sample_mean, len(values))
-
-    group_mean = group_mean.get_value()
-
-    group_var = Expectation() 
-    progress('Computing stats', (1, 2), 'Second pass')
-    for sample, values in data_pass('computing var'): #@UnusedVariable
-        err = values - group_mean
-        sample_var = numpy.mean(numpy.square(err), axis=0)
-        group_var.update(sample_var, len(values))
-    group_var = group_var.get_value()
-    
-    result = Stats(mean=group_mean, var=group_var,
-                   min=group_min, max=group_max)
-    db.close()
-    
-    return result 
+        return Stats(mean=group_mean, var=group_var,
+                       min=group_min, max=group_max)
+        
+        

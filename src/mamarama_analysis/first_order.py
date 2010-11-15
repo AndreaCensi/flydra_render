@@ -23,6 +23,7 @@ from mamarama_analysis.first_order_timecorr import create_report_delayed
 from procgraph.components.statistics.cov2corr import cov2corr 
 from mamarama_analysis.first_order_commands import compute_general_statistics
 from mamarama_analysis.first_order_data import enumerate_data
+from mamarama_analysis.saccades_view_joint_analysis import add_posneg
 
 
 description = """
@@ -115,7 +116,7 @@ def main():
                                    == 'nopost',
                       groups['all']))
     
-    all_reports = []
+    all_experiments = {}
     
     comp(create_gui, '%s/out/first_order/report/' % options.db)
      
@@ -178,6 +179,7 @@ def main():
         )
         
         report = comp(create_report, exp_id, data, description=description)
+                
         
         comp(write_report, report, options.db, exp_id)
         
@@ -199,7 +201,8 @@ def main():
         report_delayed = comp(create_report_delayed, exp_id + '_delayed', delayed,
                 description)
         comp(write_report, report_delayed, options.db, exp_id + '_delayed')
-            
+        
+        all_experiments[exp_id] = delayed    
 
     # Compute general statistics 
     for group_spec, interval_spec, signal_spec  \
@@ -227,10 +230,107 @@ def main():
     db.close()
 
     comp_prefix()
+
+    # now some very specific processing
+    
+    real = all_experiments['contrast_w-avel-id-posts-between'][5]
+    hall = all_experiments['hcontrast_w-avel-id-noposts-between'][5]
+    outdir = os.path.join(options.db, 'out/first_order_special')
+    page_id = 'contrast_w-avel'
+    comp(compare, real, hall, outdir, page_id)
     
     
     compmake_console()
     
+def normalize_diff(a,b):
+    diff = a - b
+    
+    pos = numpy.nonzero(a > 0)
+    diff[pos] = numpy.maximum(0, diff[pos])
+    neg = numpy.nonzero(a < 0)
+    diff[neg] = numpy.minimum(0, diff[neg])
+
+    return diff
+
+def compare(real_delayed, hall_delayed, outdir, page_id):
+    
+    r = Report(page_id)
+    
+    if False:
+        delay = 5
+        real = real_delayed[delay]
+        hall = hall_delayed[delay]
+    else:
+        real = real_delayed
+        hall = hall_delayed
+    
+    print real.keys()
+    
+    real_a = real['action_image_correlation']
+    hall_a = hall['action_image_correlation'] 
+    
+    real_ac = real['covariance'][0,1:]
+    hall_ac = hall['covariance'][0,1:]
+    
+    diff = real_a - hall_a
+    diffc = real_ac - hall_ac
+    
+    # find where it differs significantly
+    diffn =normalize_diff(real_a, hall_a)
+    diffcn =normalize_diff(real_ac, hall_ac)
+    
+    add_posneg(r, 'real', real_a)
+    add_posneg(r, 'hall', hall_a)     
+    add_posneg(r, 'realc', real_ac)
+    add_posneg(r, 'hallc', hall_ac)
+    add_posneg(r, 'diff', diff)
+    add_posneg(r, 'diffn', diffn)        
+    add_posneg(r, 'diffc', diffc)
+    add_posneg(r, 'diffcn', diffcn)
+    
+    with r.data_pylab('cmp') as pylab:
+        pylab.plot(real_a, hall_a, '.')
+        pylab.xlabel('real')
+        pylab.ylabel('hall')
+        pylab.axis('equal')
+
+    with r.data_pylab('correlations') as pylab:
+        pylab.plot(real_a, 'b.')
+        pylab.plot(hall_a, 'r.')
+
+    
+    with r.data_pylab('covariances') as pylab:
+        pylab.plot(real_ac, 'b.')
+        pylab.plot(hall_ac, 'r.')
+
+#    with r.data_pylab('covariance') as pylab:
+#        pylab.plot(numpy.diagonal(real['covariance'], 'b.')
+
+    f= r.figure(shape=(3,2))
+    f.sub('real', caption='Real (corr)')
+    f.sub('hall', caption='Hallucination (corr) ')
+    
+    f.sub('realc', caption='Real (cov)')
+    f.sub('hallc', caption='Hallucination (cov)')
+    
+    f.sub('cmp', caption='on the same axis')
+    f.sub('cmp', caption='on the same axis')
+    
+    f.sub('diff', caption='difference (real-hall) ')
+    f.sub('diffn', caption='difference (real-hall) clipped')
+
+    f.sub('diffc', caption='difference (real-hall) ')
+    f.sub('diffcn', caption='difference (real-hall) clipped')
+    
+    f.sub('correlations')
+    f.sub('covariances')
+    
+    filename = os.path.join(outdir, page_id+'.html')
+    resources = os.path.join(outdir, 'images')
+    print "Writing to %s" % filename
+    r.to_html(filename, resources)
+     
+     
      
 def create_report(exp_id, data, description):
     r = Report(exp_id) 
