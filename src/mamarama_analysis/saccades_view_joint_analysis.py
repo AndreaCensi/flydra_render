@@ -164,9 +164,7 @@ def main():
             data[key] = comp(compute_stats, options.db,
                              samples, image.id, job_id=job_id)
 
-            for saccades_set, direction in prod(saccades_sets, dirs): 
-             
-                
+            for saccades_set, direction in prod(saccades_sets, dirs):             
                 view2result = {}
                 for i, view in enumerate(views):                
                     table = tables[i]
@@ -187,7 +185,18 @@ def main():
                            dir=direction.id, saccades_set=saccades_set.id)
                 
                 comp(render_page, view2result, outdir, page_id, job_id=page_id)
+            
+            for saccades_set in saccades_sets:
+                table = "saccades_view_start_%s" % (image.id)
+                exp_id = '%s_%s_%s' % (table, group.id,  saccades_set.id)
                 
+                results = comp(bet_on_flies, options.db, samples, table, saccades_set,
+                               job_id=exp_id+'-bet')
+                page_id = exp_id
+                report = comp(las_vegas_report, outdir, page_id, results,
+                              job_id=exp_id+'-report')
+            
+            
     db.close()
     
     comp(add_comparisons, data, outdir)
@@ -222,7 +231,7 @@ def render_page(view2result, outdir, page_id):
     var_max = max(map(lambda x: numpy.max(x[1].var), iterate_views()) )
              
     n = Report(page_id)
-    f = n.figure(shape=(3, 3))
+    f = n.figure(cols=3)
     for view, stats in iterate_views():
         nv = n.node(view.id)
         add_scaled(nv, 'mean', stats.mean, max_value=mean_max)
@@ -265,10 +274,164 @@ def add_posneg(report, id, x, **kwargs):
         
     return n
 
-def add_comparisons(all_experiments, outdir): 
+
+def compute_projection(x, base):
+    ''' Computes projection of x onto base. 
+    
+        returns  (proj, err, alpha)
+        such that proj = alpha * base 
+        and proj + err  = x
+    
+    '''
+    
+    dot_product = lambda a,b : numpy.sum(a*b)
+    
+    alpha = dot_product(x , base) / dot_product(base,base)
+     
+    
+    proj = alpha * base
+    
+    err = x - proj
+    
+    return proj, err , alpha
+
+def create_matched_filter(degrees, pure_eye=False):
+    n = 1398
+    f = numpy.zeros((n,))
+    from flydra_render.receptor_directions_buchner71 import directions 
+    for i, s in enumerate(directions):
+        angle = numpy.arctan2(s[1],s[0])
+        
+        if pure_eye:
+            eye = -numpy.sign(i - (n/2))
+            
+            if numpy.abs(angle) < numpy.radians(degrees) \
+               and eye == numpy.sign(angle): 
+                f[i] = numpy.sign(angle)
+        else:
+            if numpy.abs(angle) < numpy.radians(degrees):
+                f[i] = numpy.sign(angle)
+                
+                
+    return f
+
+def bet_on_flies(flydra_db_directory, samples, image, saccades_set):
+    
+    kernels = {}
+    for degrees in [15,30,45,60,90,180]:
+        kernels['mf%d' % degrees] = create_matched_filter(degrees, False)
+        kernels['pf%d' % degrees] = create_matched_filter(degrees, True)
         
     
+    page_id = '%s-%s' % (image, saccades_set.id)
+
+    results = {}
+    
+    with safe_flydra_db_open(flydra_db_directory) as db:
+        conditions = [saccades_set.args]
+    
+        for i, kernel_name in enumerate(kernels.keys()):            
+            progress('betting', (i, len(kernels)), kernel_name)
+            kernel = kernels[kernel_name]
+            signs = []
+            response = []
+            for sample, sample_saccades, image_values in \
+                saccades_iterate_image('computing response', db, samples, image, conditions):
+                    
+                s = sample_saccades[:]['sign']
+                    
+                signs.extend(s)
+                
+                for i in range(len(image_values)): 
+                    response.append( (image_values[i,:] * kernel).sum() )  
+        
+            signs = numpy.array(signs)
+            response = numpy.array(response)
+            results[kernel_name] =  { 'signs': signs, 'response': response,
+                                     'kernel': kernel}    
+
+    return results
+
+def las_vegas_report(outdir, page_id, results):
+    
+    r = Report('lasvegas_'+ page_id)    
+    f = r.figure('summary', cols=4,caption='Response to various filters')
+    
+    kernels = sorted(results.keys())
+    for kernel in kernels:
+        sign = results[kernel]['signs']
+        response =  results[kernel]['response']
+        matched_filter =  results[kernel]['kernel']
+        
+        left = numpy.nonzero(sign==+1)
+        right = numpy.nonzero(sign==-1)
+        
+        response_right = response[right]
+        response_left = response[left]
+        
+        n = r.node(kernel)
+        
+        with n.data_pylab('response') as pylab:
+
+            
+            b = numpy.percentile(response_left, 95)
+                        
+            def plothist(x, nbins, **kwargs):
+                hist, bin_edges = numpy.histogram(x, range=(-b,b),bins= nbins)
+                bins = (bin_edges[:-1] + bin_edges[1:]) *0.5
+                pylab.plot(bins, hist, **kwargs)
+                
+            nbins = 500
+            plothist(response_left, nbins, label='left')
+            plothist(response_right,nbins,  label='right')
+
+            a = pylab.axis()
+            pylab.axis([-b,b,0,a[-1]])
+            pylab.legend()
+            
+        f.sub('%s/response' % kernel)
+        
+        def perc(x):
+            pos, = numpy.nonzero(x)
+            n = len(pos)
+            p = 100.0 * n / len(x)
+            return "%.1f" % p
+        
+        cols = ['probability', 'no response', 'guessed L', 'guessed R']
+        rows = ['left saccade', 'right saccade']
+        eps = 0.0001
+        table = [
+            [ perc(sign==+1), perc(numpy.abs(response_left)<eps), 
+                              perc(response_left>eps), 
+                              perc(response_left<-eps) ],
+            [ perc(sign==-1), perc(numpy.abs(response_right)<eps),
+                              perc(response_right>eps), 
+                              perc(response_right<-eps) ],                
+        ]
+        
+        n.table('performance', data=table, rows=rows, cols=cols)
+        
+        add_posneg(n, 'kernel', matched_filter)
+        
+       
+    output_file = os.path.join(outdir, '%s.html' % r.id)
+    resources_dir = os.path.join(outdir, 'images')
+    print("Writing to %s" % output_file)
+    r.to_html(output_file, resources_dir=resources_dir) 
+
+def add_comparisons(all_experiments, outdir): 
+        
     r = Report('comparisons')
+
+    fmain = r.figure('summary', cols=3, 
+                     caption="Summary of projection analysis")
+
+    n = r.node('odds analysis')
+    fodds_real = n.figure('odds_real', cols=3, 
+                     caption="Summary of odds analysis (real)")
+    fodds_hall = n.figure('odds_hall', cols=3, 
+                     caption="Summary of odds analysis (hall)")
+    fodds_rel = n.figure('rel', cols=3, caption="Relative odds")
 
     generic = r.node('generic')
     if 1:
@@ -288,24 +451,31 @@ def add_comparisons(all_experiments, outdir):
             pylab.plot(hall_traj.mean, 'r.', label='hallucination')
         
         
-        f = generic.figure(shape=(3, 2))
+        f = generic.figure(cols=2)
         f.sub('real_traj', caption='signal over all trajectory (real)')
         f.sub('hall_traj', caption='signal over all trajectory (hallucinated)')
         f.sub('diff_traj_plot', caption='real - hallucination')
         f.sub('diff_traj', caption='real - hallucination')
         
-    for view, dir in prod(['start' ],   ['left', 'right']):
+    for view, dir, saccades_set in \
+        prod(['start' ],   
+             ['left', 'right', 'alldir'],
+             ['allsac', 'center', 'border']):
         # statistics over the whole trajectory
         
         
-        key = Exp(image='contrast_w', group='posts', view=view, dir=dir)
+        key = Exp(image='contrast_w', group='posts', 
+                  view=view, dir=dir, saccades_set=saccades_set)
         real = all_experiments[key]
         
-        key = Exp(image='hcontrast_w', group='noposts', view=view, dir=dir)
+        key = Exp(image='hcontrast_w', group='noposts', 
+                  view=view, dir=dir, saccades_set=saccades_set)
         hall = all_experiments[key]
          
         
-        case = r.node('analysis_%s_%s' % (view, dir))
+        case = r.node('analysis_%s_%s_%s' % (view, dir, saccades_set))
+        
+        cased = " (%s, %s, %s)" % (dir, view, saccades_set)
         
         diff = real.mean - hall.mean
 
@@ -362,28 +532,107 @@ def add_comparisons(all_experiments, outdir):
             pylab.title('variance')
 
     
-        f = case.figure(shape=(3, 2))
-        case = " (%s, %s)" % (dir, view)
-        f.sub('real', caption='real response' + case)
-        f.sub('hall', caption='hallucinated response' + case)
-        f.sub('mean', caption='mean comparison' + case)
-        f.sub('var', caption='variance comparison' + case)
-        f.sub('linear-fit', caption='Linear fit between the two (a=%f, b=%f)' % (ar, br))
-        f.sub('diff', caption='difference (real - hallucinated)' + case)
-        f.sub('diffr', caption='difference (real*a- hallucinated)' + case)
-        f.sub('diffn', caption='Normalized difference' + case)
-        f.sub('diffn_plot', caption='Normalized difference' + case)
-        f.sub('diffn_plot', caption='Normalized difference' + case)
+        f = case.figure(cols=2)
+        f.sub('real', caption='real response' + cased)
+        f.sub('hall', caption='hallucinated response' + cased)
+        f.sub('mean', caption='mean comparison' + cased)
+        f.sub('var', caption='variance comparison' + cased)
+        f.sub('linear-fit', caption='Linear fit between the two (a=%f, b=%f)' 
+              % (ar, br))
+        f.sub('diff', caption='difference (real - hallucinated)' + cased)
+        f.sub('diffr', caption='difference (real*a- hallucinated)' + cased)
+        f.sub('diffn', caption='Normalized difference' + cased)
+        f.sub('diffn_plot', caption='Normalized difference' + cased)
+        f.sub('diffn_plot', caption='Normalized difference' + cased)
         
-        f.sub('real_minus_traj', 'Difference between saccading and trajectory (real)' + case)
-        f.sub('hall_minus_traj', 'Difference between saccading and trajectory (hall)' + case)
+        f.sub('real_minus_traj', 
+              'Difference between saccading and trajectory (real)' + cased)
+        f.sub('hall_minus_traj', 
+              'Difference between saccading and trajectory (hall)' + cased)
         f.sub('rmt_minus_hmt', 'diff-diff')
+        
+        
+        proj, err, alpha =  compute_projection(real.mean, hall.mean)
+        
+        add_scaled(case, 'proj', proj)
+        money = add_posneg(case, 'err', err)
+        case.text('stats', 'alpha = %f' % alpha)
+        
+        f = case.figure(cols=2)
+        
+        f.sub('proj', caption='projection' + cased)
+        f.sub('err', caption='error' + cased)
+        
+        fmain.sub(money, caption='mismatch' + cased)
+       
+       
+        f = case.figure(cols=2, caption="relative odds")
+        
+        real_ratio = numpy.log(real.mean / real_traj.mean)
+        hall_ratio = numpy.log(hall.mean / hall_traj.mean)
+        rel = real_ratio -hall_ratio
+        
+        a = add_posneg(case, 'real_ratio', (real_ratio))
+        b = add_posneg(case, 'hall_ratio',  (hall_ratio))
+        c = add_posneg(case, 'rel', rel)
+        
+        f.sub('real_ratio', caption='real relative' + cased)
+        f.sub('hall_ratio', caption='hall relative' + cased)
+        f.sub('rel')
+        
+        fodds_real.sub(a, cased)
+        fodds_hall.sub(b, cased)
+        fodds_rel.sub(c, cased)
+        
     output_file = os.path.join(outdir, '%s.html' % r.id)
     resources_dir = os.path.join(outdir, 'images')
     r.to_html(output_file, resources_dir=resources_dir) 
  
 
-Stats = namedtuple('Stats', 'mean var min max')
+Stats = namedtuple('Stats', 'mean var min max nsamples')
+ 
+def saccades_iterate_image(name, db, samples, image, conditions):
+    ''' Iterates over the values of an image corresponding to
+        the saccades that respect a given condition.
+        
+        yields  sample, saccades, image_values 
+    '''
+    
+    num_saccades = 0
+    num_selected = 0
+    for i, id in enumerate(samples):
+        progress(name, (i, len(samples)), "Sample %s" % id)
+    
+        if not db.has_saccades(id):
+            raise ValueError('No saccades for %s' % id)
+        if not (db.has_sample(id) and db.has_table(id, image)):
+            raise ValueError('No table "%s" for id %s' % (image, id))
+        
+        saccades_table = db.get_saccades(id)
+        
+        saccades = add_position_information(saccades_table)
+        
+        data = db.get_table(id, image)
+        
+        # computes and of all conditions
+        select = reduce(numpy.logical_and, 
+                        map(lambda c:c(saccades), conditions))
+        
+        values = data[select]['value']
+        
+        if len(values) == 0:
+            print ("No saccades selected for %s (out of %d)." % 
+                   (id, len(saccades)))
+        else:
+            yield id, saccades[select], values
+        
+        num_saccades += len(select)
+        num_selected += (select * 1).sum()
+        db.release_table(data)
+        db.release_table(saccades_table)
+    ratio = 100.0 / num_saccades * num_selected
+    print "Selected %.2f %% of saccades" % ratio
+
 
 def compute_saccade_stats(flydra_db_directory, samples, image, conditions):
     '''
@@ -397,48 +646,13 @@ def compute_saccade_stats(flydra_db_directory, samples, image, conditions):
     '''
     with safe_flydra_db_open(flydra_db_directory) as db:
         
-        def data_pass(name):
-            num_saccades = 0
-            num_selected = 0
-            for i, id in enumerate(samples):
-                progress(name, (i, len(samples)), "Sample %s" % id)
-            
-                if not db.has_saccades(id):
-                    raise ValueError('No saccades for %s' % id)
-                if not (db.has_sample(id) and db.has_table(id, image)):
-                    raise ValueError('No table "%s" for id %s' % (image, id))
-                
-                saccades_table = db.get_saccades(id)
-                
-                saccades = add_position_information(saccades_table)
-                
-                data = db.get_table(id, image)
-                
-                # computes and of all conditions
-                select = reduce(numpy.logical_and, 
-                                map(lambda c:c(saccades), conditions))
-                
-                values = data[select]['value']
-                
-                if len(values) == 0:
-                    print ("No saccades selected for %s (out of %d)." % 
-                           (id, len(saccades)))
-                else:
-                    yield id, values
-                
-                num_saccades += len(select)
-                num_selected += (select * 1).sum()
-                db.release_table(data)
-                db.release_table(saccades_table)
-            ratio = 100.0 / num_saccades * num_selected
-            print "Selected %.2f %% of saccades" % ratio
-    
         progress('Computing stats', (0, 2), 'First pass')
         # first compute the mean
         group_mean = Expectation()
         group_min = None
         group_max = None
-        for sample, values in data_pass('computing mean'): #@UnusedVariable
+        for sample, sample_saccades, values in\
+            saccades_iterate_image('computing mean', db, samples, image, conditions):
             sample_mean = numpy.mean(values, axis=0)
             sample_min = numpy.min(values, axis=0)
             sample_max = numpy.max(values, axis=0)
@@ -451,18 +665,20 @@ def compute_saccade_stats(flydra_db_directory, samples, image, conditions):
                 
             group_mean.update(sample_mean, len(values))
     
+        num_samples = group_mean.num_samples
         group_mean = group_mean.get_value()
     
         group_var = Expectation() 
         progress('Computing stats', (1, 2), 'Second pass')
-        for sample, values in data_pass('computing var'): #@UnusedVariable
+        for sample, sample_saccades, values in \
+            saccades_iterate_image('computing var', db, samples, image, conditions):
             err = values - group_mean
             sample_var = numpy.mean(numpy.square(err), axis=0)
             group_var.update(sample_var, len(values))
         group_var = group_var.get_value()
         
         result = Stats(mean=group_mean, var=group_var,
-                       min=group_min, max=group_max)
+                       min=group_min, max=group_max, nsamples=num_samples)
         
         return result 
 
@@ -526,6 +742,7 @@ def compute_stats(flydra_db_directory, samples, image):
                 
             group_mean.update(sample_mean, len(values))
     
+        num_samples = group_mean.num_samples
         group_mean = group_mean.get_value()
     
         group_var = Expectation() 
@@ -537,6 +754,6 @@ def compute_stats(flydra_db_directory, samples, image):
         group_var = group_var.get_value()
         
         return Stats(mean=group_mean, var=group_var,
-                       min=group_min, max=group_max)
+                       min=group_min, max=group_max, nsamples=num_samples)
         
         
