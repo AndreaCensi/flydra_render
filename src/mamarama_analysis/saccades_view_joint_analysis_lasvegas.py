@@ -5,27 +5,39 @@ from compmake.jobs.progress import progress
 from reprep import Report
 from mamarama_analysis.saccades_view_joint_analysis_reputils import add_posneg
 import os
+import scipy.stats
+from mamarama_analysis.covariance import Expectation
 
 def bet_on_flies(flydra_db_directory, samples, image, saccades_set):
     
     kernels = {}
     for degrees in [15, 30, 45, 60, 90, 180]:
-        kernels['mf%d' % degrees] = create_matched_filter(degrees, False)
-        kernels['pf%d' % degrees] = create_matched_filter(degrees, True)
-         
+        # kernels['mf%d' % degrees] = create_matched_filter(degrees, [-45, 0], False)
+        kernels['mf%d' % degrees] = create_matched_filter(degrees, [-20, 20], False)
 
+        #kernels['pf%d' % degrees] = create_matched_filter(degrees, True)
+         
     results = {}
-    
     with safe_flydra_db_open(flydra_db_directory) as db:
         conditions = [saccades_set.args]
+        
+        # looking for the optimal dividing plane
+        ex = {-1: Expectation(), +1: Expectation()}
+        for sample, sample_saccades, image_values in saccades_iterate_image(#@UnusedVariable
+                'computing optimal kernel', db, samples, image, conditions):
+            for s in [-1, +1]:
+                values = image_values[sample_saccades['sign'] == s]
+                ex[s].update(values.mean(axis=0), len(values))
+        
+        kernels['optimal'] = ex[+1].get_value() - ex[-1].get_value()  
     
         for i, kernel_name in enumerate(kernels.keys()):            
             progress('betting', (i, len(kernels)), kernel_name)
             kernel = kernels[kernel_name]
             signs = []
             response = []
-            for sample, sample_saccades, image_values in \
-                saccades_iterate_image('computing response', db, samples, image, conditions):
+            for sample, sample_saccades, image_values in saccades_iterate_image(#@UnusedVariable
+                'computing response', db, samples, image, conditions):
                     
                 s = sample_saccades[:]['sign']
                     
@@ -37,11 +49,17 @@ def bet_on_flies(flydra_db_directory, samples, image, saccades_set):
             signs = numpy.array(signs)
             response = numpy.array(response)
             results[kernel_name] = { 'signs': signs, 'response': response,
-                                     'kernel': kernel}    
+                                     'kernel': kernel} 
+            
+           
 
     return results
 
 def las_vegas_report(outdir, page_id, results):
+    # threshold for considering 0 response
+    #eps = 0.0001
+    eps = 0.001
+    # eps = 0
     
     r = Report('lasvegas_' + page_id)    
     f = r.figure('summary', cols=4, caption='Response to various filters')
@@ -62,11 +80,17 @@ def las_vegas_report(outdir, page_id, results):
         
         with n.data_pylab('response') as pylab:
 
-            
-            b = numpy.percentile(response_left, 95) #@UndefinedVariable
+            try:
+                b = numpy.percentile(response_left, 95) #@UndefinedVariable
+            except:
+                b = scipy.stats.scoreatpercentile(response_left, 95)
                         
             def plothist(x, nbins, **kwargs):
-                hist, bin_edges = numpy.histogram(x, range=(-b, b), bins=nbins)
+                nz, = numpy.nonzero(numpy.abs(x) > eps)
+                # x with nonzero response
+                print "using %d/%d" % (len(nz), len(x))
+                xnz = x[nz]
+                hist, bin_edges = numpy.histogram(xnz, range=(-b, b), bins=nbins)
                 bins = (bin_edges[:-1] + bin_edges[1:]) * 0.5
                 pylab.plot(bins, hist, **kwargs)
                 
@@ -88,7 +112,6 @@ def las_vegas_report(outdir, page_id, results):
         
         cols = ['probability', 'no response', 'guessed L', 'guessed R']
         rows = ['left saccade', 'right saccade']
-        eps = 0.0001
         table = [
             [ perc(sign == +1), perc(numpy.abs(response_left) < eps),
                               perc(response_left > eps),
@@ -110,12 +133,17 @@ def las_vegas_report(outdir, page_id, results):
 
 
 
-def create_matched_filter(degrees, pure_eye=False):
+def create_matched_filter(degrees, elevation=[], pure_eye=False):
+    ''' Elevation = tuple with lower and upper bound for sensor elevation (deg) '''
     n = 1398
     f = numpy.zeros((n,))
     from flydra_render.receptor_directions_buchner71 import directions 
     for i, s in enumerate(directions):
         angle = numpy.arctan2(s[1], s[0])
+        phi = numpy.arcsin(s[2])
+        
+        if not (elevation[0] <= numpy.degrees(phi) <= elevation[1]):
+            continue
         
         if pure_eye:
             eye = -numpy.sign(i - (n / 2))

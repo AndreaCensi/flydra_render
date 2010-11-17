@@ -3,22 +3,16 @@ import numpy
 from optparse import OptionParser
 
 from reprep import Report
-from reprep.graphics.posneg import posneg
-from reprep.graphics.scale import scale
 from compmake import comp, compmake_console, set_namespace, batch_command, progress
 
 from flydra_db import FlydraDB
-
-from procgraph_flydra.values2retina import values2retina, add_reflines
-
+ 
 from mamarama_analysis import logger
 from mamarama_analysis.covariance import Expectation
 from compmake.jobs.syntax.parsing import parse_job_list
 
 from collections import namedtuple
-from itertools import product as prod
-from saccade_analysis.tammero.tammero_analysis import add_position_information
-from contextlib import contextmanager
+from itertools import product as prod 
 
 from saccade_analysis.analysis201009.master_plot_gui import create_gui_new
 from mamarama_analysis.saccades_view_joint_analysis_data import safe_flydra_db_open, \
@@ -141,12 +135,7 @@ def main():
         
         # For each image we have different tables
         tables = ["saccades_view_%s_%s" % (view.id, image.id) for view in views]
-
-        # We find the sample which have all of those tables
-#        check_available = lambda x: db.has_saccades(x) and \
-#            all(map(lambda table: db.has_table(x, table), tables))
-#        all_available = filter(check_available, db.list_samples()) 
-#         
+ 
         all_available = [x for x in db.list_samples() if db.has_saccades(x) and 
                           all([db.has_table(x, table) for table in tables])] 
         
@@ -195,12 +184,12 @@ def main():
             
             for saccades_set in saccades_sets:
                 table = "saccades_view_start_%s" % (image.id)
-                exp_id = '%s_%s_%s' % (table, group.id, saccades_set.id)
+                exp_id = '%s_%s_%s' % (image.id, group.id, saccades_set.id)
                 
                 results = comp(bet_on_flies, options.db, samples, table, saccades_set,
                                job_id=exp_id + '-bet')
                 page_id = exp_id
-                comp(las_vegas_report, outdir, page_id, results,
+                comp(las_vegas_report, os.path.join(outdir, 'lasvegas'), page_id, results,
                               job_id=exp_id + '-report')
             
             
