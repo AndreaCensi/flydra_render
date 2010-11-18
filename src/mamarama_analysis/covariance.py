@@ -1,6 +1,5 @@
 import numpy
-from compmake.jobs.progress import progress
-#from mamarama_analysis.mycov import slowcov
+from compmake.jobs.progress import progress 
 
 from flydra_db import FlydraDB
 
@@ -16,42 +15,19 @@ class Expectation:
         self.value = None
         
     def update(self, val, weight=1):
+        if True:
+            assert weight > 0
+            assert(numpy.isfinite(val).all())
+        
         if  self.value is None:
             self.value = val
         else:
-            self.value = weighted_average(self.value, self.num_samples, val, weight) 
+            self.value = weighted_average(self.value, self.num_samples, 
+                                          val, weight) 
         self.num_samples += weight
         
     def get_value(self):
-        return self.value
-#
-#
-#def compute_image_mean(db, samples, image):
-#    ''' 
-#    db: FlydraDB directory
-#    samples: list of IDs
-#    '''
-#    db = FlydraDB(db)
-#    
-#    ex = Expectation()
-#    
-#    for i, id in enumerate(samples):
-#        progress('Computing mean %s' % image,
-#                 (i, len(samples)), "Sample %s" % id)
-#    
-#        if not (db.has_sample(id) and db.has_table(id, image)):
-#            raise ValueError('No table "%s" for id %s' % (image, id))
-#        
-#        data = db.get_table(id, image)
-#        
-#        values = data[:]['value']
-#        
-#        ex.update(values.mean(axis=0), len(data))
-#        
-#        db.release_table(data)
-#
-#    return ex.get_value()
-#            
+        return self.value 
 
 def array_mean(x):
     return x.mean(axis=0)
@@ -97,74 +73,7 @@ def compute_mean_generic(db, samples, image, operator):
     
     return results 
 
-
-#
-#
-#def compute_image_var(db, samples, image):
-#    ''' Computes the variance (not COVariance) of an image table.
-#    S
-#    db: FlydraDB directory
-#    samples: list of IDs
-#    '''
-#    db = FlydraDB(db)
-#    
-#    ex = Expectation()
-#    
-#    for i, id in enumerate(samples):
-#        progress('Computing variance of %s' % image,
-#                 (i, len(samples)), "Sample %s" % id)
-#    
-#        if not (db.has_sample(id) and db.has_table(id, image)):
-#            raise ValueError('No table "%s" for id %s' % (image, id))
-#        
-#        data = db.get_table(id, image)
-#        
-#        values = data[:]['value']
-#        
-#        ex.update(values.var(axis=0), len(data))
-#        
-#        db.release_table(data)
-#
-#    return ex.get_value()
-#                        
-#            
-#            
-#def compute_image_cov(db, samples, image):
-#    ''' 
-#    db: FlydraDB directory
-#    samples: list of IDs
-#    mean: already computed mean
-#    '''
-#    db = FlydraDB(db)
-#    
-#    ex = Expectation()
-#    
-#    for i, id in enumerate(samples):
-#        progress('Computing covariance of %s' % image,
-#                 (i, len(samples)), "Sample %s" % id)
-#        
-#        if not (db.has_sample(id) and db.has_table(id, image)):
-#            raise ValueError('Not enough data for id %s' % id)
-#        
-#        data = db.get_table(id, image)
-#        
-#        #print "copying values (%s)" % len(data)
-#        #values = numpy.array().copy()
-#        #print "computing covariance (shape=%s, dtype=%s)" % (str(values.shape), values.dtype)
-#        values = data[:]['value']
-#        
-#        #cov_sample = slowcov(values)
-#        cov_sample = numpy.cov(values, rowvar=0) 
-#         
-#        ex.update(cov_sample, len(data))
-#
-#        db.release_table(data)
-#
-#    return ex.get_value()
-#            
-#    
-#    
-#
+ 
 #            
 #
 #def slowcov2(X, debug_period=None):

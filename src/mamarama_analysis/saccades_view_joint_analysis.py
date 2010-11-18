@@ -149,11 +149,19 @@ def main():
         
         # now, for each group
         for group in groups:
+             
+            is_hallucination = image.id.startswith('h')
+            white_arena = image.id.endswith('_w') 
+        
+            if (not is_hallucination) and white_arena and (group.id == 'noposts'):
+                # if there are not posts, it's useless 
+                continue
+        
             samples = groups_samples[group.id] 
             if not samples:
                 print "Warning: no samples for %s/%s" % (image.id, group.id)
                 continue 
-            
+      
             # global statistics
             key = (group.id, image.id)
             job_id = "%s-%s" % key
@@ -187,14 +195,15 @@ def main():
                 exp_id = '%s_%s_%s' % (image.id, group.id, saccades_set.id)
                 
                 results = comp(bet_on_flies, options.db, samples, table, saccades_set,
-                               job_id=exp_id + '-bet')
+                               job_id='lasvegas-'+ exp_id + '-bet')
                 page_id = exp_id
                 comp(las_vegas_report, os.path.join(outdir, 'lasvegas'), page_id, results,
-                              job_id=exp_id + '-report')
+                              job_id='lasvegas-'+exp_id + '-report')
             
             
     db.close()
     
+
     comp(add_comparisons, data, outdir)
     
 
@@ -335,6 +344,13 @@ def add_comparisons(all_experiments, outdir):
         add_scaled(case, 'real', real.mean, max_value=max_value)
         add_scaled(case, 'hall', hall.mean, max_value=max_value)
         add_posneg(case, 'diff', diff)
+    
+    
+        max_value = numpy.max(numpy.max(real.var),
+                              numpy.max(hall.var))
+        add_scaled(case, 'real_var', real.var, max_value=max_value)
+        add_scaled(case, 'hall_var', hall.var, max_value=max_value)
+    
         
         real_minus_traj = real.mean - real_traj.mean
         hall_minus_traj = hall.mean - hall_traj.mean
@@ -384,8 +400,10 @@ def add_comparisons(all_experiments, outdir):
 
     
         f = case.figure(cols=2)
-        f.sub('real', caption='real response' + cased)
-        f.sub('hall', caption='hallucinated response' + cased)
+        f.sub('real', caption='real response (mean)' + cased)
+        f.sub('hall', caption='hallucinated response (mean)' + cased)
+        f.sub('real_var', caption='real response (var)' + cased)
+        f.sub('hall_var', caption='hallucinated response (var)' + cased)
         f.sub('mean', caption='mean comparison' + cased)
         f.sub('var', caption='variance comparison' + cased)
         f.sub('linear-fit', caption='Linear fit between the two (a=%f, b=%f)' 
@@ -439,8 +457,8 @@ def add_comparisons(all_experiments, outdir):
     resources_dir = os.path.join(outdir, 'images')
     r.to_html(output_file, resources_dir=resources_dir) 
  
-
 Stats = namedtuple('Stats', 'mean var min max nsamples')
+
  
 
 
