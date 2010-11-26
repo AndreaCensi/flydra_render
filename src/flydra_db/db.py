@@ -58,6 +58,7 @@ class FlydraDB:
         tc_close(self.index)
 
     def set_table(self, id, attname, data):
+
         sample_group = self.get_sample_group(id)
         filename = os.path.join(self.directory, "%s-%s.h5" % (id, attname)) 
         if os.path.exists(filename):
