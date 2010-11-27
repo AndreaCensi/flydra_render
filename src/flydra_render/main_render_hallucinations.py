@@ -6,10 +6,13 @@ from flydra_db import FlydraDB
 from flydra_render import logger
 from flydra_render.main_render import render
 
+from collections import namedtuple
 
-def get_db_stimulus_stats(db):
+StimulusStats = namedtuple('StimulusStats', 'stimulus stimulus_xml probability total_number total_length')
+
+def get_db_stimulus_stats(db, include_nopost=False):
     """
-        Returns a list of tuple (stimulus, stimulus_xml, probability)
+        Returns a list of tuple (stimulus, stimulus_xml, probability, number of logs, total length)
         describing the distribution of stimuli, excluding nopost
     
         db
@@ -17,28 +20,40 @@ def get_db_stimulus_stats(db):
     
     """
 
+    # flydra XML 
     stimulus2xml = {}
+    # number of logs
     stimulus2count = {}
+    # length of logs
+    stimulus2length = {}
 
     for sample in db.list_samples():
         if db.has_attr(sample, 'stimulus'):
             stimulus = db.get_attr(sample, 'stimulus')
-            if stimulus == 'nopost':
+            if stimulus == 'nopost' and not include_nopost:
                 continue
             
             stimulus2xml[stimulus] = db.get_attr(sample, 'stimulus_xml')
             
             if not stimulus in stimulus2count:
                 stimulus2count[stimulus] = 0
+                stimulus2length[stimulus] = 0
                 
             stimulus2count[stimulus] += 1
+            
+            rows = db.get_table(sample, 'rows')
+            stimulus2length[stimulus] += len(rows)
+            db.release_table(rows)
              
     print stimulus2count
     
     n = sum(stimulus2count.values())
     
     for stimulus in stimulus2xml:
-        yield stimulus, stimulus2xml[stimulus], stimulus2count[stimulus] * 1.0 / n
+        probability = stimulus2count[stimulus] * 1.0 / n
+        yield StimulusStats(stimulus=stimulus, stimulus_xml=stimulus2xml[stimulus],
+                        probability=probability, total_number= stimulus2count[stimulus],
+                        total_length=stimulus2length[stimulus])
 
 def get_sample_for_distribution(pd, n):
     ''' pd: list of numbers describing a discrete distribution.
@@ -79,19 +94,17 @@ def get_stimulus_to_use(db, n):
     '''
 
     stats = list(get_db_stimulus_stats(db))
-    for stimulus, xml, probability in stats: #@UnusedVariable
-        print "stimulus %s  %.3f" % (stimulus, probability)
+    # fIXME: check again
+    for s in stats: #@UnusedVariable
+        print "stimulus %s  %.3f" % (s.stimulus, s.probability)
   
     # get probability distribution
-    pd = map(lambda x: x[2], stats)
+    pd = map(lambda x: s.probability, stats)
     
     stimulus_for_sample_index = list(get_sample_for_distribution(pd, n))
    
-
     for i in stimulus_for_sample_index:
-        stimulus =    stats[i][0]
-        stimulus_xml =  stats[i][1]
-        yield stimulus, stimulus_xml
+        yield stats[i].stimulus, stats[i].stimulus_xml
         
         
 def main():
@@ -125,6 +138,14 @@ def main():
                         do_samples)
     if not do_samples:
         raise Exception('Cannot find samples to hallucinate about.')
+        
+    print "Summary, including nopost."
+    for s in sorted( get_db_stimulus_stats(db, include_nopost=True), 
+                       key=(lambda x: -x.total_length) ):
+        print "stimulus: {s.stimulus:>10}  samples: {s.total_number:>5}  "\
+              " total length: {len:>5} minutes".format(s=s, len=s.total_length / (60 * 60))
+        
+    
       
     stimulus_to_use = list(get_stimulus_to_use(db, len(do_samples)))
     
