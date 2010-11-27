@@ -25,34 +25,38 @@ def main():
     if not samples:
         print 'No samples found'
     
-    for id in samples:
-        if not db.has_sample(id):
-            raise Exception('Sample "%s" not found.' % id)
+    for sample in samples:
+        if not db.has_sample(sample):
+            raise Exception('Sample "%s" not found.' % sample)
         
-        print "Sample %s" % id
+        print "Sample %s" % sample
         
-        if db.has_table(id, 'rows'):
-            rows = db.get_table(id, 'rows')
+        if db.has_table(sample, 'rows'):
+            rows = db.get_table(sample, 'rows')
         else:
             rows = None
-        
-        for table in db.list_tables(id):
-            t = db.get_table(id, table)
-            print ' - %s: %d' % (table, len(t))
-            
-            if options.extensive and rows and (len(t) == len(rows)):
-                # check frame is ok
-                ok = numpy.all(t[:]['frame'] == rows[:]['frame'])
-            
-                if not ok:
-                    print 'WARNING: table does not pass consistency check'
-            db.release_table(t)
+
+        tables =  db.list_tables(sample)
+        print " -- tables: %r" % tables
+        for table in tables:
+            versions = db.list_versions_for_table(sample, table)
+            for version in versions:
+                t = db.get_table(sample, table, version=version)
+                print ' - %s (%s): %d' % (table,version, len(t))
+                
+                if options.extensive and rows and (len(t) == len(rows)):
+                    # check frame is ok
+                    ok = numpy.all(t[:]['frame'] == rows[:]['frame'])
+                
+                    if not ok:
+                        print 'WARNING: table does not pass consistency check'
+                db.release_table(t)
         
         if rows:
             db.release_table(rows)
         
-        for att in db.list_attr(id):
-            s = (db.get_attr(id, att)).__repr__()
+        for att in db.list_attr(sample):
+            s = (db.get_attr(sample, att)).__repr__()
             if len(s) > 50:
                 s = s[0:50] + ' ...'
             print ' - attribute %s = %s ' % (att, s)

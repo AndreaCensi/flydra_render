@@ -1,21 +1,24 @@
-import shutil, os, tempfile, numpy, tables
+import os, numpy, tables
+
+import warnings
+import sys
+warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
+
+
+from contextlib import contextmanager 
 
 from flydra_db.tables_cache import tc_open_for_reading, \
     tc_open_for_writing,tc_open_for_appending, tc_close
 
 
-from flydra_db.progress import progress_bar
-
-from contextlib import contextmanager 
-
-import fnmatch
 from flydra_db.log import logger
+from flydra_db.db_index import db_summary
+from flydra_db.natsort import natsorted
 
-FLYDRA_ROOT = 'flydra'
 
-class FlydraDB:
+class FlydraDBBase:
     
-    def __init__(self, directory, create=True):
+    def __init__(self, directory, create=False):
         
         if create:
             if not os.path.exists(directory):
@@ -34,33 +37,46 @@ class FlydraDB:
             
         self.samples = self.index.root.flydra.samples
     
+        # references count for tables checked out by clients
+        # We keep them so we can close them in case of error.
+        self.tc_references = {}
+        
     def list_samples(self):
         ''' Returns an array of samples IDs. 
             For a sample to be in here, it must at least have rows in the file.
         '''
         return list(self.samples._v_children)
     
-    def has_sample(self, id):
-        return id in self.samples
+    def has_sample(self, sample):
+        return sample in self.samples
      
-    def add_sample(self, id):
-        assert not self.has_sample(id)
-        sample_group = self.index.createGroup(self.samples, id)
+    def add_sample(self, sample):
+        assert not self.has_sample(sample)
+        sample_group = self.index.createGroup(self.samples, sample)
         self.index.createGroup(sample_group, 'images')
         
-    def get_sample_group(self, id):
+    def _get_sample_group(self, sample):
         ''' Returns the pytables group used for this sample.
             Useful to set and retrieve attributes. '''
-        assert self.has_sample(id)
-        return self.samples._f_getChild(id) 
+        assert self.has_sample(sample)
+        return self.samples._f_getChild(sample) 
         
     def close(self):
+        if self.tc_references:
+            sys.stderr.write('FlydraDB clients left %s references open:\n' % 
+                             len(self.tc_references))
+            for ref, num in self.tc_references.items():
+                sys.stderr.write('- %d ref for %s\n' % (num, ref))
+                for i in range(num): #@UnusedVariable
+                    tc_close(ref)
+            self.tc_references = {}
         tc_close(self.index)
+        self.index = None
 
-    def set_table(self, id, attname, data):
+    def set_table(self, sample, table, data):
 
-        sample_group = self.get_sample_group(id)
-        filename = os.path.join(self.directory, "%s-%s.h5" % (id, attname)) 
+        sample_group = self._get_sample_group(sample)
+        filename = os.path.join(self.directory, "%s-%s.h5" % (sample, table)) 
         if os.path.exists(filename):
             #print "Removing file '%s'." % filename		
             os.unlink(filename)
@@ -70,34 +86,39 @@ class FlydraDB:
         filters = tables.Filters(complevel=1, complib='zlib',
                                  fletcher32=True)
         
-        rows_table = f.createTable(sample_group._v_pathname, attname,
+        rows_table = f.createTable(sample_group._v_pathname, table,
                                    data, createparents=True,
                                    filters=filters)
                                    
-        if attname in sample_group:
+        if table in sample_group:
             # print "Removing previous link"
-            sample_group._f_getChild(attname)._f_remove()
+            sample_group._f_getChild(table)._f_remove()
         
         # TODO: make sure to use relative names
-        self.index.createExternalLink(sample_group, attname,
+        self.index.createExternalLink(sample_group, table,
                                       rows_table, warn16incompat=False)
         tc_close(f)
         
-    def has_table(self, id, attname):
-        assert self.has_sample(id)
-        group = self.get_sample_group(id)
-        return attname in group
+    def has_table(self, sample, table):
+        assert self.has_sample(sample)
+        group = self._get_sample_group(sample)
+        return table in group
     
-    def list_tables(self, id):
-        sample_group = self.get_sample_group(id)
+    def list_tables(self, sample):
+        sample_group = self._get_sample_group(sample)
         return list(sample_group._v_children)
         
-    def get_table(self, id, attname, mode='r'):
+    def get_table(self, sample, table, mode='r'):
         ''' Gets the table for reading or writing. 
             If you open for writing and somebody is reading it,
             an error will be thrown. '''
-        assert self.has_table(id, attname)    
-        ref = self.get_sample_group(id)._f_getChild(attname)
+        assert mode in FlydraDBBase.valid_modes
+    
+        if not FlydraDBBase.has_table(self, sample, table):
+            msg = '%r does not have table %r.' % (sample,table)
+            msg += ' Available: %r' %  FlydraDBBase.list_tables(self, sample)
+            raise ValueError(msg)   
+        ref = self._get_sample_group(sample)._f_getChild(table)
         # dereference locally, so we keep a reference count
         filename, target = ref._get_filename_node()
         
@@ -113,202 +134,228 @@ class FlydraDB:
             external = tc_open_for_appending(filename)
         else:
             raise ValueError('Invalid mode "%s".' % mode)
-            
-        return external.getNode(target)
+        
+        table =  external.getNode(target)
+    
+        ref = table._v_file
+        if not ref in self.tc_references:
+            self.tc_references[ref] = 0
+        self.tc_references[ref] += 1
+        
+        return table
         # return ref(mode='a') # dereference
 
     def release_table(self, table):
         ''' Releases the table (if nobody else is reading it, it
         will be closed.) '''
+        ref = table._v_file
+        assert ref in self.tc_references
+        self.tc_references[ref] -= 1
+        if self.tc_references[ref] == 0:
+            del self.tc_references[ref]
         tc_close(table._v_file)
 
+    valid_modes = ['r', 'r+']
+    
     @contextmanager
-    def _get_attrs(self, id, mode='r'):
+    def _get_attrs(self, sample, mode='r'):
         ''' Gets the node holding the attributes, and releases it afterward. '''
-        if not self.has_table(id, 'attrs'):
+        assert mode in FlydraDBBase.valid_modes
+        if not self.has_table(sample, 'attrs'):
             data = numpy.zeros(shape=(1,),dtype=[('dummy', 'uint8')])
-            self.set_table(id, 'attrs', data)
+            self.set_table(sample, 'attrs', data)
             
-        attr_table = self.get_table(id, 'attrs', mode)
+        attr_table = self.get_table(sample, 'attrs', mode=mode)
         
         yield attr_table._v_attrs
         
         self.release_table(attr_table)
         
         
-    def has_attr(self, id, key):
-        with self._get_attrs(id) as attrs:
+    def has_attr(self, sample, key):
+        with self._get_attrs(sample) as attrs:
             have = key in attrs
         return have
      
-    def set_attr(self, id, key, value):
-        with self._get_attrs(id, 'r+') as attrs:
+    def set_attr(self, sample, key, value):
+        with self._get_attrs(sample, 'r+') as attrs:
             attrs.__setattr__(key, value)
  
     not_specified = 'not-specified'
-    def get_attr(self, id, key, default=not_specified):
-        if not self.has_attr(id, key) and \
-            default != FlydraDB.not_specified:
+    def get_attr(self, sample, key, default=not_specified):
+        if not self.has_attr(sample, key) and \
+            default != FlydraDBBase.not_specified:
             return default
         
-        with self._get_attrs(id, 'r+') as attrs:
+        with self._get_attrs(sample, 'r+') as attrs:
             value = attrs.__getattr__(key)
         
         return value
     
-    def list_attr(self, id):
-        with self._get_attrs(id, 'r+') as attrs:
+    def list_attr(self, sample):
+        with self._get_attrs(sample, 'r+') as attrs:
             names = list(attrs._v_attrnamesuser)
         
         return names
  
+    
+class FlydraDBExtra(FlydraDBBase):
+    ''' This class builds on the facilities provided by FlydraDBBase 
+        and implements things such as:
+            - aliases 
+            - sample groups and 
+            - configurations. '''
+            
     # shortcuts for saccades and rows tables
- 
-    def has_saccades(self, id):
-        return self.has_table(id, 'saccades')
+    def has_saccades(self, sample):
+        return self.has_table(sample, 'saccades')
     
-    def get_saccades(self, id):
-        return self.get_table(id, 'saccades')
+    def get_saccades(self, sample):
+        return self.get_table(sample, 'saccades')
     
-    def set_saccades(self, id, table):
-        return self.set_table(id, 'saccades', table)
+    def set_saccades(self, sample, table):
+        return self.set_table(sample, 'saccades', table)
     
-    def has_rows(self, id):
-        return self.has_table(id, 'rows')
+    def has_rows(self, sample):
+        return self.has_table(sample, 'rows')
     
-    def get_rows(self, id):
-        return self.get_table(id, 'rows')
+    def get_rows(self, sample):
+        return self.get_table(sample, 'rows')
     
-    def set_rows(self, id, table):
-        return self.set_table(id, 'rows', table)
+    def set_rows(self, sample, table):
+        return self.set_table(sample, 'rows', table)
 
-
-def db_summary(directory):
-    '''
-    - If <DB>/index.h5 is already and it is updated (more recent than directory),
-      make a copy of it in <DB>/indices/    
+    def list_groups(self):
+        """ Returns a list of the groups. """
+        # TODO: cache
+        groups = set()
+        for sample in self.list_samples():
+            groups.update(self.list_groups_for_sample(sample))
+        return natsorted(list(groups))
     
-    '''
+    def list_groups_for_sample(self, sample):
+        """ Returns the groups to which sample belongs. """
+        # TODO: should this be a list?
+        value = self.get_attr(sample, 'groups', '') 
+        groups = filter(lambda x:x, value.split(','))
+        return natsorted(groups)
     
-    summary_file = os.path.join(directory, 'index.h5')
-
-    # directory for private indices    
-    temp_dir = os.path.join(directory, 'indices')
-    if not os.path.exists(temp_dir):
-        os.makedirs(temp_dir)
+    def add_sample_to_group(self, sample, group):
+        groups = set(self.list_groups_for_sample(sample))
+        groups.add(group)
+        value = ",".join(natsorted(list(groups)))
+        self.set_attr(sample, 'groups', value)
+    # todo: remove
         
-    # This will be our private index    
-    my_summary = tempfile.NamedTemporaryFile(suffix='.h5_priv', 
-                                             prefix='.index', dir=temp_dir)
-    my_summary_file = my_summary.name
-
-    #   fid, my_summary_file = tempfile.mkstemp(suffix='.h5_priv',
-    #                      prefix='index', dir=temp_dir)
-
-    # logger.info('Temporary file: %s' % my_summary_file)
-
-    # if it does not exist or it is updated, recreate it 
-    if not os.path.exists(summary_file) or \
-        os.path.getmtime(directory) > os.path.getmtime(summary_file):
+    def list_samples_for_group(self, group):
+        """ Lists the samples in the given group. """
+        samples = []
+        for sample in self.list_samples():
+            if group in self.list_groups_for_sample(sample):
+                samples.append(sample)
+        return natsorted(samples)
     
-        logger.info('Summary file %s out of date or not existing; recreating.'%\
-                    summary_file)    
-        
-        logger.info('Looking for h5 files...')
-        files = locate_roots('*.h5', directory)
-        logger.info('Found %s h5 files.' % len(files))
+    def list_all_versions_for_table(self, table):
+        """ Lists all the configurations present in the data
+            for a given table. """
+        versions = set()
+        for sample in self.list_samples():
+            if self.has_table(sample, table):
+                his = self.list_versions_for_table(sample, table)
+                versions.update(his)
                 
-        summary = tc_open_for_writing(my_summary_file)
-        
-        if files:    
-            pb = progress_bar('Opening files', len(files))
-            for i, file in enumerate(files):
-                pb.update(i)
-                # do not consider the index itself
-                if os.path.basename(file).startswith('index'):
-                    continue
+        return natsorted(list(versions))
+    
+    separator = ','
+    default_version_name = 'default'
+    
+    @staticmethod
+    def name2components(s):
+        """ Return name, version """
+        tokens = filter(lambda x: x, s.split(','))
+        assert 0 < len(tokens) <= 2
+        if len(tokens)==1:
+            return tokens[0], FlydraDBExtra.default_version_name
+        else:
+            return tokens[0], tokens[1]
                 
-                # print "Trying to open %s" % file
-                f = tc_open_for_reading(file)
+    @staticmethod
+    def components2name(table, version=None):
+        if version is None:
+            version = FlydraDBExtra.default_version_name
+        assert not FlydraDBExtra.separator in table, \
+               'Invalid raw table name %r.' % table
+        assert not FlydraDBExtra.separator in version, \
+               'Invalid table version %r.' % version
         
-                if not FLYDRA_ROOT in f.root:
-                    print 'Ignoring file %s: no data belonging to Flydra DB' % \
-                        os.path.basename(file)
-                    tc_close(f)
-                    continue
-                
-                link_everything(src=f, dst=summary,
-                                src_filename=os.path.basename(file),
-                                dst_directory=directory)
-             
-                tc_close(f)
-                        
-        # make sure we have the skeleton
-        # even though there's no data
-        if not 'flydra' in summary.root:
-            summary.createGroup('/', 'flydra')
-        if not 'samples' in summary.root.flydra:
-            summary.createGroup('/flydra', 'samples')
+        if version == FlydraDBExtra.default_version_name:
+            return table
+        else:
+            return '%s%s%s' % (table,  FlydraDBExtra.separator, version)
+    
+    def list_versions_for_table(self, sample, table):
+        versions = set()
+        for rtable in FlydraDBBase.list_tables(self, sample):
+            name, version = FlydraDBExtra.name2components(rtable)
+            if name == table:
+                versions.add(version)
+        return natsorted(list(versions))
+    
+    def list_versions_for_table_in_group(self, group, table):
+        samples = self.list_samples_for_group(group)
+        # FIXME we assume that all samples in a group have the same version
+        assert samples, 'Empty group %r.' % group
+        return self.list_versions_for_table(samples[0], table)
+    
+    # and now we have to reimplement table access with a version parameter
+    def set_table(self, sample, table, data, version=None): 
+        ''' Wraps original to add a version argument. '''
+        rtable = FlydraDBExtra.components2name(table, version)
+        return FlydraDBBase.set_table(self, sample=sample, table=rtable, data=data)
+    
+    def get_table(self, sample, table,  version=None, mode='r'):
+        ''' Wraps original to add a version argument. '''
+        assert mode in ['r', 'r+']
+        if not self.has_table(sample, table, version):
+            msg = 'Sample %r does not have version %r of table %r.' % \
+                (sample, version, table)
+            raise ValueError(msg)
+        rtable = FlydraDBExtra.components2name(table, version)
+        return FlydraDBBase.get_table(self, sample=sample, table=rtable, mode=mode)
             
-        tc_close(summary)
+    def has_table(self, sample, table, version=None):
+        ''' Wraps original to add a version argument. '''
+        rtable = FlydraDBExtra.components2name(table, version)
+        return FlydraDBBase.has_table(self, sample=sample, table=rtable)
+    
+    def list_tables(self, sample):
+        ''' Wraps original to hide different versions of the same. '''
+        # TODO: add possibility of specifying version?
+        tables = set()
+        for rtable in FlydraDBBase.list_tables(self, sample):
+            name, version = FlydraDBExtra.name2components(rtable) #@UnusedVariable
+            tables.add(name)
+        return natsorted(list(tables))
         
-        # now copy the temp_file to the main one
-        shutil.copyfile(my_summary_file, summary_file)
+    def group_has_table(self, group, table, version=None):
+        ''' Tests that all samples in the group have this table. '''
+        samples = self.list_samples_for_group(group)
+        for sample in samples:
+            if not self.has_table(sample, table, version):
+                return False
+        else:
+            return True
+
+FlydraDB = FlydraDBExtra
+
+
+
+@contextmanager
+def safe_flydra_db_open(flydra_db_directory):
+    ''' Context manager to remember to close the .h5 files. '''
+    db = FlydraDB(flydra_db_directory, False)
+    try:
+        yield db
+    finally:
+        db.close()
         
-    else:
-        # if the index already exists, create a private copy
-        shutil.copyfile(summary_file, my_summary_file)
-    
-    # (re) open the private copy
-    return tc_open_for_appending(my_summary_file)
-        
-        
-def link_everything(src, dst, src_filename, dst_directory):
-    ''' Makes a link to every field '''
-    for group in src.walkGroups("/"): 
-        if not group._v_pathname in dst:
-            parent = group._v_parent._v_pathname
-            child = group._v_name
-            dst.createGroup(parent, child)
-            
-        for table in src.listNodes(group, classname='Table'):
-            parent = table._v_parent._v_pathname
-            child = table._v_name
-
-            if not table._v_pathname in dst:
-                relname = os.path.relpath(src.filename, dst_directory)
-                url = "%s:%s" % (relname, table._v_pathname)
-                target = url
-                # target = table
-                dst.createExternalLink(parent, child,
-                                       target, warn16incompat=False)
-
-def locate_roots(pattern, where):
-    "where: list of files or directories where to look for pattern"
-    if not(type(where) == list):
-        where = [where];
-
-    all_files = []
-    for w in where:
-        if not(os.path.exists(w)):
-            raise ValueError, "Path %s does not exist" % w
-        if os.path.isfile(w):
-            all_files.append(w)
-        elif os.path.isdir(w):
-            all_files.extend(set(locate(pattern=pattern, root=w)))
-
-    return all_files
-
-
-def locate(pattern, root):
-    '''Locate all files matching supplied filename pattern in and below
-    supplied root directory.'''
-    for path, dirs, files in os.walk(os.path.abspath(root)): #@UnusedVariable
-        for filename in fnmatch.filter(files, pattern):
-            yield os.path.join(path, filename)
-            
-
-    
-    
-    
-    

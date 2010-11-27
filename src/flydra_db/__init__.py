@@ -1,2 +1,1 @@
-from db import FlydraDB
- 
+from flydra_db.db import FlydraDB
