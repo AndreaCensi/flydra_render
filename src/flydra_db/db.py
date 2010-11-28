@@ -187,13 +187,13 @@ class FlydraDBBase:
             default != FlydraDBBase.not_specified:
             return default
         
-        with self._get_attrs(sample, 'r+') as attrs:
+        with self._get_attrs(sample, 'r') as attrs:
             value = attrs.__getattr__(key)
         
         return value
     
     def list_attr(self, sample):
-        with self._get_attrs(sample, 'r+') as attrs:
+        with self._get_attrs(sample, 'r') as attrs:
             names = list(attrs._v_attrnamesuser)
         
         return names
@@ -225,35 +225,6 @@ class FlydraDBExtra(FlydraDBBase):
     def set_rows(self, sample, table):
         return self.set_table(sample, 'rows', table)
 
-    def list_groups(self):
-        """ Returns a list of the groups. """
-        # TODO: cache
-        groups = set()
-        for sample in self.list_samples():
-            groups.update(self.list_groups_for_sample(sample))
-        return natsorted(list(groups))
-    
-    def list_groups_for_sample(self, sample):
-        """ Returns the groups to which sample belongs. """
-        # TODO: should this be a list?
-        value = self.get_attr(sample, 'groups', '') 
-        groups = filter(lambda x:x, value.split(','))
-        return natsorted(groups)
-    
-    def add_sample_to_group(self, sample, group):
-        groups = set(self.list_groups_for_sample(sample))
-        groups.add(group)
-        value = ",".join(natsorted(list(groups)))
-        self.set_attr(sample, 'groups', value)
-    # todo: remove
-        
-    def list_samples_for_group(self, group):
-        """ Lists the samples in the given group. """
-        samples = []
-        for sample in self.list_samples():
-            if group in self.list_groups_for_sample(sample):
-                samples.append(sample)
-        return natsorted(samples)
     
     def list_all_versions_for_table(self, table):
         """ Lists all the configurations present in the data
@@ -264,7 +235,7 @@ class FlydraDBExtra(FlydraDBBase):
                 his = self.list_versions_for_table(sample, table)
                 versions.update(his)
                 
-        return natsorted(list(versions))
+        return natsorted(versions)
     
     separator = ','
     default_version_name = 'default'
@@ -294,18 +265,14 @@ class FlydraDBExtra(FlydraDBBase):
             return '%s%s%s' % (table,  FlydraDBExtra.separator, version)
     
     def list_versions_for_table(self, sample, table):
+        ''' List all the version of table possessed by a specific sample. '''
         versions = set()
         for rtable in FlydraDBBase.list_tables(self, sample):
             name, version = FlydraDBExtra.name2components(rtable)
             if name == table:
                 versions.add(version)
-        return natsorted(list(versions))
+        return natsorted(versions)
     
-    def list_versions_for_table_in_group(self, group, table):
-        samples = self.list_samples_for_group(group)
-        # FIXME we assume that all samples in a group have the same version
-        assert samples, 'Empty group %r.' % group
-        return self.list_versions_for_table(samples[0], table)
     
     # and now we have to reimplement table access with a version parameter
     def set_table(self, sample, table, data, version=None): 
@@ -329,14 +296,68 @@ class FlydraDBExtra(FlydraDBBase):
         return FlydraDBBase.has_table(self, sample=sample, table=rtable)
     
     def list_tables(self, sample):
-        ''' Wraps original to hide different versions of the same. '''
+        ''' Wraps original to hide different versions of the same tables.
+            It also hides the special table 'attrs' which is used internally
+            for attributes. '''
         # TODO: add possibility of specifying version?
         tables = set()
         for rtable in FlydraDBBase.list_tables(self, sample):
             name, version = FlydraDBExtra.name2components(rtable) #@UnusedVariable
-            tables.add(name)
-        return natsorted(list(tables))
+            if name != 'attrs':
+                tables.add(name)
+        return natsorted(tables)
         
+    # Group basic functions
+    
+    def list_groups(self):
+        """ Returns a list of the groups. """
+        groups = set()
+        for sample in self.list_samples():
+            groups.update(self.list_groups_for_sample(sample))
+        return natsorted(groups)
+    
+    def list_groups_for_sample(self, sample, cache={}):
+        """ Returns the groups to which sample belongs. """
+        # FIXME: make proper memoization that can be invalidated
+        if sample in cache:
+            return cache[sample]
+        
+        # TODO: should this be a list?
+        value = self.get_attr(sample, 'groups', '') 
+        groups = filter(lambda x:x, value.split(','))
+        result = natsorted(groups)
+        cache[sample] = result
+        return result
+    
+    def add_sample_to_group(self, sample, group):
+        groups = set(self.list_groups_for_sample(sample))
+        groups.add(group)
+        value = ",".join(natsorted(groups))
+        self.set_attr(sample, 'groups', value)
+    # todo: remove
+        
+    def list_samples_for_group(self, group):
+        """ Lists the samples in the given group. """
+        samples = []
+        for sample in self.list_samples():
+            if group in self.list_groups_for_sample(sample):
+                samples.append(sample)
+        return natsorted(samples)
+    
+    #
+    # Group utility functions
+    #
+    def list_tables_for_group(self, group, cache={}):
+        ''' Retuns a list of all the tables owned by the samples 
+            in this group. '''
+        tables = set()
+        for sample in self.list_samples_for_group(group):
+            tables.update(self.list_tables(sample))
+        
+        result = natsorted(tables)
+        
+        return result
+
     def group_has_table(self, group, table, version=None):
         ''' Tests that all samples in the group have this table. '''
         samples = self.list_samples_for_group(group)
@@ -345,15 +366,26 @@ class FlydraDBExtra(FlydraDBBase):
                 return False
         else:
             return True
+        
+    def list_versions_for_table_in_group(self, group, table):
+        ''' List all the version of table possessed by the samples
+            in a specific group. Note that not necesseraly all samples
+            have all versions. '''
+        samples = self.list_samples_for_group(group)
+        assert samples, 'Empty group %r.' % group
+        versions = set()
+        for sample in samples:
+            versions.update(self.list_versions_for_table(sample, table))
+        return natsorted(versions)
 
 FlydraDB = FlydraDBExtra
 
 
 
 @contextmanager
-def safe_flydra_db_open(flydra_db_directory):
+def safe_flydra_db_open(flydra_db_directory, create=False):
     ''' Context manager to remember to close the .h5 files. '''
-    db = FlydraDB(flydra_db_directory, False)
+    db = FlydraDB(flydra_db_directory, create)
     try:
         yield db
     finally:

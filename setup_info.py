@@ -4,6 +4,7 @@ scripts = [
     ('flydra_render', 'flydra_render.main_render'),
     ('flydra_render_hallucinations', 'flydra_render.main_render_hallucinations'),
     ('flydra_db_check', 'flydra_db.db_check'),
+    ('flydra_db_stats', 'flydra_db.db_stats'),
     ('flydra_render_contrast', 'flydra_render.compute_contrast'),
     
     ('mamarama_first_order', 'mamarama_analysis.first_order'),

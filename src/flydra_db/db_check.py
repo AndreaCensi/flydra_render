@@ -17,6 +17,8 @@ def main():
 
     db = FlydraDB(options.db)  
     
+    
+    
     if args:
         samples = args
     else:
