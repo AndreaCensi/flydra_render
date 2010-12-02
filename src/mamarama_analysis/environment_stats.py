@@ -1,12 +1,13 @@
-import numpy
-import os
+import numpy, os
+from optparse import OptionParser
 
 from compmake import set_namespace, compmake_console, comp, progress, comp_prefix
-from optparse import OptionParser
+from reprep import Report
+
 from flydra_db  import FlydraDB
 
-from mamarama_analysis.first_order_commands import xcorr
-from reprep import Report
+from .first_order_commands import xcorr
+
 
 
 def main():

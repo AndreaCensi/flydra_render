@@ -1,8 +1,10 @@
 import numpy
 from numpy import array
+from StringIO import StringIO
+
 from procgraph  import Block
 from procgraph_mpl import pylab2rgb 
-from StringIO import StringIO
+
 from flydra_db import FlydraDB
 
 def get_posts_info(xml):

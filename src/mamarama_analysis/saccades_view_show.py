@@ -2,15 +2,14 @@ import sys
 from optparse import OptionParser
 
 from compmake import comp, compmake_console, comp_prefix, set_namespace, \
-    batch_command
+                     batch_command, parse_job_list
 from reprep import Report
 
 from flydra_db import FlydraDB
 
 from procgraph_flydra.values2retina import  plot_luminance
 
-from mamarama_analysis import logger
-from compmake.jobs.syntax.parsing import parse_job_list
+from . import logger
 
 description = """
 

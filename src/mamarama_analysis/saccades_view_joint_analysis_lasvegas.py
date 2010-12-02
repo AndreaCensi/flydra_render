@@ -1,14 +1,14 @@
-import numpy
-from mamarama_analysis.saccades_view_joint_analysis_data import safe_flydra_db_open, \
-    saccades_iterate_image
-from compmake.jobs.progress import progress
-from reprep import Report
-from mamarama_analysis.saccades_view_joint_analysis_reputils import add_posneg
-import os
-import scipy.stats
-from mamarama_analysis.covariance import Expectation
-import cPickle
+import numpy, os, scipy.stats, cPickle
 from scipy.stats.morestats import binom_test
+
+from compmake  import progress
+from reprep import Report
+
+from .saccades_view_joint_analysis_data import safe_flydra_db_open, \
+    saccades_iterate_image
+from .saccades_view_joint_analysis_reputils import add_posneg
+from .covariance import Expectation
+
 
 def bet_on_flies(flydra_db_directory, samples, image, saccades_set):
     

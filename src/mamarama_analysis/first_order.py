@@ -1,29 +1,24 @@
 from optparse import OptionParser
-import sys, os
-import itertools
-import numpy  
+import sys, os, itertools, numpy  
 
 from compmake import comp, compmake_console, set_namespace, comp_prefix
-
-from reprep import Report  
-from reprep.graphics.posneg import posneg
-from reprep.graphics.scale import scale 
+from procgraph.components.statistics.cov2corr import cov2corr # XXX: remove dep
+from reprep import Report, posneg, scale
 
 from flydra_db import FlydraDB
 
 from procgraph_flydra.values2retina import values2retina, add_reflines
 
-from mamarama_analysis import logger
-from mamarama_analysis.first_order_intervals import interval_fast, interval_all , \
+from . import logger
+from .first_order_intervals import interval_fast, interval_all , \
     interval_between_saccades, interval_saccades
-from mamarama_analysis.covariance import Expectation
-from mamarama_analysis.first_order_gui import create_gui
-from mamarama_analysis.first_order_timecorr import create_report_delayed
+from .covariance import Expectation
+from .first_order_gui import create_gui
+from .first_order_timecorr import create_report_delayed
 
-from procgraph.components.statistics.cov2corr import cov2corr 
-from mamarama_analysis.first_order_commands import compute_general_statistics
-from mamarama_analysis.first_order_data import enumerate_data
-from mamarama_analysis.saccades_view_joint_analysis import add_posneg
+from .first_order_commands import compute_general_statistics
+from .first_order_data import enumerate_data
+from .saccades_view_joint_analysis import add_posneg
 
 
 description = """

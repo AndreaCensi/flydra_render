@@ -1,8 +1,11 @@
+import numpy
 from contextlib import contextmanager
+
 from compmake import progress
 from flydra_db import FlydraDB
+
 from saccade_analysis.tammero.tammero_analysis import add_position_information
-import numpy
+
 
 
 @contextmanager

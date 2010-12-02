@@ -1,10 +1,10 @@
-import numpy
+import numpy,scipy.stats
+
 from compmake import progress
 
-import scipy.stats
-
-from flydra_render import logger
 from flydra_db import FlydraDB
+
+from . import logger
 
 def get_all_data_for_signal(db, samples, interval_function, 
                             signal, signal_component):

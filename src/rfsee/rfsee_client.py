@@ -1,12 +1,11 @@
-from rfsee.communication import exit_with_error
+from .communication import exit_with_error
 
 class SimulationException(Exception):
     """Base class for exceptions in this module."""
     def __init__(self, string):
         Exception.__init__(self, string)
 
-import cjson
-from cjson import encode, decode
+from cjson import encode, decode, EncodeError, DecodeError
 
 class Client:
     stdin = None
@@ -69,7 +68,7 @@ class Client:
             self.stdout.flush();
         except IOError, ex:
             raise SimulationException("IOError while writing: %s" % ex)
-        except cjson.EncodeError, ex:
+        except EncodeError, ex:
             raise SimulationException("Cannot encode json. \n\t %s '''%s'''\n" % 
                                        (str(ex), dic))
     
@@ -81,7 +80,7 @@ class Client:
             return decode(line)
         except IOError, ex:
             raise SimulationException("IOError while reading: %s" % ex)
-        except cjson.DecodeError, ex:
+        except DecodeError, ex:
             raise SimulationException("Cannot decode json: '%s' \n\t %s\n" % (line, str(ex)))
         
     # some pre-set config settings

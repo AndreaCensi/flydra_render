@@ -1,26 +1,27 @@
-import sys, os
-import numpy
+import sys, os, numpy
 from optparse import OptionParser
-
-from reprep import Report
-from compmake import comp, compmake_console, set_namespace, batch_command, progress
-
-from flydra_db import FlydraDB
- 
-from mamarama_analysis import logger
-from mamarama_analysis.covariance import Expectation
-from compmake.jobs.syntax.parsing import parse_job_list
-
 from collections import namedtuple
 from itertools import product as prod 
 
+from reprep import Report
+from compmake import comp, compmake_console, set_namespace, \
+                     batch_command, progress, parse_job_list
+
+from flydra_db import FlydraDB
+
+# XXX: put this into reprep?
 from saccade_analysis.analysis201009.master_plot_gui import create_gui_new
-from mamarama_analysis.saccades_view_joint_analysis_data import safe_flydra_db_open, \
-    saccades_iterate_image
-from mamarama_analysis.saccades_view_joint_analysis_lasvegas import las_vegas_report, \
-    bet_on_flies
-from mamarama_analysis.saccades_view_joint_analysis_reputils import add_scaled, \
-    add_posneg
+ 
+from . import logger
+from .covariance import Expectation
+
+
+from .saccades_view_joint_analysis_data import safe_flydra_db_open, \
+                                              saccades_iterate_image
+from .saccades_view_joint_analysis_lasvegas import las_vegas_report, \
+                                                   bet_on_flies
+from .saccades_view_joint_analysis_reputils import add_scaled, add_posneg
+
 
 def choose_saccades_right(saccades):
     return saccades[:]['sign'] == -1

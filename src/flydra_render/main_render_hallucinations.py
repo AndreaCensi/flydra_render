@@ -1,12 +1,12 @@
 import numpy
+from collections import namedtuple
 from optparse import OptionParser
 
 from flydra_db import FlydraDB
  
-from flydra_render import logger
-from flydra_render.main_render import render
+from . import logger
+from .main_render import render
 
-from collections import namedtuple
 
 StimulusStats = namedtuple('StimulusStats', 'stimulus stimulus_xml probability total_number total_length')
 

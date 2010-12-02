@@ -1,9 +1,9 @@
+import numpy, os, scipy.stats
+
 from flydra.a2 import core_analysis, xml_stimulus
-from flydra_render import logger
-import numpy
-import scipy.stats
-import os 
 from flydra_db.db_index import locate_roots
+
+from . import logger
 
 warned_fixed_dt = False
 

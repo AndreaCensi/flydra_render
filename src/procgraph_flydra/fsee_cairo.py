@@ -5,7 +5,7 @@ from math import pi, sin, atan2, acos
 import random
 import numpy
 
-import fsee.eye_geometry.switcher
+import fsee.eye_geometry.switcher as switcher
 from flydra_render.render_saccades import rotz
 
 def sphere2surface(s, num_eye):
@@ -24,7 +24,7 @@ def sphere2surface(s, num_eye):
     return numpy.array([[x], [y]])
 
 def draw_fly_optics(cr, values, optics='buchner71'):    
-    precomputed = fsee.eye_geometry.switcher.get_module_for_optics(optics=optics)
+    precomputed = switcher.get_module_for_optics(optics=optics)
 
     for i in xrange(len(precomputed.hex_faces)):
         # transform vertices to screen coordinates

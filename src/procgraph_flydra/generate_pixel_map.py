@@ -1,7 +1,8 @@
 import numpy
-from procgraph_flydra.fsee_cairo import draw_fly_optics, draw_reference_lines
+
 import cairo
 
+from .fsee_cairo import draw_fly_optics, draw_reference_lines
 
 def setup_surface(width, height):
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)

@@ -1,6 +1,5 @@
 from procgraph_flydra.values2retina import add_reflines, values2retina
-from reprep.graphics.scale import scale
-from reprep.graphics.posneg import posneg
+from reprep import scale, posneg
 
 def add_scaled(report, id, x, **kwargs):
     n = report.data(id, x)

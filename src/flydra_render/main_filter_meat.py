@@ -1,8 +1,10 @@
-import numpy
+import numpy, scipy.signal
 from numpy.testing.utils import assert_almost_equal
-from flydra_render.structures import additional_fields
-import scipy.signal
+
+# TODO: remove
 from geometric_saccade_detector.math_utils import normalize_pi
+
+from .structures import additional_fields
 
 
 def compute_derivative(x, timestamp):

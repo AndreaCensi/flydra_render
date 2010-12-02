@@ -1,8 +1,7 @@
-import numpy 
-import scipy.stats
+import numpy, scipy.stats
 
 from reprep import Report
-from mamarama_analysis.first_order_data import get_all_data_for_signal
+from .first_order_data import get_all_data_for_signal
 
 
 def compute_general_statistics(id, db, samples, interval_function,

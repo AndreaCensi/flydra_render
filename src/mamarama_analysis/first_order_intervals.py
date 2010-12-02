@@ -1,5 +1,4 @@
-import numpy 
-import scipy.stats
+import numpy, scipy.stats
 
 # interval_function gets as arguments (FlydraDB, sample_id, rows)
 # and should return a boolean array, the length of the "rows" table,

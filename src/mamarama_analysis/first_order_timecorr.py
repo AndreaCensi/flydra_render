@@ -1,6 +1,6 @@
 import numpy
-from reprep import Report
-from reprep.graphics.posneg import posneg
+from reprep import Report, posneg
+
 from procgraph_flydra.values2retina import values2retina, add_reflines
 
 def create_report_delayed(exp_id, delayed, description):

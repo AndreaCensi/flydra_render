@@ -1,7 +1,6 @@
 from procgraph import Block, Generator
 from flydra_db import FlydraDB
 
-
 class FlydraImage(Generator):
     ''' This block outputs the retinal images from a FlydraDB for 
         a particular sample. '''

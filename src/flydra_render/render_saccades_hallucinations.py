@@ -1,9 +1,10 @@
 from optparse import OptionParser
 
 from flydra_db import FlydraDB
-from flydra_render import logger
-from flydra_render.main_render_hallucinations import get_stimulus_to_use
-from flydra_render.render_saccades import render_saccades_view
+
+from . import logger
+from .main_render_hallucinations import get_stimulus_to_use
+from .render_saccades import render_saccades_view
  
 def main():
     

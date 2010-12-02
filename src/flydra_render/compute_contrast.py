@@ -2,16 +2,17 @@ import numpy
 from optparse import OptionParser
 
 from flydra_db import FlydraDB
-from flydra_render import logger
-from flydra_render.contrast import get_contrast_kernel
 from flydra_db.progress import progress_bar
+
+from . import logger
+from .contrast import get_contrast_kernel
 
 try:
     from fast_contrast import intrinsic_contrast #@UnresolvedImport @UnusedImport
 except:
     logger.error('I cannot load the "fast_contrast" extension. '
                  'I will fall back on the python implementation (20x slower).')
-    from  flydra_render.contrast  import intrinsic_contrast  #@UnusedImport @Reimport
+    from  .contrast  import intrinsic_contrast  #@UnusedImport @Reimport
 
 
 def main():

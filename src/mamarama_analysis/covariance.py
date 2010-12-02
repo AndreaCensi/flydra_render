@@ -1,5 +1,6 @@
 import numpy
-from compmake.jobs.progress import progress 
+
+from compmake import progress 
 
 from flydra_db import FlydraDB
 

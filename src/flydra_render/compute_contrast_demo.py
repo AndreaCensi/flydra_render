@@ -1,17 +1,17 @@
 import numpy
-from reprep import Report
+from reprep import Report, scale
  
+from rfsee.demo.example_stimxml import example_stim_xml
+from rfsee.rfsee_client import ClientProcess 
+
 from mamarama_analysis.covariance import Expectation
 from procgraph_flydra.values2retina import plot_contrast, plot_luminance,\
     values2retina
-from flydra_render.contrast import get_contrast_kernel
 
-from flydra_render.render_saccades import rotz
-from rfsee.demo.example_stimxml import example_stim_xml
-from rfsee.rfsee_client import ClientProcess 
-from reprep.graphics.scale import scale
 from flydra_db.progress import progress_bar
 
+from .contrast import get_contrast_kernel
+from .render_saccades import rotz
 
 def main():
     sigma_deg =6

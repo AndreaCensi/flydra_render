@@ -2,6 +2,8 @@ from __future__ import with_statement
 from StringIO import StringIO
 import sys, numpy
 
+from cjson import encode, decode, EncodeError, DecodeError
+
 #if 1:
     # deal with old files, forcing to numpy
 #    import tables.flavor
@@ -13,7 +15,6 @@ import flydra_osg.xml_stimulus_osg as xml_stimulus_osg
 import fsee.Observer
 
 import cgtypes
-import cjson
 import struct
 
         
@@ -134,7 +135,7 @@ def main():
                 break
         
             try: 
-                json = cjson.decode(line)
+                json = decode(line)
     
                 method = json['method']
                 del(json['method'])
@@ -185,9 +186,9 @@ def main():
                 
             except KeyError:
                 exit_with_error("Got incomplete values in request: '%s'\n" % str(line))
-            except cjson.DecodeError, ex:
+            except DecodeError, ex:
                 exit_with_error("Cannot decode json: '%s' \n\t %s\n" % (line, str(ex)))
-            except cjson.EncodeError, ex:
+            except EncodeError, ex:
                 exit_with_error("Cannot encode json. \n\t %s\n" % (str(ex)))
                 
         
@@ -198,7 +199,7 @@ def main():
     except IOError:
         import traceback
         s = "\n".join(traceback.format_tb(sys.exc_info()[2]));
-    #    sys.stderr.write(s)
+        #    sys.stderr.write(s)
         exit_with_error("Unexpected error: \n%s" % s)
             
 if __name__ == '__main__':

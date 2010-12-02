@@ -1,19 +1,16 @@
-import os, numpy, tables
+import os, numpy, tables, sys, warnings
+from contextlib import contextmanager
 
-import warnings
-import sys
+# remove pytables' warning about strange table names
 warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
 
 
-from contextlib import contextmanager 
 
-from flydra_db.tables_cache import tc_open_for_reading, \
-    tc_open_for_writing,tc_open_for_appending, tc_close
-
-
-from flydra_db.log import logger
-from flydra_db.db_index import db_summary
-from flydra_db.natsort import natsorted
+from .tables_cache import tc_open_for_reading, tc_open_for_writing,  \
+    tc_open_for_appending, tc_close
+from .log import logger
+from .db_index import db_summary
+from .natsort import natsorted
 
 
 class FlydraDBBase:

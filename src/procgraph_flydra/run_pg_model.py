@@ -1,10 +1,12 @@
 import sys
-from flydra_db import FlydraDB
-from compmake import comp, batch_command, compmake_console, set_namespace
-from procgraph.scripts.pg import pg
 from optparse import OptionParser
-from compmake.jobs.syntax.parsing import parse_job_list
-from flydra_render import logger
+from compmake import comp, batch_command, compmake_console, set_namespace, \
+                     parse_job_list
+
+from flydra_db import FlydraDB
+from procgraph import pg
+
+from flydra_render import logger # XXX:
 
 description = """
 

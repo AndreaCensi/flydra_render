@@ -2,10 +2,11 @@ import sys, numpy
 from optparse import OptionParser
 
 from flydra_db import FlydraDB
-
-from flydra_render import logger
-from flydra_render.main_render import get_rfsee_client
 from flydra_db.progress import progress_bar
+
+from . import logger
+from .main_render import get_rfsee_client
+
 
 description = """
 

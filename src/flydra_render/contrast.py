@@ -1,23 +1,5 @@
 import numpy
-from flydra_render.receptor_directions_buchner71 import directions
-#
-#def intrinsic_contrast(luminance, kernel):
-#    n = len(luminance)
-#    assert luminance.shape == (n,)
-#    assert kernel.shape == (n, n)
-#     
-#    contrast = numpy.zeros(shape=(n,))
-#    
-#    for i in range(n):
-#        # compute error
-#        diff = luminance - luminance[i]
-#        error = numpy.square(diff)
-#        similarity = kernel[i, :]
-#        weights = similarity / similarity.sum()
-#        contrast[i] = (error * weights).sum()
-#        
-#    assert numpy.all(numpy.isfinite(contrast))
-#    return contrast
+from .receptor_directions_buchner71 import directions
 
 
 def get_contrast_kernel(sigma_deg=6, eyes_interact = False):
@@ -52,20 +34,6 @@ def intrinsic_contrast(luminance, kernel):
     assert numpy.all(numpy.isfinite(contrast))
     return contrast
 
-#
-#def get_contrast_kernel(sigma_deg, eyes_interact = False):
-#    distance_matrix = create_distance_matrix(directions)
-#    sigma=numpy.radians(sigma_deg)
-#    kernel = numpy.exp(-numpy.square(distance_matrix / sigma) )
-#
-#    # do not let the two eyes interact
-#    if not eyes_interact:
-#        n = 1398/2
-#        kernel[0:n,n:] = 0
-#        kernel[n:,0:n] = 0
-#    
-#    return kernel
-
 
 def create_distance_matrix(directions):
     n = len(directions)
@@ -85,4 +53,38 @@ def create_distance_matrix(directions):
     
         D[i, :] = numpy.arccos(dot_product)
          
-    return D 
+    return D
+
+
+# Old definition -- note different kernel
+#
+#def intrinsic_contrast(luminance, kernel):
+#    n = len(luminance)
+#    assert luminance.shape == (n,)
+#    assert kernel.shape == (n, n)
+#     
+#    contrast = numpy.zeros(shape=(n,))
+#    
+#    for i in range(n):
+#        # compute error
+#        diff = luminance - luminance[i]
+#        error = numpy.square(diff)
+#        similarity = kernel[i, :]
+#        weights = similarity / similarity.sum()
+#        contrast[i] = (error * weights).sum()
+#        
+#    assert numpy.all(numpy.isfinite(contrast))
+#    return contrast
+#
+#def get_contrast_kernel(sigma_deg, eyes_interact = False):
+#    distance_matrix = create_distance_matrix(directions)
+#    sigma=numpy.radians(sigma_deg)
+#    kernel = numpy.exp(-numpy.square(distance_matrix / sigma) )
+#
+#    # do not let the two eyes interact
+#    if not eyes_interact:
+#        n = 1398/2
+#        kernel[0:n,n:] = 0
+#        kernel[n:,0:n] = 0
+#    
+#    return kernel

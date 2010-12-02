@@ -1,6 +1,4 @@
-import numpy
-import time
-
+import numpy, time
             
 
 def slowcov(X, debug_period=None):
