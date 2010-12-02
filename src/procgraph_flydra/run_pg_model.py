@@ -27,7 +27,7 @@ def main():
     
     parser = OptionParser(usage=description)
     
-    parser.add_option("--db", default='flydra_db', help="FlydraDB directory")
+    parser.add_option("--db", default='flydra_db_directory', help="FlydraDB directory")
     parser.add_option("--model", help="ProcGraph model name.")
     parser.add_option("--needs", help="Comma-separated list of tables required",
                       default="rows,luminance")
@@ -44,10 +44,10 @@ def main():
         print "Please specify the model."
         sys.exit(-3)
         
-        
+    print("Using FlydraDB directory %r." % options.db)
     db = FlydraDB(options.db, False)
     
-    
+    # TODO: make the storage inside options.db?
     set_namespace('run_pg_model_%s' % options.model)
     tables = options.needs.split(',')
     
