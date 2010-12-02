@@ -1,5 +1,5 @@
 import sys
-from cjson import decode, encode
+from cjson import encode
 
 def exit_with_error(string, code= -1):
     """ Writes error string to stderr, JSON to stdout, exits with code"""

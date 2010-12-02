@@ -12,7 +12,7 @@ def get_all_data_for_signal(db, samples, interval_function,
     db = FlydraDB(db, False)
     
     all = []
-    for k, id in enumerate(samples):
+    for id in samples:
         
         if not db.has_rows(id):
             logger.warning('Could not find rows table for %s; skipping.' % 
@@ -88,11 +88,11 @@ def enumerate_data(db, samples, interval_function, image,
                            (id, interval_function.__name__))
             db.release_table(rows_table)
             continue
-            
-        percentage = numpy.mean(interval * 1.0) * 100
         
-        #logger.info('Sample %s: function "%s" selects %.1f%% of data.' % 
-        #            (id, interval_function.__name__, percentage)) 
+        if False:
+            percentage = numpy.mean(interval * 1.0) * 100
+            logger.info('Sample %s: function "%s" selects %.1f%% of data.' % 
+                        (id, interval_function.__name__, percentage)) 
         
         # subset everything
         image_values = image_values[interval]

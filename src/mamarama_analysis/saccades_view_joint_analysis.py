@@ -479,8 +479,9 @@ def compute_saccade_stats(flydra_db_directory, samples, image, conditions):
         group_mean = Expectation()
         group_min = None
         group_max = None
-        for sample, sample_saccades, values in\
-            saccades_iterate_image('computing mean', db, samples, image, conditions):
+        iter =  saccades_iterate_image('computing mean', 
+                                       db, samples, image, conditions)
+        for sample, sample_saccades, values in iter: #@UnusedVariable 
             sample_mean = numpy.mean(values, axis=0)
             sample_min = numpy.min(values, axis=0)
             sample_max = numpy.max(values, axis=0)
@@ -498,8 +499,9 @@ def compute_saccade_stats(flydra_db_directory, samples, image, conditions):
     
         group_var = Expectation() 
         progress('Computing stats', (1, 2), 'Second pass')
-        for sample, sample_saccades, values in \
-            saccades_iterate_image('computing var', db, samples, image, conditions):
+        iter = saccades_iterate_image('computing var', 
+                                      db, samples, image, conditions)
+        for sample, sample_saccades, values in iter: #@UnusedVariable
             err = values - group_mean
             sample_var = numpy.mean(numpy.square(err), axis=0)
             group_var.update(sample_var, len(values))

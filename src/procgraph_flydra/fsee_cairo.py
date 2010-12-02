@@ -5,8 +5,6 @@ from math import pi, sin, atan2, acos
 import random
 import numpy
 
-import fsee
-import fsee.eye_geometry
 import fsee.eye_geometry.switcher
 from flydra_render.render_saccades import rotz
 

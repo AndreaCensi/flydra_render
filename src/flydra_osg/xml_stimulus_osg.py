@@ -66,7 +66,7 @@ def cylindrical_arena(info=None,
         start_y = radius * numpy.sin(starts * D2R)
         stop_x = radius * numpy.cos(stops * D2R)
         stop_y = radius * numpy.sin(stops * D2R)
-        geode = osgwriter.Geode(states=['GL_LIGHTING OFF'])
+        geode = osgwriter.Geode(states=['GL_LIGHTING OFF'])#@UnusedVariable XXX: sure?
 
         for i in range(len(start_x)):
             x1 = start_x[i]; y1 = start_y[i]
@@ -127,7 +127,7 @@ def cylindrical_post(info=None, texture='nearblack.png'):
         start_y = radius * numpy.sin(starts * D2R)
         stop_x = radius * numpy.cos(stops * D2R)
         stop_y = radius * numpy.sin(stops * D2R)
-        geode = osgwriter.Geode(states=['GL_LIGHTING OFF'])
+        geode = osgwriter.Geode(states=['GL_LIGHTING OFF']) #@UnusedVariable XXX: sure?
 
         for i in range(len(start_x)):
             x1 = start_x[i]; y1 = start_y[i]

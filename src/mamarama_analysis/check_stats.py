@@ -1,9 +1,10 @@
 from optparse import OptionParser
 import sys
+import scipy.stats
+
 from flydra_db import FlydraDB
 from flydra_render import logger
-import scipy
-import scipy.stats
+
 
 
 description = """ This script checks that some statistics

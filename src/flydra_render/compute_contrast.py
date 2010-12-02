@@ -11,7 +11,7 @@ try:
 except:
     logger.error('I cannot load the "fast_contrast" extension. '
                  'I will fall back on the python implementation (20x slower).')
-    from  flydra_render.contrast  import intrinsic_contrast  #@UnusedImport
+    from  flydra_render.contrast  import intrinsic_contrast  #@UnusedImport @Reimport
 
 
 def main():

@@ -5,7 +5,6 @@ class SimulationException(Exception):
     def __init__(self, string):
         Exception.__init__(self, string)
 
-
 import cjson
 from cjson import encode, decode
 
@@ -144,7 +143,7 @@ class ClientProcess(Client):
     def close(self):
         Client.close(self)
         # ready anything left, and wait for termination
-        out, err = self.process.communicate(input=None)
+        self.process.communicate(input=None)
 
 
 
