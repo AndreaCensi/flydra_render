@@ -7,14 +7,9 @@ import sys, numpy
 #    import tables.flavor
 #    tables.flavor.restrict_flavors(keep=['numpy', 'python'])
 
-
-from cjson import decode
-
-
 import flydra.a2.xml_stimulus as xml_stimulus
 import flydra_osg.xml_stimulus_osg as xml_stimulus_osg
 
-import fsee
 import fsee.Observer
 
 import cgtypes
@@ -103,8 +98,7 @@ def go_initialize_stimulus(stimulus_xml, optics, extra):
         with  stim_xml_osg.OSG_model_path(extra=extra) as osg_model_path:
             # sys.stderr.write('osg_model_path = \n %s' % open(osg_model_path).read())
             hz = 60.0 # fps
-            dt = 1.0 / hz
-
+            
             vision = fsee.Observer.Observer(model_path=osg_model_path,
                                             # scale=1000.0, # from meters to mm
                                             hz=hz,
@@ -140,7 +134,7 @@ def main():
                 break
         
             try: 
-                json = decode(line)
+                json = cjson.decode(line)
     
                 method = json['method']
                 del(json['method'])

@@ -13,7 +13,7 @@ def create_report_delayed(exp_id, delayed, description):
     f = r.figure(shape=(3,3))
     
     # max and sum of correlation for each delay
-    corr_max = []
+    #corr_max = []
     corr_mean = []
     
     for delay in delays:

@@ -1,5 +1,5 @@
 from setuptools import setup
-from setup_info import console_scripts
+from setup_info import console_scripts #@UnresolvedImport
 
 setup(name='flydra_render',
     version="0.1",

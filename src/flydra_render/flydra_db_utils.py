@@ -3,7 +3,7 @@ from flydra_render import logger
 import numpy
 import scipy.stats
 import os 
-from flydra_db.db import locate_roots
+from flydra_db.db_index import locate_roots
 
 warned_fixed_dt = False
 
@@ -20,7 +20,7 @@ def get_good_smoothed_tracks(filename, obj_ids,
 
     ca = core_analysis.get_global_CachingAnalyzer()  
         
-    warned = False
+    #warned = False
     
     #obj_ids, unique_obj_ids, is_mat_file, data_file, extra = \
     #     ca.initial_file_load(filename)
@@ -52,7 +52,9 @@ def get_good_smoothed_tracks(filename, obj_ids,
                 
             for i in range(len(frows) - 1):
                 if frows['obj_id'][i] == frows['obj_id'][i + 1]:
-                    assert frows['timestamp'][i] < frows['timestamp'][i + 1]
+                    if not (frows['timestamp'][i] < frows['timestamp'][i + 1]):
+                        print("fishy behavior at index %d" % i)
+                        
                 
 
             # return raw data if smoothing is not requested
@@ -183,16 +185,18 @@ def  consider_stimulus(h5file, verbose_problems=False, fanout_name="fanout.xml")
         file_timestamp = timestamp_string_from_filename(h5file)
 
         fanout = xml_stimulus.xml_fanout_from_filename(fanout_xml)
-        include_obj_ids, exclude_obj_ids = fanout.get_obj_ids_for_timestamp(timestamp_string=file_timestamp)
+        include_obj_ids, exclude_obj_ids = \
+            fanout.get_obj_ids_for_timestamp(timestamp_string=file_timestamp)
         if include_obj_ids is not None:
             use_obj_ids = include_obj_ids
         if exclude_obj_ids is not None:
             use_obj_ids = list(set(use_obj_ids).difference(exclude_obj_ids))
 
-#        stim_xml = fanout.get_stimulus_for_timestamp(timestamp_string=file_timestamp)
+        #   stim_xml = fanout.get_stimulus_for_timestamp(timestamp_string=file_timestamp)
 
-        (single_episode, kh5_file, stim_fname) = fanout._get_episode_for_timestamp(timestamp_string=file_timestamp)
-         
+        res = fanout._get_episode_for_timestamp(timestamp_string=file_timestamp)
+        stim_fname = res[2]
+        
         return True, use_obj_ids, stim_fname
 
     except xml_stimulus.WrongXMLTypeError:

@@ -1,12 +1,12 @@
 import numpy
 from numpy import array
 from procgraph  import Block
-from procgraph.components.gui.plot import pylab2rgb 
+from procgraph_mpl import pylab2rgb 
 from StringIO import StringIO
 from flydra_db import FlydraDB
 
 def get_posts_info(xml):
-    from flydra.a2 import xml_stimulus
+    from flydra.a2 import xml_stimulus #@UnresolvedImport
     stimulus_xml = StringIO(xml)
     stim_xml = xml_stimulus.xml_stimulus_from_filename(stimulus_xml)
     root = stim_xml.get_root()
@@ -130,7 +130,7 @@ class ArenaDisplaySide(LookupInfo, Block):
         
         R = self.arena_info['arena']['diameter'] / 2 
         cx = self.arena_info['arena']['origin'][0]
-        cy = self.arena_info['arena']['origin'][1]
+        # cy = self.arena_info['arena']['origin'][1]
         h = self.arena_info['arena']['height']
         
         width = self.config.width
@@ -268,7 +268,7 @@ class ArenaDisplaySideZoom(LookupInfo, Block):
     def update(self):        
         R = self.arena_info['arena']['diameter'] / 2 
         cx = self.arena_info['arena']['origin'][0]
-        cy = self.arena_info['arena']['origin'][1]
+        # cy = self.arena_info['arena']['origin'][1]
         h = self.arena_info['arena']['height']
 
         

@@ -45,7 +45,7 @@ class FlydraDBBase:
         ''' Returns an array of samples IDs. 
             For a sample to be in here, it must at least have rows in the file.
         '''
-        return list(self.samples._v_children)
+        return natsorted(self.samples._v_children)
     
     def has_sample(self, sample):
         return sample in self.samples

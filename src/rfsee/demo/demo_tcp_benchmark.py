@@ -21,12 +21,12 @@ def main():
     
     import time
     ntrials = 1000
-    res = cp.render(position, attitude, linear_velocity_body, angular_velocity_body)
+    cp.render(position, attitude, linear_velocity_body, angular_velocity_body)
     
     
     start = time.time()
-    for i in range(ntrials):
-        res = cp.render(position, attitude, linear_velocity_body, angular_velocity_body)
+    for i in range(ntrials): #@UnusedVariable
+        cp.render(position, attitude, linear_velocity_body, angular_velocity_body)
     end = time.time()
     
     avg = (end - start) / ntrials

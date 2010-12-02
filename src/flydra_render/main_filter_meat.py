@@ -52,7 +52,7 @@ def filter_rows(rows, options):
     minimum_linear_velocity = 0.02
     
     dt = 1/60.0
-    extra['time'] = (rows['frame'] - rows['frame'][0]) / 60.0
+    extra['time'] = (rows['frame'] - rows['frame'][0]) * dt
     
     
     x = rows['x']

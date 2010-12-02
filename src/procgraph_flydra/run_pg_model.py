@@ -19,7 +19,7 @@ Example invocation:
         --db flydra_db 
         --model flydra_display_luminance 
         --needs rows,luminance 
-        --interactive
+        --interactive [IDs]
 
 """
 
@@ -51,7 +51,14 @@ def main():
     set_namespace('run_pg_model_%s' % options.model)
     tables = options.needs.split(',')
     
-    samples = db.list_samples()
+    if args:
+        samples = args
+        for sample in samples:
+            if not db.has_sample(sample):
+                raise Exception('Unknown sample %r' % sample)
+    else:
+        samples = db.list_samples()
+        
     if not samples:
         print 'No samples found'
     

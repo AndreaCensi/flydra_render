@@ -382,10 +382,11 @@ def compute_signal_correlation_unique(
     actions_ex = Expectation()
     
     # first compute mean
-    for sample, actions, image_values in enumerate_data(db, samples, interval_function,
-                                                image, signal, signal_component,
-                                                signal_op, 'first pass'):
+    iter =  enumerate_data(db, samples, interval_function, 
+                           image, signal, signal_component,
+                           signal_op, 'first pass')
         
+    for sample, actions, image_values in iter: #@UnusedVariable
         n = image_values.shape[0]
         # we shouldn't receive empty subsets 
         assert n > 0
@@ -402,10 +403,11 @@ def compute_signal_correlation_unique(
     
     cov_z = Expectation()
     
-    # do a second pass for computing the covariance    
-    for sample, actions, image_values in enumerate_data(db, samples, interval_function,
-                                                image, signal, signal_component,
-                                                signal_op, 'second pass'):
+    # do a second pass for computing the covariance
+    iter = enumerate_data(db, samples, interval_function,
+                          image, signal, signal_component,
+                          signal_op, 'second pass')    
+    for sample, actions, image_values in iter: #@UnusedVariable
         # do not remove the mean (should be 0)
         # actions = actions - mean_action
         image_values = image_values - mean_image
