@@ -1,22 +1,10 @@
 import numpy
-from contextlib import contextmanager
 
 from compmake import progress
-from flydra_db import FlydraDB
 
+# XXX: remove dependency
 from saccade_analysis.tammero.tammero_analysis import add_position_information
 
-
-
-@contextmanager
-def safe_flydra_db_open(flydra_db_directory):
-    ''' Context manager to remember to close the .h5 files. '''
-    db = FlydraDB(flydra_db_directory, False)
-    try:
-        yield db
-    finally:
-        db.close()
-        
 def saccades_iterate_image(name, db, samples, image, conditions):
     ''' Iterates over the values of an image corresponding to
         the saccades that respect a given condition.

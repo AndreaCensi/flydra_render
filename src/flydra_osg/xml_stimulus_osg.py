@@ -1,6 +1,6 @@
+import contextlib, os, tempfile, shutil, math, numpy 
+
 import flydra.a2.xml_stimulus as xml_stimulus
-import contextlib, os, tempfile, shutil, math
-import numpy 
 
 import fsee
 import fsee.scenegen.primlib as primlib

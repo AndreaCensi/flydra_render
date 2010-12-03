@@ -1,14 +1,11 @@
-import shutil
-import fnmatch
-import os
-import tempfile
-from flydra_db.tables_cache import tc_open_for_writing, tc_open_for_reading,\
-    tc_open_for_appending, tc_close
-from flydra_db.progress import progress_bar
-from flydra_db.log import logger
+import shutil, fnmatch, os, tempfile
 
-# Flydra root in HDF5 file
-FLYDRA_ROOT = 'flydra'
+from .tables_cache import tc_open_for_writing, tc_open_for_reading, \
+    tc_open_for_appending, tc_close
+from .progress import progress_bar
+from .log import logger
+from .constants import FLYDRA_ROOT
+
 
 def db_summary(directory):
     '''
@@ -25,7 +22,7 @@ def db_summary(directory):
         os.makedirs(temp_dir)
         
     # This will be our private index    
-    my_summary = tempfile.NamedTemporaryFile(suffix='.h5_priv', 
+    my_summary = tempfile.NamedTemporaryFile(suffix='.h5_priv',
                                              prefix='.index', dir=temp_dir)
     my_summary_file = my_summary.name
  
@@ -33,7 +30,7 @@ def db_summary(directory):
     if not os.path.exists(summary_file) or \
         os.path.getmtime(directory) > os.path.getmtime(summary_file):
     
-        logger.info('Summary file %s out of date or not existing; recreating.'%\
+        logger.info('Summary file %s out of date or not existing; recreating.' % \
                     summary_file)    
         
         logger.info('Looking for h5 files...')
@@ -60,7 +57,7 @@ def db_summary(directory):
                     continue
                 
                 link_everything(src=f, dst=summary,
-                                src_filename=os.path.basename(file),
+                                #src_filename=os.path.basename(file),
                                 dst_directory=directory)
              
                 tc_close(f)
@@ -85,7 +82,7 @@ def db_summary(directory):
     return tc_open_for_appending(my_summary_file)
         
         
-def link_everything(src, dst, src_filename, dst_directory):
+def link_everything(src, dst, dst_directory):
     ''' Makes a link to every field '''
     for group in src.walkGroups("/"): 
         if not group._v_pathname in dst:

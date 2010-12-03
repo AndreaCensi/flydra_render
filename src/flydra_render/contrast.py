@@ -1,17 +1,17 @@
 import numpy
+
 from .receptor_directions_buchner71 import directions
 
-
-def get_contrast_kernel(sigma_deg=6, eyes_interact = False):
+def get_contrast_kernel(sigma_deg=6, eyes_interact=False):
     distance_matrix = create_distance_matrix(directions)
-    sigma=numpy.radians(sigma_deg)
-    kernel = numpy.exp(-(distance_matrix / sigma) )
+    sigma = numpy.radians(sigma_deg)
+    kernel = numpy.exp(-(distance_matrix / sigma))
 
     # do not let the two eyes interact
     if not eyes_interact:
-        n = 1398/2
-        kernel[0:n,n:] = 0
-        kernel[n:,0:n] = 0
+        n = 1398 / 2
+        kernel[0:n, n:] = 0
+        kernel[n:, 0:n] = 0
     
     return kernel
 

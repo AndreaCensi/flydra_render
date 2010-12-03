@@ -1,7 +1,6 @@
 import sys, scipy.stats
 from optparse import OptionParser
 
-
 from flydra_db import FlydraDB
 
 from . import logger
@@ -33,13 +32,13 @@ def main():
         
         v = rows[:]['linear_velocity_modulus']
         
-        perc = [1,5,95,99]
+        perc = [1, 5, 95, 99]
         
         print "Sample %s" % sample
         
         print " linear_velocity_modulus"
         for p in perc:
-            s = scipy.stats.scoreatpercentile(v,p)
+            s = scipy.stats.scoreatpercentile(v, p)
             print ' - %2d%%   %.3f m/s' % (p, s)
         
 

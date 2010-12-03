@@ -1,6 +1,6 @@
 
-from rfsee.rfsee_client import ClientProcess
-from rfsee.demo.example_stimxml import example_stim_xml
+from rfsee import ClientProcess
+from .example_stimxml import example_stim_xml
 
 def main(): 
     

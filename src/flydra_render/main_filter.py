@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import  os, numpy, sys, platform, pwd 
 from optparse import OptionParser
 from datetime import datetime
@@ -80,7 +79,7 @@ def main():
   
         all_data = [] 
 
-        for obj_id, rows in get_good_smoothed_tracks( #@UnusedVariable
+        for obj_id, rows in get_good_smoothed_tracks(#@UnusedVariable
                 filename=filename,
                 obj_ids=obj_ids,
                 min_frames_per_track=options.min_frames_per_track,

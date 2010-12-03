@@ -2,12 +2,7 @@ from __future__ import with_statement
 from StringIO import StringIO
 import sys, numpy
 
-from cjson import encode, decode, EncodeError, DecodeError
-
-#if 1:
-    # deal with old files, forcing to numpy
-#    import tables.flavor
-#    tables.flavor.restrict_flavors(keep=['numpy', 'python'])
+from cjson import decode, EncodeError, DecodeError
 
 import flydra.a2.xml_stimulus as xml_stimulus
 import flydra_osg.xml_stimulus_osg as xml_stimulus_osg
@@ -63,7 +58,7 @@ def go_render(vision, json, compute_mu, write_binary):
         linear_velocity_body = cgtypes.vec3(numpy.array(lvel))
         angular_velocity_body = cgtypes.vec3(numpy.array(avel))
 
-        qdot, mu = vision.get_last_retinal_velocities(linear_velocity_body, 
+        qdot, mu = vision.get_last_retinal_velocities(linear_velocity_body,
                                                       angular_velocity_body)
 
         answer['nearness'] = mu
@@ -74,7 +69,7 @@ def go_render(vision, json, compute_mu, write_binary):
         what = answer['luminance']
         n = len(what);
         s = struct.pack('>' + 'f' * n, *what);
-        positive_answer({'binary_length': len(s), 'mean': numpy.mean(what) }, 
+        positive_answer({'binary_length': len(s), 'mean': numpy.mean(what) },
                         "Sending binary data (n * 4 bytes)")
         sys.stdout.write(s);
         sys.stdout.flush()

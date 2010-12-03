@@ -7,7 +7,7 @@ def main():
     parser = OptionParser()
     
     parser.add_option("--db", default='flydra_db', help="FlydraDB directory")
-    parser.add_option("--check_versions", 
+    parser.add_option("--check_versions",
                       help="Checks that all samples in a group have the same"
                          " versions of a table",
                       default=False, action="store_true")
@@ -31,7 +31,7 @@ def main():
             if options.check_versions:
                 for version in versions:
                     if not db.group_has_table(group, table, version):
-                        print(    ' (!) version %r not shared by all' % version)
+                        print(' (!) version %r not shared by all' % version)
 
     db.close()
     

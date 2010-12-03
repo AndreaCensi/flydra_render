@@ -4,9 +4,7 @@ from contextlib import contextmanager
 # remove pytables' warning about strange table names
 warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
 
-
-
-from .tables_cache import tc_open_for_reading, tc_open_for_writing,  \
+from .tables_cache import tc_open_for_reading, tc_open_for_writing, \
     tc_open_for_appending, tc_close
 from .log import logger
 from .db_index import db_summary
@@ -112,8 +110,8 @@ class FlydraDBBase:
         assert mode in FlydraDBBase.valid_modes
     
         if not FlydraDBBase.has_table(self, sample, table):
-            msg = '%r does not have table %r.' % (sample,table)
-            msg += ' Available: %r' %  FlydraDBBase.list_tables(self, sample)
+            msg = '%r does not have table %r.' % (sample, table)
+            msg += ' Available: %r' % FlydraDBBase.list_tables(self, sample)
             raise ValueError(msg)   
         ref = self._get_sample_group(sample)._f_getChild(table)
         # dereference locally, so we keep a reference count
@@ -132,7 +130,7 @@ class FlydraDBBase:
         else:
             raise ValueError('Invalid mode "%s".' % mode)
         
-        table =  external.getNode(target)
+        table = external.getNode(target)
     
         ref = table._v_file
         if not ref in self.tc_references:
@@ -159,7 +157,7 @@ class FlydraDBBase:
         ''' Gets the node holding the attributes, and releases it afterward. '''
         assert mode in FlydraDBBase.valid_modes
         if not self.has_table(sample, 'attrs'):
-            data = numpy.zeros(shape=(1,),dtype=[('dummy', 'uint8')])
+            data = numpy.zeros(shape=(1,), dtype=[('dummy', 'uint8')])
             self.set_table(sample, 'attrs', data)
             
         attr_table = self.get_table(sample, 'attrs', mode=mode)
@@ -242,7 +240,7 @@ class FlydraDBExtra(FlydraDBBase):
         """ Return name, version """
         tokens = filter(lambda x: x, s.split(','))
         assert 0 < len(tokens) <= 2
-        if len(tokens)==1:
+        if len(tokens) == 1:
             return tokens[0], FlydraDBExtra.default_version_name
         else:
             return tokens[0], tokens[1]
@@ -259,7 +257,7 @@ class FlydraDBExtra(FlydraDBBase):
         if version == FlydraDBExtra.default_version_name:
             return table
         else:
-            return '%s%s%s' % (table,  FlydraDBExtra.separator, version)
+            return '%s%s%s' % (table, FlydraDBExtra.separator, version)
     
     def list_versions_for_table(self, sample, table):
         ''' List all the version of table possessed by a specific sample. '''
@@ -277,7 +275,7 @@ class FlydraDBExtra(FlydraDBBase):
         rtable = FlydraDBExtra.components2name(table, version)
         return FlydraDBBase.set_table(self, sample=sample, table=rtable, data=data)
     
-    def get_table(self, sample, table,  version=None, mode='r'):
+    def get_table(self, sample, table, version=None, mode='r'):
         ''' Wraps original to add a version argument. '''
         assert mode in ['r', 'r+']
         if not self.has_table(sample, table, version):
@@ -344,7 +342,7 @@ class FlydraDBExtra(FlydraDBBase):
     #
     # Group utility functions
     #
-    def list_tables_for_group(self, group, cache={}):
+    def list_tables_for_group(self, group):
         ''' Retuns a list of all the tables owned by the samples 
             in this group. '''
         tables = set()

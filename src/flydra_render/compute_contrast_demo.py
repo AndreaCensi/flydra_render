@@ -5,7 +5,7 @@ from rfsee.demo.example_stimxml import example_stim_xml
 from rfsee.rfsee_client import ClientProcess 
 
 from mamarama_analysis.covariance import Expectation
-from procgraph_flydra.values2retina import plot_contrast, plot_luminance,\
+from procgraph_flydra.values2retina import plot_contrast, plot_luminance, \
     values2retina
 
 from flydra_db.progress import progress_bar
@@ -14,12 +14,12 @@ from .contrast import get_contrast_kernel
 from .render_saccades import rotz
 
 def main():
-    sigma_deg =6
+    sigma_deg = 6
     kernel1 = get_contrast_kernel(sigma_deg=sigma_deg, eyes_interact=True)
     kernel2 = get_contrast_kernel(sigma_deg=sigma_deg, eyes_interact=False) # better
     
-    kernel1=kernel1.astype('float32')
-    kernel2=kernel2.astype('float32')
+    kernel1 = kernel1.astype('float32')
+    kernel2 = kernel2.astype('float32')
     
     meany = Expectation()
     ex1 = Expectation()
@@ -43,12 +43,12 @@ def main():
     
     pb = progress_bar('Computing contrast', N)
     
-    orientation = numpy.linspace(0, 2* numpy.pi, N)
+    orientation = numpy.linspace(0, 2 * numpy.pi, N)
     for i, theta in enumerate(orientation):
         attitude = rotz(theta)
         
         pb.update(i)
-        res = cp.render(position, attitude, 
+        res = cp.render(position, attitude,
                         linear_velocity_body, angular_velocity_body)
     
         y = numpy.array(res['luminance']).astype('float32')
@@ -64,17 +64,17 @@ def main():
         ex2.update(c2)
 
 
-    r =  Report()
+    r = Report()
     r.data_rgb('meany', scale(values2retina(meany.get_value())))
     r.data_rgb('mean1', plot_contrast(ex1.get_value()))
     r.data_rgb('mean2', plot_contrast(ex2.get_value()))
-    r.data_rgb('one-y',  (plot_luminance(y)))
-    r.data_rgb('one-c1',  plot_contrast(c1))
-    r.data_rgb('one-c2',  plot_contrast(c2))
+    r.data_rgb('one-y', (plot_luminance(y)))
+    r.data_rgb('one-c1', plot_contrast(c1))
+    r.data_rgb('one-c2', plot_contrast(c2))
     
-    r.data_rgb('kernel',  scale(values2retina(kernel2[100,:])))
+    r.data_rgb('kernel', scale(values2retina(kernel2[100, :])))
     
-    f = r.figure(shape=(2,3))
+    f = r.figure(shape=(2, 3))
     f.sub('one-y', 'One random image')
     f.sub('one-c1', 'Contrast of random image')
     f.sub('one-c2', 'Contrast of random image')

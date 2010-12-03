@@ -97,9 +97,9 @@ def get_good_smoothed_tracks(filename, obj_ids,
                 #srows['yvel'] *= 1000
                 #srows['xvel'] *= 1000
 
-                v = numpy.hypot(srows['xvel'],srows['yvel'],srows['zvel'])
+                v = numpy.hypot(srows['xvel'], srows['yvel'], srows['zvel'])
                 
-                perc = [1,5,50,95,99]
+                perc = [1, 5, 50, 95, 99]
                 scores = map(lambda x:  scipy.stats.scoreatpercentile(v, x), perc)
                 
                 print "scores: %s" % map(lambda x: "%f " % x, scores)
@@ -108,15 +108,15 @@ def get_good_smoothed_tracks(filename, obj_ids,
     
       
                 if score95 < 100.0:
-                    logger.debug( " score95 = %f, assuming m" % score95)
+                    logger.debug(" score95 = %f, assuming m" % score95)
                 else:
-                    logger.debug( " score95 = %f, assuming mm" % score95)
+                    logger.debug(" score95 = %f, assuming mm" % score95)
                     
                     srows['xvel'] *= 0.001
                     srows['yvel'] *= 0.001
                     srows['xvel'] *= 0.001
 
-                v = numpy.hypot(srows['xvel'],srows['yvel'],srows['zvel'])
+                v = numpy.hypot(srows['xvel'], srows['yvel'], srows['zvel'])
                 final_score95 = scipy.stats.scoreatpercentile(v, 95)
                 
                 logger.info('After much deliberation, 95%% score is %f.' % 
@@ -125,7 +125,7 @@ def get_good_smoothed_tracks(filename, obj_ids,
             yield obj_id, srows 
             
         except core_analysis.NotEnoughDataToSmoothError:
-            logger.warning('not enough data to smooth obj_id %d, skipping.'%(obj_id,))
+            logger.warning('not enough data to smooth obj_id %d, skipping.' % (obj_id,))
             continue 
         
     ca.close()

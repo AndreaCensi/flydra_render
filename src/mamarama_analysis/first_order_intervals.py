@@ -4,14 +4,14 @@ import numpy, scipy.stats
 # and should return a boolean array, the length of the "rows" table,
 # indicating which time instant should be included in the computation.
 
-def interval_all(flydra_db, sample_id, rows):
+def interval_all(flydra_db, sample_id, rows): #@UnusedVariable
     N = len(rows)
     interval = numpy.ndarray(shape=(N,), dtype='bool')
     interval[:] = True
     return interval
  
 
-def interval_fast(flydra_db, sample_id, rows):
+def interval_fast(flydra_db, sample_id, rows): #@UnusedVariable
     linear_velocity_modulus = rows[:]['linear_velocity_modulus']
     
     score95 = scipy.stats.scoreatpercentile(linear_velocity_modulus, 95)
@@ -33,7 +33,7 @@ def interval_fast(flydra_db, sample_id, rows):
 
 
 def interval_saccades(flydra_db, sample_id, rows):
-    between =  interval_between_saccades(flydra_db, sample_id, rows)
+    between = interval_between_saccades(flydra_db, sample_id, rows)
     fast = interval_fast(flydra_db, sample_id, rows)
     
     return numpy.logical_and(numpy.logical_not(between), fast)

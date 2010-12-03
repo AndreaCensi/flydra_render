@@ -1,6 +1,5 @@
 import numpy, time
             
-
 def slowcov(X, debug_period=None):
     mean = X.mean(axis=0)
     X = X - mean

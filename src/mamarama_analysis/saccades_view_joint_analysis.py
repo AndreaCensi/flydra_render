@@ -7,7 +7,7 @@ from reprep import Report
 from compmake import comp, compmake_console, set_namespace, \
                      batch_command, progress, parse_job_list
 
-from flydra_db import FlydraDB
+from flydra_db import FlydraDB, safe_flydra_db_open
 
 # XXX: put this into reprep?
 from saccade_analysis.analysis201009.master_plot_gui import create_gui_new
@@ -16,8 +16,7 @@ from . import logger
 from .covariance import Expectation
 
 
-from .saccades_view_joint_analysis_data import safe_flydra_db_open, \
-                                              saccades_iterate_image
+from .saccades_view_joint_analysis_data import saccades_iterate_image
 from .saccades_view_joint_analysis_lasvegas import las_vegas_report, \
                                                    bet_on_flies
 from .saccades_view_joint_analysis_reputils import add_scaled, add_posneg
@@ -196,10 +195,10 @@ def main():
                 exp_id = '%s_%s_%s' % (image.id, group.id, saccades_set.id)
                 
                 results = comp(bet_on_flies, options.db, samples, table, saccades_set,
-                               job_id='lasvegas-'+ exp_id + '-bet')
+                               job_id='lasvegas-' + exp_id + '-bet')
                 page_id = exp_id
                 comp(las_vegas_report, os.path.join(outdir, 'lasvegas'), page_id, results,
-                              job_id='lasvegas-'+exp_id + '-report')
+                              job_id='lasvegas-' + exp_id + '-report')
             
             
     db.close()
@@ -480,7 +479,7 @@ def compute_saccade_stats(flydra_db_directory, samples, image, conditions):
         group_mean = Expectation()
         group_min = None
         group_max = None
-        iter =  saccades_iterate_image('computing mean', 
+        iter = saccades_iterate_image('computing mean',
                                        db, samples, image, conditions)
         for sample, sample_saccades, values in iter: #@UnusedVariable 
             sample_mean = numpy.mean(values, axis=0)
@@ -500,7 +499,7 @@ def compute_saccade_stats(flydra_db_directory, samples, image, conditions):
     
         group_var = Expectation() 
         progress('Computing stats', (1, 2), 'Second pass')
-        iter = saccades_iterate_image('computing var', 
+        iter = saccades_iterate_image('computing var',
                                       db, samples, image, conditions)
         for sample, sample_saccades, values in iter: #@UnusedVariable
             err = values - group_mean

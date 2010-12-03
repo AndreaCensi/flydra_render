@@ -62,7 +62,7 @@ signal_op_specs = [
 image_specs = [
         ('luminance', 'Raw luminance'),
         ('luminance_w', 'Raw luminance (only posts)'),
-        ('contrast', 'Contrast'),        
+        ('contrast', 'Contrast'),
         ('contrast_w', 'Contrast (only posts)'),
         ('hcontrast', 'Hallucinated Contrast'),
         ('hcontrast_w', 'Hallucinated Contrast (only posts)'),
@@ -237,7 +237,7 @@ def main():
     
     compmake_console()
     
-def normalize_diff(a,b):
+def normalize_diff(a, b):
     diff = a - b
     
     pos = numpy.nonzero(a > 0)
@@ -264,15 +264,15 @@ def compare(real_delayed, hall_delayed, outdir, page_id):
     real_a = real['action_image_correlation']
     hall_a = hall['action_image_correlation'] 
     
-    real_ac = real['covariance'][0,1:]
-    hall_ac = hall['covariance'][0,1:]
+    real_ac = real['covariance'][0, 1:]
+    hall_ac = hall['covariance'][0, 1:]
     
     diff = real_a - hall_a
     diffc = real_ac - hall_ac
     
     # find where it differs significantly
-    diffn =normalize_diff(real_a, hall_a)
-    diffcn =normalize_diff(real_ac, hall_ac)
+    diffn = normalize_diff(real_a, hall_a)
+    diffcn = normalize_diff(real_ac, hall_ac)
     
     add_posneg(r, 'real', real_a)
     add_posneg(r, 'hall', hall_a)     
@@ -301,7 +301,7 @@ def compare(real_delayed, hall_delayed, outdir, page_id):
 #    with r.data_pylab('covariance') as pylab:
 #        pylab.plot(numpy.diagonal(real['covariance'], 'b.')
 
-    f= r.figure(shape=(3,2))
+    f = r.figure(shape=(3, 2))
     f.sub('real', caption='Real (corr)')
     f.sub('hall', caption='Hallucination (corr) ')
     
@@ -320,7 +320,7 @@ def compare(real_delayed, hall_delayed, outdir, page_id):
     f.sub('correlations')
     f.sub('covariances')
     
-    filename = os.path.join(outdir, page_id+'.html')
+    filename = os.path.join(outdir, page_id + '.html')
     resources = os.path.join(outdir, 'images')
     print "Writing to %s" % filename
     r.to_html(filename, resources)
@@ -377,7 +377,7 @@ def compute_signal_correlation_unique(
     actions_ex = Expectation()
     
     # first compute mean
-    iter =  enumerate_data(db, samples, interval_function, 
+    iter = enumerate_data(db, samples, interval_function,
                            image, signal, signal_component,
                            signal_op, 'first pass')
         

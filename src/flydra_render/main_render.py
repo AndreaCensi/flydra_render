@@ -1,7 +1,7 @@
 import numpy
 from optparse import OptionParser
 
-from rfsee.rfsee_client import ClientTCP, ClientProcess
+from rfsee import ClientTCP, ClientProcess
 
 from flydra_db import FlydraDB
 from flydra_db.progress import progress_bar

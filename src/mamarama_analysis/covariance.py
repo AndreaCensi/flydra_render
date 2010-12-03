@@ -23,7 +23,7 @@ class Expectation:
         if  self.value is None:
             self.value = val
         else:
-            self.value = weighted_average(self.value, self.num_samples, 
+            self.value = weighted_average(self.value, self.num_samples,
                                           val, weight) 
         self.num_samples += weight
         

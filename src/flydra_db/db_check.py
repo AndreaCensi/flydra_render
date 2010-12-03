@@ -38,13 +38,13 @@ def main():
         else:
             rows = None
 
-        tables =  db.list_tables(sample)
+        tables = db.list_tables(sample)
         print " -- tables: %r" % tables
         for table in tables:
             versions = db.list_versions_for_table(sample, table)
             for version in versions:
                 t = db.get_table(sample, table, version=version)
-                print ' - %s (%s): %d' % (table,version, len(t))
+                print ' - %s (%s): %d' % (table, version, len(t))
                 
                 if options.extensive and rows and (len(t) == len(rows)):
                     # check frame is ok

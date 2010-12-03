@@ -1,11 +1,10 @@
 #! /usr/bin/env python
 import cairo
 from math import pi, sin, atan2, acos
-
-import random
 import numpy
 
 import fsee.eye_geometry.switcher as switcher
+
 from flydra_render.render_saccades import rotz
 
 def sphere2surface(s, num_eye):
@@ -102,7 +101,7 @@ def quick_draw_to_file(values, width, height, filename):
  
 if __name__ == '__main__': 
     if True:
-        values = map(lambda p: random.random(), xrange(1398))
+        values = numpy.random.rand(1398)
         filename = "fsee_cairo_test.png"
         print "Writing to %s" % filename
         width, height = 640, 240
@@ -111,7 +110,7 @@ if __name__ == '__main__':
                            filename=filename)
     else:
         for i in xrange(2000):
-            values = map(lambda p: random.random(), xrange(1398))
+            values = numpy.random.rand(1398)
             filename = 'snp_movie%03d.png' % i
             quick_draw_to_file(values=values, width=600, height=300, filename=filename)
             print i

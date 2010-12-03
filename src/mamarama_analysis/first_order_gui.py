@@ -309,7 +309,7 @@ footer = """
 """
 
 
-def write_select(f, name, choices, onchange=""):
+def write_select(f, name, choices):
     '''Writes the <select> element to f. choices is a tuple of (value, desc).''' 
     f.write('<select id="%s" name="%s">\n' % (name, name))
     for i, choice in enumerate(choices):

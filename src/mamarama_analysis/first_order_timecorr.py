@@ -10,7 +10,7 @@ def create_report_delayed(exp_id, delayed, description):
     r = Report(exp_id)
     r.text('description', description)
     
-    f = r.figure(shape=(3,3))
+    f = r.figure(cols=3)
     
     # max and sum of correlation for each delay
     #corr_max = []
@@ -30,10 +30,10 @@ def create_report_delayed(exp_id, delayed, description):
         
         caption = 'delay: %d (max: %.3f, sum: %f)' % (delay, numpy.abs(a).max(),
                                                       numpy.abs(a).sum())
-        f.sub(id, caption = caption)
+        f.sub(id, caption=caption)
     
     
-    timestamp2ms = lambda x: x * (1.0/60) * 1000
+    timestamp2ms = lambda x: x * (1.0 / 60) * 1000
     
     peak = numpy.argmax(corr_mean)
     peak_ms = timestamp2ms(delays[peak])
@@ -45,16 +45,16 @@ def create_report_delayed(exp_id, delayed, description):
         
         a = pylab.axis()
         
-        pylab.plot([0,0],[a[2], a[3]],'k-')
+        pylab.plot([0, 0], [a[2], a[3]], 'k-')
         
-        y = a[2] + (a[3]-a[2])*0.1
+        y = a[2] + (a[3] - a[2]) * 0.1
         pylab.text(+5, y, 'causal', horizontalalignment='left')
         pylab.text(-5, y, 'non causal', horizontalalignment='right')
         
-        pylab.plot([peak_ms, peak_ms],[a[2], max(corr_mean)   ],'b--')
+        pylab.plot([peak_ms, peak_ms], [a[2], max(corr_mean)   ], 'b--')
         
-        y = a[2] + (a[3]-a[2])*0.2
-        pylab.text(peak_ms+10, y, '%d ms' % peak_ms, horizontalalignment='left' )
+        y = a[2] + (a[3] - a[2]) * 0.2
+        pylab.text(peak_ms + 10, y, '%d ms' % peak_ms, horizontalalignment='left')
     
     f = r.figure('stats')
     f.sub('mean')

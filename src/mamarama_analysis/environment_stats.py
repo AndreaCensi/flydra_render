@@ -50,18 +50,18 @@ def create_report(data, image, outdir):
     
     xcorr = data['results']
     lags = data['lags']
-    T = lags * (1.0/60) * 1000
+    T = lags * (1.0 / 60) * 1000
     
-    mean_xcorr = numpy.mean(xcorr,axis=0)
-    min_xcorr = numpy.min(xcorr,axis=0)
-    max_xcorr = numpy.max(xcorr,axis=0)
+    mean_xcorr = numpy.mean(xcorr, axis=0)
+    min_xcorr = numpy.min(xcorr, axis=0)
+    max_xcorr = numpy.max(xcorr, axis=0)
     
     with r.data_pylab('some') as pylab:
         
-        for i in range(0,1000,50):
-            pylab.plot(T, xcorr[i,:], 'x-', label='%d' % i)
+        for i in range(0, 1000, 50):
+            pylab.plot(T, xcorr[i, :], 'x-', label='%d' % i)
     
-        pylab.axis([T[0],T[-1],-0.5,1])
+        pylab.axis([T[0], T[-1], -0.5, 1])
         pylab.xlabel('delay (ms)')
         pylab.ylabel('autocorrelation')
         pylab.legend()
@@ -69,9 +69,9 @@ def create_report(data, image, outdir):
     with r.data_pylab('mean_xcorr') as pylab:
         pylab.plot(T, mean_xcorr, 'x-')
         
-        pylab.plot([T[0],T[-1]],[0,0],'k-')
-        pylab.plot([0,0],[-0.5, 1],'k-')
-        pylab.axis([T[0],T[-1],-0.5,1.1])
+        pylab.plot([T[0], T[-1]], [0, 0], 'k-')
+        pylab.plot([0, 0], [-0.5, 1], 'k-')
+        pylab.axis([T[0], T[-1], -0.5, 1.1])
         
         pylab.xlabel('delay (ms)')
         pylab.ylabel('autocorrelation')
@@ -82,9 +82,9 @@ def create_report(data, image, outdir):
         pylab.plot(T, min_xcorr, 'bx-', label='min')
         pylab.plot(T, max_xcorr, 'rx-', label='max')
         
-        pylab.plot([T[0],T[-1]],[0,0],'k-')
-        pylab.plot([0,0],[-0.5, 1],'k-')
-        pylab.axis([T[0],T[-1],-0.5,1.1])
+        pylab.plot([T[0], T[-1]], [0, 0], 'k-')
+        pylab.plot([0, 0], [-0.5, 1], 'k-')
+        pylab.axis([T[0], T[-1], -0.5, 1.1])
         
         pylab.xlabel('delay (ms)')
         pylab.ylabel('autocorrelation')
@@ -107,12 +107,12 @@ def create_report(data, image, outdir):
          
 def compute_environment_autocorrelation(db, samples, image, maxlag=50):
     nsensors = 1398
-    results = numpy.ndarray(shape=(nsensors, 2*maxlag+1))
+    results = numpy.ndarray(shape=(nsensors, 2 * maxlag + 1))
     
     db = FlydraDB(db, create=False)
     
     block_size = 50
-    num_blocks = int(numpy.ceil(nsensors *1.0 / block_size))
+    num_blocks = int(numpy.ceil(nsensors * 1.0 / block_size))
     for b in range(num_blocks):
         start = block_size * b
         stop = min(start + block_size, nsensors)
@@ -125,18 +125,18 @@ def compute_environment_autocorrelation(db, samples, image, maxlag=50):
             progress('getting data', (k, len(samples)), sample)
             table = db.get_table(sample, image)
         
-            chunk = (table[:]['value'][:,start:stop]).copy()
+            chunk = (table[:]['value'][:, start:stop]).copy()
             for j, i in enumerate(range(start, stop)): 
-                data[i].append(chunk[:,j])
+                data[i].append(chunk[:, j])
             
             db.release_table(table)
             
         for j, i in enumerate(range(start, stop)):
-            progress('Computing correlation', (j, stop-start) )
+            progress('Computing correlation', (j, stop - start))
             x = numpy.concatenate(data[i])
             corr, lags = xcorr(x, maxlag=maxlag)
-            assert(len(lags) == 2*maxlag+1)
-            results[i,:] = corr
+            assert(len(lags) == 2 * maxlag + 1)
+            results[i, :] = corr
         
     db.close()
     

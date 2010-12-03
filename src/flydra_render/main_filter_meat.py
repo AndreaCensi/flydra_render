@@ -1,7 +1,7 @@
 import numpy, scipy.signal
 from numpy.testing.utils import assert_almost_equal
 
-# TODO: remove
+# XXX: remove dep
 from geometric_saccade_detector.math_utils import normalize_pi
 
 from .structures import additional_fields
@@ -53,7 +53,7 @@ def filter_rows(rows, options):
     
     minimum_linear_velocity = 0.02
     
-    dt = 1/60.0
+    dt = 1 / 60.0
     extra['time'] = (rows['frame'] - rows['frame'][0]) * dt
     
     
@@ -90,7 +90,7 @@ def filter_rows(rows, options):
         linear_velocity_world[i] = numpy.array([xvel[i], yvel[i], zvel[i]])
         linear_acceleration_world[i] = numpy.array([xacc[i], yacc[i], zacc[i]])
         linear_velocity_modulus[i] = numpy.linalg.norm(linear_velocity_world[i]) 
-        linear_acceleration_modulus[i]= numpy.linalg.norm(linear_acceleration_world[i])
+        linear_acceleration_modulus[i] = numpy.linalg.norm(linear_acceleration_world[i])
 
 
         if attitude_algo == 'ROLL0PITCH0':
@@ -147,7 +147,7 @@ def filter_rows(rows, options):
 #    for i in range(len(v)):
 #        extra['reduced_angular_velocity'][i] = normalize_pi(v[i]) / dt
 #    
-    extra['reduced_angular_velocity'] =  compute_derivative(reduced_angular_orientation, 
+    extra['reduced_angular_velocity'] = compute_derivative(reduced_angular_orientation,
                                                             extra['time'])
 
     # todo: make it smarter
@@ -180,8 +180,8 @@ def straighten_up_theta(theta):
     theta2 = numpy.ndarray(shape=theta.shape, dtype=theta.dtype)
     theta2[0] = theta[0]
     for i in range(1, len(theta)):
-        diff = normalize_pi(theta[i]-theta[i-1])
-        theta2[i] = theta2[i-1] + diff
+        diff = normalize_pi(theta[i] - theta[i - 1])
+        theta2[i] = theta2[i - 1] + diff
     return theta2
         
         

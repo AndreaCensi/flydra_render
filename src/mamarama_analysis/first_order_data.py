@@ -1,4 +1,4 @@
-import numpy,scipy.stats
+import numpy, scipy.stats
 
 from compmake import progress
 
@@ -6,7 +6,7 @@ from flydra_db import FlydraDB
 
 from . import logger
 
-def get_all_data_for_signal(db, samples, interval_function, 
+def get_all_data_for_signal(db, samples, interval_function,
                             signal, signal_component):
     
     db = FlydraDB(db, False)
@@ -54,7 +54,7 @@ def extract_signal(rows, signal, signal_component):
     return actions
     
     
-def enumerate_data(db, samples, interval_function, image, 
+def enumerate_data(db, samples, interval_function, image,
                    signal, signal_component,
                        signal_op, what='enumerate_data'):
     for k, id in enumerate(samples):
@@ -84,7 +84,7 @@ def enumerate_data(db, samples, interval_function, image,
         
         if numpy.logical_not(interval).all():
             logger.warning('Sample %s with interval function "%s" '
-                           'gives empty subset; skipping. ' %  
+                           'gives empty subset; skipping. ' % 
                            (id, interval_function.__name__))
             db.release_table(rows_table)
             continue
@@ -128,7 +128,7 @@ def cut_tails(x, percent=0.1):
         
     '''
     lower = scipy.stats.scoreatpercentile(x, percent)
-    upper = scipy.stats.scoreatpercentile(x, 100-percent)
+    upper = scipy.stats.scoreatpercentile(x, 100 - percent)
     
     remove_upper = x > upper
     remove_lower = x < lower
@@ -137,7 +137,7 @@ def cut_tails(x, percent=0.1):
     x[remove_lower] = lower
     
     remove = numpy.logical_or(remove_upper, remove_lower)
-    percentage_removed = (remove*1.0).mean() * 100
+    percentage_removed = (remove * 1.0).mean() * 100
     
     return x, percentage_removed
 

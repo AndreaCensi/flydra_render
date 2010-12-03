@@ -8,11 +8,15 @@ from . import logger
 from .main_render import render
 
 
-StimulusStats = namedtuple('StimulusStats', 'stimulus stimulus_xml probability total_number total_length')
+StimulusStats = namedtuple('StimulusStats',
+                'stimulus stimulus_xml probability total_number total_length')
 
 def get_db_stimulus_stats(db, include_nopost=False):
     """
-        Returns a list of tuple (stimulus, stimulus_xml, probability, number of logs, total length)
+        Returns a list of tuple 
+        
+            (stimulus, stimulus_xml, probability, number of logs, total length)
+          
         describing the distribution of stimuli, excluding nopost
     
         db
@@ -52,7 +56,7 @@ def get_db_stimulus_stats(db, include_nopost=False):
     for stimulus in stimulus2xml:
         probability = stimulus2count[stimulus] * 1.0 / n
         yield StimulusStats(stimulus=stimulus, stimulus_xml=stimulus2xml[stimulus],
-                        probability=probability, total_number= stimulus2count[stimulus],
+                        probability=probability, total_number=stimulus2count[stimulus],
                         total_length=stimulus2length[stimulus])
 
 def get_sample_for_distribution(pd, n):
@@ -99,7 +103,10 @@ def get_stimulus_to_use(db, n):
         print "stimulus %s  %.3f" % (s.stimulus, s.probability)
   
     # get probability distribution
-    pd = map(lambda x: s.probability, stats)
+    # FIXME: XXX: TODO: !!! there was a bug here
+    # pd = map(lambda x: s.probability, stats)
+    # this is correct:
+    pd = map(lambda x: x.probability, stats)
     
     stimulus_for_sample_index = list(get_sample_for_distribution(pd, n))
    
@@ -140,8 +147,8 @@ def main():
         raise Exception('Cannot find samples to hallucinate about.')
         
     print "Summary, including nopost."
-    for s in sorted( get_db_stimulus_stats(db, include_nopost=True), 
-                       key=(lambda x: -x.total_length) ):
+    for s in sorted(get_db_stimulus_stats(db, include_nopost=True),
+                       key=(lambda x:-x.total_length)):
         print "stimulus: {s.stimulus:>10}  samples: {s.total_number:>5}  "\
               " total length: {len:>5} minutes".format(s=s, len=s.total_length / (60 * 60))
         
@@ -180,7 +187,6 @@ def main():
                 continue
         
         rows = db.get_rows(sample_id)
-        
          
         results = render(rows, stimulus_xml, host=options.host,
                          compute_mu=options.compute_mu, white=options.white)

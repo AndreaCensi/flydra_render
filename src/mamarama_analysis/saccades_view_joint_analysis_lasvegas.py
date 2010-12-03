@@ -3,9 +3,9 @@ from scipy.stats.morestats import binom_test
 
 from compmake  import progress
 from reprep import Report
+from flydra_db import safe_flydra_db_open
 
-from .saccades_view_joint_analysis_data import safe_flydra_db_open, \
-    saccades_iterate_image
+from .saccades_view_joint_analysis_data import  saccades_iterate_image
 from .saccades_view_joint_analysis_reputils import add_posneg
 from .covariance import Expectation
 
@@ -43,13 +43,13 @@ def bet_on_flies(flydra_db_directory, samples, image, saccades_set):
         }
         
         for name, f in others.items():
-            filename = os.path.expandvars(os.path.join(dir,f))
-            kernel = cPickle.load(open(filename,'rb'))
+            filename = os.path.expandvars(os.path.join(dir, f))
+            kernel = cPickle.load(open(filename, 'rb'))
             #mask_deg = create_matched_filter(75, [-60, 60],True)
-            mask_deg = create_matched_filter(75, [-90, 90],True)
+            mask_deg = create_matched_filter(75, [-90, 90], True)
             kernel = kernel * numpy.abs(mask_deg)
             
-            kernels['common_%s'%name] = kernel
+            kernels['common_%s' % name] = kernel
             
     
         
@@ -69,11 +69,11 @@ def bet_on_flies(flydra_db_directory, samples, image, saccades_set):
                 
                 for i in range(len(image_values)): 
                     
-                    response_i =  (image_values[i, :] * kernel).sum()
+                    response_i = (image_values[i, :] * kernel).sum()
                     response.append(response_i)
                     
-                    overlap_i =   (image_values[i, :] * 
-                                    numpy.abs(kernel) ).sum()
+                    overlap_i = (image_values[i, :] * 
+                                    numpy.abs(kernel)).sum()
                     overlap.append(overlap_i)
         
             signs = numpy.array(signs)
@@ -99,7 +99,7 @@ def las_vegas_report(outdir, page_id, results):
     
     r = Report('lasvegas_' + page_id)    
     f = r.figure('summary', cols=4, caption='Response to various filters')
-    f_overlap = r.figure('summary-overlap', cols=4, 
+    f_overlap = r.figure('summary-overlap', cols=4,
                          caption='Response area (overlap) of various filters')
     
     kernels = sorted(results.keys())
@@ -191,13 +191,13 @@ def las_vegas_report(outdir, page_id, results):
         use_eps = eps
         total = len(sign)
         given = numpy.abs(response) > use_eps
-        num_given = len( numpy.nonzero(given)[0] )
-        correct = numpy.logical_or( 
-                numpy.logical_and( response > use_eps, sign == +1 ),
-                numpy.logical_and( response <- use_eps, sign == -1 )
+        num_given = len(numpy.nonzero(given)[0])
+        correct = numpy.logical_or(
+                numpy.logical_and(response > use_eps, sign == +1),
+                numpy.logical_and(response < -use_eps, sign == -1)
         )
         
-        num_correct = len( numpy.nonzero(correct)[0] )
+        num_correct = len(numpy.nonzero(correct)[0])
         
         perc_given = ratio2perc(num_given, total)
         perc_not_given = ratio2perc(len(sign) - num_given, len(sign))
@@ -208,21 +208,21 @@ def las_vegas_report(outdir, page_id, results):
         
         signif = 0.01
         expected = \
-            scipy.stats.binom.ppf([signif/2, 1-signif/2], num_given, 0.5) / num_given
+            scipy.stats.binom.ppf([signif / 2, 1 - signif / 2], num_given, 0.5) / num_given
         #cdf = scipy.stats.binom.cdf(perc_correct_given, num_given, 0.5)
-        pvalue = binom_test(num_correct,  num_given, 0.5)
+        pvalue = binom_test(num_correct, num_given, 0.5)
         
-        cols = ['no response', 'with response', 
-                'correct (%given)', 'p-value',  'bounds under H0']
+        cols = ['no response', 'with response',
+                'correct (%given)', 'p-value', 'bounds under H0']
         table = [
             [ perc_not_given, perc_given,
                perc_correct_given,
               "%.4f" % pvalue,
-              "[%.1f, %.1f]" % (100*expected[0], 100 * expected[1]) ],
+              "[%.1f, %.1f]" % (100 * expected[0], 100 * expected[1]) ],
               
         ]
         
-        n.table('performance2', data=table,   cols=cols)
+        n.table('performance2', data=table, cols=cols)
        
         
         add_posneg(n, 'kernel', matched_filter)

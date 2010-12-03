@@ -1,4 +1,3 @@
-
 version = '0.1'
 
 import logging

@@ -1,5 +1,7 @@
 from rfsee.rfsee_client import ClientProcess
-from rfsee.demo.example_stimxml import example_stim_xml
+from .example_stimxml import example_stim_xml
+
+# XXX: remove dep
 from procgraph_flydra.values2retina import plot_luminance
 
 from reprep import Report
@@ -16,22 +18,22 @@ def main():
     
     
     r = Report('am-I-crazy-test')
-    f = r.figure('varying theta', shape=(3,3))
-    f2 = r.figure('varying x',shape=(3,3))
-    f3 = r.figure('varying y',shape=(3,3))
+    f = r.figure('varying theta', shape=(3, 3))
+    f2 = r.figure('varying x', shape=(3, 3))
+    f3 = r.figure('varying y', shape=(3, 3))
     
     desc = lambda position, theta: 'At x: %.2f, y: %.2f, z: %.2f, theta: %d deg' % \
-              (position[0],position[1],position[2], numpy.degrees(theta))
-    idm = lambda position, theta, t: "%s-x:%.2f,y:%.2f,z:%.2f,th:%.3f" % (t, position[0],position[1],position[2],theta)
+              (position[0], position[1], position[2], numpy.degrees(theta))
+    idm = lambda position, theta, t: "%s-x:%.2f,y:%.2f,z:%.2f,th:%.3f" % (t, position[0], position[1], position[2], theta)
         
-    for theta in numpy.linspace(0, 2* numpy.pi, 16):
-        position = [0.5,0.5,0.5]
+    for theta in numpy.linspace(0, 2 * numpy.pi, 16):
+        position = [0.5, 0.5, 0.5]
         attitude = rotz(theta)
         
-        res = cp.render(position, attitude, 
+        res = cp.render(position, attitude,
                         linear_velocity_body, angular_velocity_body)
         lum = res['luminance']
-        id  = idm(position, theta, 'theta')
+        id = idm(position, theta, 'theta')
         r.data_rgb(id, plot_luminance(lum))
         f.sub(id, desc(position, theta)) 
               
@@ -39,9 +41,9 @@ def main():
         position = [x, 0, 0.1]
         theta = 0
         
-        res = cp.render(position, attitude, 
+        res = cp.render(position, attitude,
                         linear_velocity_body, angular_velocity_body)
-        id  = idm(position, theta, 'x')
+        id = idm(position, theta, 'x')
         r.data_rgb(id, plot_luminance(res['luminance']))
         f2.sub(id, desc(position, theta))
     
@@ -49,9 +51,9 @@ def main():
         position = [0, y, 0.1]
         theta = 0
         
-        res = cp.render(position, attitude, 
+        res = cp.render(position, attitude,
                         linear_velocity_body, angular_velocity_body)
-        id  = idm(position, theta, 'y')
+        id = idm(position, theta, 'y')
         r.data_rgb(id, plot_luminance(res['luminance']))
         f3.sub(id, desc(position, theta))
     

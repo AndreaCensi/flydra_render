@@ -1,5 +1,6 @@
 import sys
-from rfsee.rfsee_client import ClientTCP
+
+from rfsee import ClientTCP
 
 def main():
     # host = '131.215.42.189' # Tokyo's IP
