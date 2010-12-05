@@ -6,7 +6,7 @@ class FlydraImage(Generator):
         a particular sample. '''
     Block.alias('flydra_db_image')
         
-    Block.config('db', 'Database directory')
+    Block.config('db', 'FlydraDB database directory')
     Block.config('sample', 'Sample ID -- such as "DATA20080611_191809".')
     Block.config('image', 'Which retinal image to display.')
     
@@ -19,8 +19,8 @@ class FlydraImage(Generator):
         if not self.db.has_sample(self.config.sample):
             raise ValueError('Sample "%s" not found.' % self.config.sample)
         if not self.db.has_table(self.config.sample, self.config.image):
-            raise ValueError('Table "%s" not found for sample %s.' %\
-                    (self.config.image,self.config.sample))
+            raise ValueError('Table "%s" not found for sample %s.' % \
+                    (self.config.image, self.config.sample))
 
         self.data = self.db.get_table(self.config.sample, self.config.image)
         

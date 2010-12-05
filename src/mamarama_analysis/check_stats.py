@@ -41,11 +41,6 @@ def main():
             s = scipy.stats.scoreatpercentile(v, p)
             print ' - %2d%%   %.3f m/s' % (p, s)
         
-
-        
-        
-        
         db.release_table(rows)
-
 
 

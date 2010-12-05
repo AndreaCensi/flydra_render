@@ -3,7 +3,7 @@ from numpy import array
 from StringIO import StringIO
 
 from procgraph  import Block
-from procgraph_mpl import pylab2rgb 
+from procgraph_mpl import pylab2rgb, pylab
 
 from flydra_db import FlydraDB
 
@@ -57,9 +57,6 @@ class ArenaDisplayTop(LookupInfo, Block):
             
     def update(self):        
         position = array(self.input.position)
-        import matplotlib
-        matplotlib.use('agg', warn=False)
-        from matplotlib import pylab
         
         f = pylab.figure(frameon=False,
                         figsize=(self.config.width / 100.0,
@@ -137,12 +134,7 @@ class ArenaDisplaySide(LookupInfo, Block):
         
         width = self.config.width
         height = h / (2 * R) * width
-        
-        
-        import matplotlib
-        matplotlib.use('agg', warn=False)
-        from matplotlib import pylab
-        
+                
         f = pylab.figure(frameon=False,
                         figsize=(width / 100.0,
                                  height / 100.0)) 
@@ -198,11 +190,7 @@ class ArenaDisplayTopZoom(LookupInfo, Block):
         
     def update(self):        
         position = array(self.input.position)
-        
-        import matplotlib
-        matplotlib.use('agg', warn=False)
-        from matplotlib import pylab
-        
+                
         f = pylab.figure(frameon=False,
                         figsize=(self.config.width / 100.0,
                                  self.config.width / 100.0))
@@ -277,12 +265,7 @@ class ArenaDisplaySideZoom(LookupInfo, Block):
         width = self.config.width
         ratio = h / (2 * R)
         height = ratio * width
-        
-        
-        import matplotlib
-        matplotlib.use('agg', warn=False)
-        from matplotlib import pylab
-        
+                
         f = pylab.figure(frameon=False,
                         figsize=(width / 100.0,
                                  height / 100.0))
