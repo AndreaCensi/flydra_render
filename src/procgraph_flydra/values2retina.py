@@ -3,15 +3,16 @@ import numpy
 from procgraph import register_simple_block
 
 # XXX: to procgraph_images
-from procgraph.components.images.copied_from_reprep import posneg, scale
-from procgraph.components.images.blend import blend
+from procgraph_images.copied_from_reprep import posneg, scale
+from procgraph_images.blend import blend
 
 # TODO: make this configurable
-import .optics_640x240 as optics #@UnresolvedImport
-import .optics_reflines_640x240 as optics_reflines #@UnresolvedImport
 
-pixelmap = numpy.array(optics.pixelmap)    
-reflines = numpy.array(optics_reflines.reflines)
+# We try to hide this from pydev
+optics1 = __import__('procgraph_flydra.optics_640x240', fromlist=['dummy'])
+pixelmap = optics1.pixelmap
+optics2 = __import__('procgraph_flydra.optics_reflines_640x240', fromlist=['dummy'])
+reflines = optics2.reflines
 
 
 def values2retina(values, background=numpy.NaN):    
