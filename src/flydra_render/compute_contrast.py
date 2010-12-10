@@ -29,10 +29,8 @@ def main():
    
     parser.add_option("--source", default='luminance', help="Source table")
     parser.add_option("--target", default='contrast', help="Destination table")
-
     
     (options, args) = parser.parse_args()
-
 
     kernel = get_contrast_kernel(sigma_deg=options.sigma, eyes_interact=False)
     kernel = kernel.astype('float32').copy('C')
@@ -45,7 +43,6 @@ def main():
         do_samples = db.list_samples()
         do_samples = filter(lambda x: db.has_table(x, options.source),
                             do_samples)
-        
         
     if not do_samples:
         raise Exception('No samples with table "%s" found. ' % options.source)

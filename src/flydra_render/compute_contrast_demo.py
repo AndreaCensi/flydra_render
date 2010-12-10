@@ -33,8 +33,6 @@ def main():
     linear_velocity_body = [0, 0, 0]
     angular_velocity_body = [0, 0, 0]
     
-    
-
     #from flydra_render.contrast import  intrinsic_contrast
     from fast_contrast import  intrinsic_contrast #@UnresolvedImport
 
@@ -63,7 +61,6 @@ def main():
         ex1.update(c1)
         ex2.update(c2)
 
-
     r = Report()
     r.data_rgb('meany', scale(values2retina(meany.get_value())))
     r.data_rgb('mean1', plot_contrast(ex1.get_value()))
@@ -84,14 +81,9 @@ def main():
     f.sub('kernel')
     
     filename = 'compute_contrast_demo.html'
-    print "Writing on %s" % filename
+    print("Writing on %s" % filename)
     r.to_html(filename)
-
-
-
-
 
 if __name__ == '__main__':
     main()
-    
     

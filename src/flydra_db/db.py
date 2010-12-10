@@ -1,11 +1,12 @@
-import os, numpy, tables, sys, warnings
+import os
+import sys
+import warnings
+import numpy
+import tables
 from contextlib import contextmanager
 
-# remove pytables' warning about strange table names
-warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
-
-from .tables_cache import tc_open_for_reading, tc_open_for_writing, \
-    tc_open_for_appending, tc_close
+from .tables_cache import (tc_open_for_reading, tc_open_for_writing,
+                           tc_open_for_appending, tc_close)
 from .log import logger
 from .db_index import db_summary
 from .natsort import natsorted
@@ -17,20 +18,21 @@ class FlydraDBBase:
         
         if create:
             if not os.path.exists(directory):
-                logger.info('FlydraDB does not exist in directory %s; creating.' % \
+                logger.info('FlydraDB does not exist in directory %r; creating.' % 
                             directory)
                 os.makedirs(directory)
         else:
             if not os.path.exists(directory):
-                raise ValueError('Directory %s does not exist.' % directory)
+                raise ValueError('Directory %r does not exist.' % directory)
+            
         if not os.path.isdir(directory):
-            raise ValueError('Given argument "%s" is not a directory' % directory)
+            raise ValueError('Given argument %r is not a directory.' % directory)
     
         
         self.directory = directory
         self.index = db_summary(directory)
             
-        self.samples = self.index.root.flydra.samples
+        self.samples = self.index.root.flydra.samples # XXX: hardcoded
     
         # references count for tables checked out by clients
         # We keep them so we can close them in case of error.
@@ -48,6 +50,7 @@ class FlydraDBBase:
     def add_sample(self, sample):
         assert not self.has_sample(sample)
         sample_group = self.index.createGroup(self.samples, sample)
+        # XXX What was this for?
         self.index.createGroup(sample_group, 'images')
         
     def _get_sample_group(self, sample):
@@ -61,7 +64,7 @@ class FlydraDBBase:
             sys.stderr.write('FlydraDB clients left %s references open:\n' % 
                              len(self.tc_references))
             for ref, num in self.tc_references.items():
-                sys.stderr.write('- %d ref for %s\n' % (num, ref))
+                sys.stderr.write('- %d ref for %r\n' % (num, ref))
                 for i in range(num): #@UnusedVariable
                     tc_close(ref)
             self.tc_references = {}
@@ -69,14 +72,14 @@ class FlydraDBBase:
         self.index = None
 
     def set_table(self, sample, table, data):
-
         sample_group = self._get_sample_group(sample)
-        filename = os.path.join(self.directory, "%s-%s.h5" % (sample, table)) 
+        dir = os.path.join(self.directory, sample)
+        if not os.path.exists(dir):
+            os.makedirs(dir)
+        filename = os.path.join(dir, "%s-%s.h5" % (sample, table)) 
         if os.path.exists(filename):
-            #print "Removing file '%s'." % filename		
             os.unlink(filename)
         
-        # print "Writing on file '%s'." % filename
         f = tc_open_for_writing(filename)
         filters = tables.Filters(complevel=1, complib='zlib',
                                  fletcher32=True)
@@ -86,7 +89,6 @@ class FlydraDBBase:
                                    filters=filters)
                                    
         if table in sample_group:
-            # print "Removing previous link"
             sample_group._f_getChild(table)._f_remove()
         
         # TODO: make sure to use relative names
@@ -111,7 +113,7 @@ class FlydraDBBase:
     
         if not FlydraDBBase.has_table(self, sample, table):
             msg = '%r does not have table %r.' % (sample, table)
-            msg += ' Available: %r' % FlydraDBBase.list_tables(self, sample)
+            msg += ' Available: %r.' % FlydraDBBase.list_tables(self, sample)
             raise ValueError(msg)   
         ref = self._get_sample_group(sample)._f_getChild(table)
         # dereference locally, so we keep a reference count
@@ -128,7 +130,7 @@ class FlydraDBBase:
         elif mode == 'r+':
             external = tc_open_for_appending(filename)
         else:
-            raise ValueError('Invalid mode "%s".' % mode)
+            raise ValueError('Invalid mode %r.' % mode)
         
         table = external.getNode(target)
     
@@ -178,8 +180,8 @@ class FlydraDBBase:
  
     not_specified = 'not-specified'
     def get_attr(self, sample, key, default=not_specified):
-        if not self.has_attr(sample, key) and \
-            default != FlydraDBBase.not_specified:
+        if (not self.has_attr(sample, key) and 
+            default != FlydraDBBase.not_specified):
             return default
         
         with self._get_attrs(sample, 'r') as attrs:
@@ -273,17 +275,19 @@ class FlydraDBExtra(FlydraDBBase):
     def set_table(self, sample, table, data, version=None): 
         ''' Wraps original to add a version argument. '''
         rtable = FlydraDBExtra.components2name(table, version)
-        return FlydraDBBase.set_table(self, sample=sample, table=rtable, data=data)
+        return FlydraDBBase.set_table(self, sample=sample,
+                                      table=rtable, data=data)
     
     def get_table(self, sample, table, version=None, mode='r'):
         ''' Wraps original to add a version argument. '''
         assert mode in ['r', 'r+']
         if not self.has_table(sample, table, version):
-            msg = 'Sample %r does not have version %r of table %r.' % \
-                (sample, version, table)
+            msg = ('Sample %r does not have version %r of table %r.' % 
+                   (sample, version, table))
             raise ValueError(msg)
         rtable = FlydraDBExtra.components2name(table, version)
-        return FlydraDBBase.get_table(self, sample=sample, table=rtable, mode=mode)
+        return FlydraDBBase.get_table(self, sample=sample,
+                                      table=rtable, mode=mode)
             
     def has_table(self, sample, table, version=None):
         ''' Wraps original to add a version argument. '''
@@ -385,4 +389,10 @@ def safe_flydra_db_open(flydra_db_directory, create=False):
         yield db
     finally:
         db.close()
+        
+        
+# remove pytables' warning about strange table names
+warnings.filterwarnings('ignore', category=tables.NaturalNameWarning)
+
+
         

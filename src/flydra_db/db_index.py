@@ -1,10 +1,15 @@
-import shutil, fnmatch, os, tempfile
+''' Utilities for indexing the database and linking HDF files. '''
 
-from .tables_cache import tc_open_for_writing, tc_open_for_reading, \
-    tc_open_for_appending, tc_close
+import shutil
+import fnmatch
+import os
+import tempfile
+
+from .tables_cache import (tc_open_for_writing, tc_open_for_reading,
+                           tc_open_for_appending, tc_close)
 from .progress import progress_bar
 from .log import logger
-from .constants import FLYDRA_ROOT
+from .constants import FLYDRA_ROOT, INDEX_FILENAME, TMP_INDICES_DIR
 
 
 def db_summary(directory):
@@ -14,10 +19,10 @@ def db_summary(directory):
     
     '''
     
-    summary_file = os.path.join(directory, 'index.h5')
+    summary_file = os.path.join(directory, INDEX_FILENAME)
 
     # directory for private indices    
-    temp_dir = os.path.join(directory, 'indices')
+    temp_dir = os.path.join(directory, TMP_INDICES_DIR)
     if not os.path.exists(temp_dir):
         os.makedirs(temp_dir)
         
@@ -30,12 +35,12 @@ def db_summary(directory):
     if not os.path.exists(summary_file) or \
         os.path.getmtime(directory) > os.path.getmtime(summary_file):
     
-        logger.info('Summary file %s out of date or not existing; recreating.' % \
+        logger.info('Summary file %r out of date or not existing; recreating.' % \
                     summary_file)    
         
-        logger.info('Looking for h5 files...')
+        logger.info('Looking for .h5 files...')
         files = locate_roots('*.h5', directory)
-        logger.info('Found %s h5 files.' % len(files))
+        logger.info('Found %d .h5 files.' % len(files))
                 
         summary = tc_open_for_writing(my_summary_file)
         
@@ -44,15 +49,14 @@ def db_summary(directory):
             for i, file in enumerate(files):
                 pb.update(i)
                 # do not consider the index itself
-                if os.path.basename(file).startswith('index'):
+                if os.path.basename(file) == INDEX_FILENAME:
                     continue
                 
-                # print "Trying to open %s" % file
                 f = tc_open_for_reading(file)
         
                 if not FLYDRA_ROOT in f.root:
-                    print 'Ignoring file %s: no data belonging to Flydra DB' % \
-                        os.path.basename(file)
+                    logger.info('Ignoring file %r: no data belonging to Flydra '
+                                'DB.' % os.path.basename(file))
                     tc_close(f)
                     continue
                 
@@ -64,8 +68,10 @@ def db_summary(directory):
                         
         # make sure we have the skeleton
         # even though there's no data
-        if not 'flydra' in summary.root:
+        if not FLYDRA_ROOT in summary.root:
             summary.createGroup('/', 'flydra')
+            
+        # FIXME: here it hardcoded
         if not 'samples' in summary.root.flydra:
             summary.createGroup('/flydra', 'samples')
             
@@ -103,14 +109,14 @@ def link_everything(src, dst, dst_directory):
                                        target, warn16incompat=False)
 
 def locate_roots(pattern, where):
-    "where: list of files or directories where to look for pattern"
-    if not(type(where) == list):
-        where = [where];
+    ''' where: list of files or directories where to look for pattern '''
+    if not isinstance(where, list):
+        where = [where]
 
     all_files = []
     for w in where:
-        if not(os.path.exists(w)):
-            raise ValueError, "Path %s does not exist" % w
+        if not os.path.exists(w):
+            raise ValueError("Path %r does not exist." % w)
         if os.path.isfile(w):
             all_files.append(w)
         elif os.path.isdir(w):
@@ -120,8 +126,8 @@ def locate_roots(pattern, where):
 
 
 def locate(pattern, root):
-    '''Locate all files matching supplied filename pattern in and below
-    supplied root directory.'''
+    ''' Locate all files matching supplied filename pattern in and below
+        supplied root directory. '''
     for path, dirs, files in os.walk(os.path.abspath(root)): #@UnusedVariable
         for filename in fnmatch.filter(files, pattern):
             yield os.path.join(path, filename)

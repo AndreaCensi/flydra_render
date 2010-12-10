@@ -1,6 +1,6 @@
 from optparse import OptionParser
 
-from flydra_db import FlydraDB
+from .db import FlydraDB
 
 
 def main():

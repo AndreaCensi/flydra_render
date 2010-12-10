@@ -96,7 +96,6 @@ def render(rows, stimulus_xml, host=None, compute_mu=False,
     cp.config_stimulus_xml(stimulus_xml)    
     cp.config_compute_mu(compute_mu)
 
-
     num_frames = len(rows)
     dtype = [('time', 'float64'),
              ('obj_id', 'int'),

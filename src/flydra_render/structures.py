@@ -2,7 +2,6 @@
 # fields that are added to Flydra's rows
 
 additional_fields = [
-                     
      ('time', 'float64'),
      
      ('position', ('float64', 3)),
@@ -23,7 +22,6 @@ additional_fields = [
      ('reduced_angular_velocity', ('float64')),
      ('reduced_angular_acceleration', ('float64')),
      
-     
+     # TODO: remove from debugging
      ('zvel_debug', ('float64')),
-     
 ]

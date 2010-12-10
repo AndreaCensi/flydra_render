@@ -1,10 +1,10 @@
 import numpy
 
-from procgraph import register_simple_block
+from procgraph import simple_block
 
 # XXX: to procgraph_images
-from procgraph_images.copied_from_reprep import posneg, scale
-from procgraph_images.blend import blend
+from procgraph_images import posneg, scale, blend
+
 
 # TODO: make this configurable
 
@@ -14,7 +14,7 @@ pixelmap = optics1.pixelmap
 optics2 = __import__('procgraph_flydra.optics_reflines_640x240', fromlist=['dummy'])
 reflines = optics2.reflines
 
-
+@simple_block
 def values2retina(values, background=numpy.NaN):    
     n = len(values)
     valuesp = numpy.ndarray(shape=(n + 1,))
@@ -28,7 +28,7 @@ def values2retina(values, background=numpy.NaN):
 def add_reflines(rgb):
     return blend(rgb, reflines)
 
-register_simple_block(values2retina)
+
 
 
 def plot_luminance(values):
