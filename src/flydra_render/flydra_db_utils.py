@@ -17,7 +17,6 @@ def get_good_smoothed_tracks(filename, obj_ids,
     frames_per_second = 60.0
     dt = 1 / frames_per_second
 
-
     ca = core_analysis.get_global_CachingAnalyzer()  
         
     #warned = False
@@ -55,8 +54,6 @@ def get_good_smoothed_tracks(filename, obj_ids,
                     if not (frows['timestamp'][i] < frows['timestamp'][i + 1]):
                         print("fishy behavior at index %d" % i)
                         
-                
-
             # return raw data if smoothing is not requested
             if not use_smoothing:
                 yield obj_id, frows
@@ -129,10 +126,10 @@ def get_good_smoothed_tracks(filename, obj_ids,
             continue 
         
     ca.close()
+    
 
-
-
-def get_good_files(where, pattern="*.kh5", fanout_template="fanout.xml", verbose=False, confirm_problems=False):
+def get_good_files(where, pattern="*.kh5", fanout_template="fanout.xml",
+                   verbose=False, confirm_problems=False):
     """ Looks for .kh5 files in the filesystem. 
     
         @where can be either:
@@ -145,16 +142,18 @@ def get_good_files(where, pattern="*.kh5", fanout_template="fanout.xml", verbose
     
     all_files = locate_roots(pattern, where)
     
-    logger.info("Found %d  %s files in locations %s" % (len(all_files), pattern, str(where)))
+    logger.info("Found %d files with pattern %r in locations %r." % 
+                (len(all_files), pattern, str(where)))
     
     good_files = []
 
     for filename in all_files:
-        well_formed, use_obj_ids, stim_xml = consider_stimulus(filename, fanout_name=fanout_template)
+        well_formed, use_obj_ids, stim_xml = \
+            consider_stimulus(filename, fanout_name=fanout_template)
 
         if not(well_formed):
             if confirm_problems:
-                logger.error("File %s not well described; skipping" % filename)
+                logger.error("File %r not well described; skipping" % filename)
                 raw_input("Are you aware of this?")
         else:
             good_files.append((filename, use_obj_ids, stim_xml))
@@ -176,11 +175,13 @@ def  consider_stimulus(h5file, verbose_problems=False, fanout_name="fanout.xml")
         fanout_xml = os.path.join(dir, fanout_name)
         if not(os.path.exists(fanout_xml)):
             if verbose_problems:
-                logger.error("Stim_xml path not found '%s' for file '%s'" % (h5file, fanout_xml))
+                logger.error("Stim_xml path %r not found for file %r." % 
+                             (h5file, fanout_xml))
             return False, None, None
 
         ca = core_analysis.get_global_CachingAnalyzer()
-        (obj_ids, use_obj_ids, is_mat_file, data_file, extra) = ca.initial_file_load(h5file) #@UnusedVariable
+        (obj_ids, use_obj_ids, is_mat_file, #@UnusedVariable
+         data_file, extra) = ca.initial_file_load(h5file) #@UnusedVariable
 
         file_timestamp = timestamp_string_from_filename(h5file)
 
@@ -201,20 +202,20 @@ def  consider_stimulus(h5file, verbose_problems=False, fanout_name="fanout.xml")
 
     except xml_stimulus.WrongXMLTypeError:
         if verbose_problems:
-            logger.error("Caught WrongXMLTypeError for '%s'" % file_timestamp)
+            logger.error("Caught WrongXMLTypeError for %r." % file_timestamp)
         return False, None, None
     except ValueError, ex:
         if verbose_problems:
-            logger.error("Caught ValueError for '%s': %s" % (file_timestamp, ex))
+            logger.error("Caught ValueError for %r: %s" % (file_timestamp, ex))
         return False, None, None 
     except Exception, ex:
-        logger.error('Not predicted exception while reading %s; %s' % (h5file, ex))
+        logger.error('Not predicted exception while reading %r: %s' % (h5file, ex))
         return False, None, None
     
-
 
 def timestamp_string_from_filename(filename):
     """Extracts timestamp string from filename"""
     ### TODO: check validity
     data_file_path, data_file_base = os.path.split(filename) #@UnusedVariable
     return data_file_base[4:19]
+

@@ -1,4 +1,5 @@
-import os, tables
+import tables
+import os
 
 class OpenFile(object):
     def __init__(self, pytables_handle):

@@ -1,15 +1,15 @@
-import os
-import sys
-import warnings
-import numpy
-import tables
 from contextlib import contextmanager
+import warnings
+import tables
+import numpy
+import sys
+import os
 
 from .tables_cache import (tc_open_for_reading, tc_open_for_writing,
                            tc_open_for_appending, tc_close)
-from .log import logger
 from .db_index import db_summary
 from .natsort import natsorted
+from .log import logger
 
 
 class FlydraDBBase:
@@ -72,6 +72,7 @@ class FlydraDBBase:
         self.index = None
 
     def set_table(self, sample, table, data):
+        # TODO: touch the root directory
         sample_group = self._get_sample_group(sample)
         dir = os.path.join(self.directory, sample)
         if not os.path.exists(dir):
@@ -112,7 +113,7 @@ class FlydraDBBase:
         assert mode in FlydraDBBase.valid_modes
     
         if not FlydraDBBase.has_table(self, sample, table):
-            msg = '%r does not have table %r.' % (sample, table)
+            msg = 'Sample %r does not have table %r.' % (sample, table)
             msg += ' Available: %r.' % FlydraDBBase.list_tables(self, sample)
             raise ValueError(msg)   
         ref = self._get_sample_group(sample)._f_getChild(table)
@@ -167,7 +168,6 @@ class FlydraDBBase:
         yield attr_table._v_attrs
         
         self.release_table(attr_table)
-        
         
     def has_attr(self, sample, key):
         with self._get_attrs(sample) as attrs:
@@ -378,7 +378,6 @@ class FlydraDBExtra(FlydraDBBase):
         return natsorted(versions)
 
 FlydraDB = FlydraDBExtra
-
 
 
 @contextmanager

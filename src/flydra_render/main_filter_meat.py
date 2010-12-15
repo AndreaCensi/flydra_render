@@ -39,14 +39,12 @@ def merge_fields(a, b):
     return c
 
 
-
 def normalize(v):
     ''' Normalizes a vector by its length. '''
     return v / numpy.linalg.norm(v)
 
 
-def filter_rows(rows, options):
-    
+def filter_rows(rows, options):    
     attitude_algo = 'ROLL0PITCH0'
     
     extra = numpy.ndarray(dtype=additional_fields, shape=rows.shape)
@@ -55,7 +53,6 @@ def filter_rows(rows, options):
     
     dt = 1 / 60.0
     extra['time'] = (rows['frame'] - rows['frame'][0]) * dt
-    
     
     x = rows['x']
     y = rows['y']
@@ -182,15 +179,4 @@ def straighten_up_theta(theta):
     for i in range(1, len(theta)):
         diff = normalize_pi(theta[i] - theta[i - 1])
         theta2[i] = theta2[i - 1] + diff
-    return theta2
-        
-        
-        
-        
-        
-        
-    
-
-
-        
-
+    return theta2 

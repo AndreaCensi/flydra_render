@@ -16,7 +16,6 @@ except:
 
 
 def main():
-    
     parser = OptionParser()
 
     parser.add_option("--db", default='flydra_db', help="FlydraDB directory")
@@ -70,6 +69,7 @@ def main():
         db.set_table(sample_id, options.target, contrast)
         
         db.release_table(luminance)
+        
     db.close()
 
 def compute_contrast_for_table(luminance, kernel): 
