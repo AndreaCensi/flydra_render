@@ -5,7 +5,7 @@ output rgb 'image with overlaid information'
 config sample 'Flydra sample ID.'
 config title  'Title description.'
 
-import procgraph.components.pil
+import procgraph_pil
 
 |input name=rgb| --> |border| --> |text| --> |output name=rgb|
 

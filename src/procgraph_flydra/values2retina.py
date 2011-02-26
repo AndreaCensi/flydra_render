@@ -28,9 +28,7 @@ def values2retina(values, background=numpy.NaN):
 def add_reflines(rgb):
     return blend(rgb, reflines)
 
-
-
-
+@simple_block
 def plot_luminance(values):
     values = numpy.array(values)
     
@@ -60,17 +58,15 @@ def plot_luminance(values):
     
     return rgb
 
-register_simple_block(plot_luminance)
     
-    
+@simple_block
 def plot_nearness(values):
     distance = 1.0 / values
     im = values2retina(distance, background=numpy.NaN)
     return scale(im, min_color=[0, 0, 0], max_color=[0, 1, 0], nan_color=[0.5, 0.5, 0.5])
 
-register_simple_block(plot_nearness)
 
-
+@simple_block
 def plot_contrast(values):
     #print 'contrast', min(values), max(values)
     # im = values2retina(values, background=numpy.NaN)
@@ -78,9 +74,8 @@ def plot_contrast(values):
     im = values2retina(values, background=numpy.NaN)
     return scale(im, min_color=[0, 0, 0], max_color=[0, 1, 1], nan_color=[0.5, 0.5, 0.5])
 
-register_simple_block(plot_contrast)
 
-
+@simple_block
 def plot_rv(values):
     vx = values[ :, 1]
     #vy = values[1, :]
@@ -88,6 +83,4 @@ def plot_rv(values):
     image = values2retina(vx, background=numpy.NaN)
     
     return posneg(image)
-
-register_simple_block(plot_rv)
 

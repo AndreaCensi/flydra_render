@@ -4,7 +4,7 @@ config title
 input rgb 
 output out "Image with border and label"
 
-import procgraph.components.pil
+import procgraph_pil
 
 |input name=rgb| --> |border| --> |text| --> |output name=out|
 
