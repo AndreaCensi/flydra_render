@@ -7,7 +7,7 @@ setup(name='flydra_render',
       install_requires=['flydra', 'progressbar',
        # for rfsee
        'python-cjson'],
-      packages=['rfsee', 'flydra_osg','flydra_render', 'procgraph_flydra', 
+      packages=['flydra_osg','flydra_render', 'procgraph_flydra', 
                 'mamarama_analysis'],
       entry_points={ 'console_scripts': console_scripts},
 )
