@@ -82,5 +82,5 @@ def plot_rv(values):
     
     image = values2retina(vx, background=numpy.NaN)
     
-    return posneg(image)
+    return posneg(image)        
 
