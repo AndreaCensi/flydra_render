@@ -5,6 +5,8 @@ from compmake import progress
 # XXX: remove dependency
 from saccade_analysis.tammero.tammero_analysis import add_position_information
 
+ 
+    
 def saccades_iterate_image(name, db, samples, image, conditions):
     ''' Iterates over the values of an image corresponding to
         the saccades that respect a given condition.

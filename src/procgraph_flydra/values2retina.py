@@ -11,7 +11,8 @@ from procgraph_images import posneg, scale, blend
 # We try to hide this from pydev
 optics1 = __import__('procgraph_flydra.optics_640x240', fromlist=['dummy'])
 pixelmap = optics1.pixelmap
-optics2 = __import__('procgraph_flydra.optics_reflines_640x240', fromlist=['dummy'])
+optics2 = __import__('procgraph_flydra.optics_reflines_640x240', 
+                     fromlist=['dummy'])
 reflines = optics2.reflines
 
 @simple_block
@@ -51,7 +52,8 @@ def plot_luminance(values):
     g[n] = 128 
     b[n] = 128
     
-    rgb = numpy.ndarray(shape=(pixelmap.shape[0], pixelmap.shape[1], 3), dtype='uint8')
+    rgb = numpy.ndarray(shape=(pixelmap.shape[0], pixelmap.shape[1], 3), 
+                        dtype='uint8')
     rgb[:, :, 0] = r[pixelmap]
     rgb[:, :, 1] = g[pixelmap]
     rgb[:, :, 2] = b[pixelmap]
@@ -63,7 +65,8 @@ def plot_luminance(values):
 def plot_nearness(values):
     distance = 1.0 / values
     im = values2retina(distance, background=numpy.NaN)
-    return scale(im, min_color=[0, 0, 0], max_color=[0, 1, 0], nan_color=[0.5, 0.5, 0.5])
+    return scale(im, min_color=[0, 0, 0], max_color=[0, 1, 0], 
+                 nan_color=[0.5, 0.5, 0.5])
 
 
 @simple_block
@@ -72,7 +75,8 @@ def plot_contrast(values):
     # im = values2retina(values, background=numpy.NaN)
     #print values[0:100].tolist()
     im = values2retina(values, background=numpy.NaN)
-    return scale(im, min_color=[0, 0, 0], max_color=[0, 1, 1], nan_color=[0.5, 0.5, 0.5])
+    return scale(im, min_color=[0, 0, 0], max_color=[0, 1, 1], 
+                 nan_color=[0.5, 0.5, 0.5])
 
 
 @simple_block

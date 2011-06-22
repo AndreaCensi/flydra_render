@@ -2,7 +2,11 @@ from optparse import OptionParser
 import sys, os, itertools, numpy  
 
 from compmake import comp, compmake_console, set_namespace, comp_prefix
-from procgraph.components.statistics.cov2corr import cov2corr # XXX: remove dep
+from mamarama_analysis.first_order_data import cov2corr
+
+#from procgraph.components.statistics.cov2corr import cov2corr # XXX: remove dep
+
+cov2corr
 from reprep import Report, posneg, scale
 
 from flydra_db import FlydraDB

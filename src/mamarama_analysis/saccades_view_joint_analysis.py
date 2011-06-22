@@ -8,9 +8,7 @@ from compmake import comp, compmake_console, set_namespace, \
                      batch_command, progress, parse_job_list
 
 from flydra_db import FlydraDB, safe_flydra_db_open
-
-# XXX: put this into reprep?
-from saccade_analysis.analysis201009.master_plot_gui import create_gui_new
+  
  
 from . import logger
 from .covariance import Expectation
@@ -20,6 +18,7 @@ from .saccades_view_joint_analysis_data import saccades_iterate_image
 from .saccades_view_joint_analysis_lasvegas import las_vegas_report, \
                                                    bet_on_flies
 from .saccades_view_joint_analysis_reputils import add_scaled, add_posneg
+from mamarama_analysis.report_tools import create_gui_new
 
 
 def choose_saccades_right(saccades):
