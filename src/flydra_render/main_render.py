@@ -48,22 +48,22 @@ def main():
         print 'Sample %s/%s: %s' % (i + 1, len(do_samples), sample_id)
         
         if not db.has_sample(sample_id):
-            raise Exception('Sample %s not found in db.' % sample_id)
+            raise Exception('Sample %r not found in db.' % sample_id)
         
         if not db.has_rows(sample_id):
-            raise Exception('Sample %s does not have rows table.' % sample_id)
+            raise Exception('Sample %r does not have rows table.' % sample_id)
        
         if not db.has_attr(sample_id, 'stimulus_xml'):
-            raise Exception('Sample %s does not have the "stimulus_xml" attribute.' % \
-                            sample_id)
+            raise Exception('Sample %r does not have the "stimulus_xml" attribute.'
+                            %sample_id)
        
         if options.compute_mu:
             if db.has_table(sample_id, 'nearness') and not options.nocache:
-                logger.info('Already computed nearness for %s; skipping' % sample_id)
+                logger.info('Already computed nearness for %r; skipping' % sample_id)
                 continue
         else:
             if db.has_table(sample_id, target) and not options.nocache:
-                logger.info('Already computed luminance for %s; skipping' % sample_id)
+                logger.info('Already computed luminance for %r; skipping' % sample_id)
                 continue
         
         rows = db.get_rows(sample_id)
