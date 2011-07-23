@@ -9,6 +9,7 @@ from flydra_db import FlydraDB
 from . import logger
 from .main_filter_meat import filter_rows
 from .flydra_db_utils import get_good_smoothed_tracks
+from StringIO import StringIO
 
 
 def main():
@@ -40,6 +41,10 @@ def main():
     
     (options, args) = parser.parse_args()
     
+    table_name = 'rows' # TODO: use constant
+    table_version = "smooth" if options.smoothing else "kf"
+    
+    
     if not args:
         logger.error('No files or directories specified.')
         sys.exit(-1)
@@ -67,15 +72,16 @@ def main():
         stim = os.path.splitext(os.path.basename(stim_fname))[0]
         sample_id = os.path.splitext(os.path.basename(filename))[0]
         
-        logger.info("File %d/%d %s %s %s " % (i, n, str(filename), str(obj_ids), stim_fname))
+            
+        logger.info("File %d/%d %s %s %s " % 
+                    (i, n, str(filename), str(obj_ids), stim_fname))
        
-        if db.has_sample(sample_id) and \
-           db.has_rows(sample_id) and not options.nocache:
-            logger.info('Sample %s already computed; skipping. (use --nocache to ignore)' % \
-                             sample_id)
+        if (db.has_sample(sample_id) 
+            and db.has_table(sample_id, table_name, table_version)
+            and not options.nocache):
+            logger.info('Sample %r already computed; skipping.'
+                        ' (use --nocache to ignore)' % sample_id)
             continue
-        
-        
   
         all_data = [] 
 
@@ -90,25 +96,42 @@ def main():
             all_data.append(filtered)
              
         if not all_data:
-            logger.info('Not enough data found for %s; skipping.' % filename)
+            logger.info('Not enough data found for %r; skipping.' % sample_id)
             continue
 
+  
         if not db.has_sample(sample_id):
             db.add_sample(sample_id)
-
-        rows = numpy.concatenate(all_data)
-        db.set_rows(sample_id, rows)
-    
         db.set_attr(sample_id, 'stim_fname', stim_fname)
         db.set_attr(sample_id, 'stimulus', stim)
-        db.set_attr(sample_id, 'stimulus_xml', open(stim_fname).read())
+        stim_xml = open(stim_fname).read()
+        db.set_attr(sample_id, 'stimulus_xml', stim_xml)
+        
+        geometry = get_posts_info(stim_xml)
+        print(geometry)
+        db.set_attr(sample_id, 'posts', geometry['posts'])
+        if 'arena' in geometry:
+            db.set_attr(sample_id, 'arena', geometry['arena'])
 
 
+        db.add_sample_to_group(sample_id, stim)
+        if stim != 'nopost':
+            db.add_sample_to_group(sample_id, 'posts')
+            
+
+        rows = numpy.concatenate(all_data)
+        db.set_table(sample=sample_id,
+                     table=table_name,
+                     data=rows,
+                     version=table_version)
+    
+        
         db.set_attr(sample_id, 'filter_time', datetime.now().strftime("%Y%m%d_%H%M%S"))
         db.set_attr(sample_id, 'filter_host', platform.node())
         db.set_attr(sample_id, 'filter_user', get_user())
         db.set_attr(sample_id, 'filter_python_version', platform.python_version())
         db.set_attr(sample_id, 'filter_numpy_version', numpy.version.version)
+        
          
     db.close()
     sys.exit(0)
@@ -120,7 +143,27 @@ def get_user():
         return pwd.getpwuid(os.getuid())[0]
     except:
         return '<unknown user>'
+    
+    
+
+def get_posts_info(xml):
+    from flydra.a2 import xml_stimulus #@UnresolvedImport
+    stimulus_xml = StringIO(xml)
+    stim_xml = xml_stimulus.xml_stimulus_from_filename(stimulus_xml)
+    root = stim_xml.get_root()
+    
+    results = {'posts':[]}
+    for child in root:
+        if child.tag == 'cylindrical_post':
+            info = stim_xml._get_info_for_cylindrical_post(child)
+            results['posts'].append(info)
+        elif child.tag == 'cylindrical_arena':
+            results['arena'] = stim_xml._get_info_for_cylindrical_arena(child)
+
+    return results
+          
 
 
 if __name__ == '__main__':
     main()
+    

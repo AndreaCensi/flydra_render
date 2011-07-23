@@ -15,7 +15,7 @@ def compute_derivative(x, timestamp):
     d[-1] = d[-2]
     return d        
 
-def merge_fields(a, b):
+def merge_fields(a, b, ignore=set()):
     ''' Merge the fields of the two numpy arrays a,b. 
         They must have the same shape. '''
     if a.shape != b.shape:    
@@ -25,23 +25,30 @@ def merge_fields(a, b):
     new_dtype = []
     
     for f in a.dtype.fields:
-        new_dtype.append((f, a.dtype[f]))
+        if not f in ignore:
+            new_dtype.append((f, a.dtype[f]))
     for f in b.dtype.fields:
-        new_dtype.append((f, b.dtype[f]))
+        if not f in ignore:
+            new_dtype.append((f, b.dtype[f]))
         
     new_dtype = numpy.dtype(new_dtype)
 
     c = numpy.ndarray(shape=a.shape, dtype=new_dtype)
     for f in a.dtype.fields:
-        c[f] = a[f][:]
+        if not f in ignore:
+            c[f] = a[f][:]
     for f in b.dtype.fields:
-        c[f] = b[f][:]
+        if not f in ignore:
+            c[f] = b[f][:]
     return c
 
 
 def normalize(v):
     ''' Normalizes a vector by its length. '''
-    return v / numpy.linalg.norm(v)
+    n = numpy.linalg.norm(v)
+    if n == 0:
+        raise ValueError('Cannot normalize zero array')
+    return v / n
 
 
 def filter_rows(rows, options):    
@@ -49,7 +56,7 @@ def filter_rows(rows, options):
     
     extra = numpy.ndarray(dtype=additional_fields, shape=rows.shape)
     
-    minimum_linear_velocity = 0.02
+    minimum_linear_velocity_planar = 0.02
     
     dt = 1 / 60.0
     extra['time'] = (rows['frame'] - rows['frame'][0]) * dt
@@ -88,11 +95,11 @@ def filter_rows(rows, options):
         linear_acceleration_world[i] = numpy.array([xacc[i], yacc[i], zacc[i]])
         linear_velocity_modulus[i] = numpy.linalg.norm(linear_velocity_world[i]) 
         linear_acceleration_modulus[i] = numpy.linalg.norm(linear_acceleration_world[i])
-
+        linear_velocity_planar_modulus = numpy.linalg.norm(linear_velocity_world[i][0:2])
 
         if attitude_algo == 'ROLL0PITCH0':
             # assume roll = 0, pitch = 0
-            if linear_velocity_modulus[i] > minimum_linear_velocity:
+            if linear_velocity_planar_modulus > minimum_linear_velocity_planar:
                 x_axis = normalize(numpy.array(
                     [linear_velocity_world[i][0],
                      linear_velocity_world[i][1],
@@ -166,8 +173,9 @@ def filter_rows(rows, options):
 #        annotations['linear_acceleration_modulus_smooth'] / \
 #        annotations['linear_velocity_modulus_smooth']
     
- 
-    return merge_fields(rows, extra)
+    ignore = set(['dir_x', 'dir_y', 'dir_z', 'rawdir_x', 'rawdir_y', 'rawdir_z'])
+
+    return merge_fields(rows, extra, ignore=ignore)
 
 
 def straighten_up_theta(theta):

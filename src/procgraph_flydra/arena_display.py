@@ -1,34 +1,12 @@
 import numpy
-from numpy import array
-from StringIO import StringIO
+from numpy import array 
 
 from procgraph  import Block
 from procgraph_mpl import pylab2rgb, pylab
 
 from flydra_db import FlydraDB
-
-def get_posts_info(xml):
-    from flydra.a2 import xml_stimulus #@UnresolvedImport
-    stimulus_xml = StringIO(xml)
-    stim_xml = xml_stimulus.xml_stimulus_from_filename(stimulus_xml)
-    root = stim_xml.get_root()
-    
-    results = {'posts':[]}
-    for child in root:
-        if child.tag == 'cylindrical_post':
-            info = stim_xml._get_info_for_cylindrical_post(child)
-            results['posts'].append(info)
-        elif child.tag == 'cylindrical_arena':
-            results['arena'] = stim_xml._get_info_for_cylindrical_arena(child)
-
-    return results
-          
-#
-#ss
-#mamarama_radius = 1.0
-#mamarama_center = [0.15, 0.48]
-#mamarama_height = 0.8
-
+from flydra_render.main_filter import get_posts_info
+ 
 class LookupInfo:
     
     def init(self):
