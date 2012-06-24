@@ -1,19 +1,20 @@
-import  os, numpy, sys, platform, pwd 
-from optparse import OptionParser
-from datetime import datetime
-
-# TODO: remove 
-from geometric_saccade_detector.flydra_db_utils import get_good_files
-from flydra_db import FlydraDB
-
 from . import logger
-from .main_filter_meat import filter_rows
+from ..utils import (LenientOptionParser, UserError, get_user,
+    wrap_script_entry_point)
 from .flydra_db_utils import get_good_smoothed_tracks
+from .main_filter_meat import filter_rows
 from StringIO import StringIO
+from datetime import datetime
+from flydra_db import FlydraDB
+from geometric_saccade_detector.flydra_db_utils import get_good_files
+import os
+import numpy
+import sys
+import platform
 
 
-def main():
-    parser = OptionParser()
+def main_filter(args):
+    parser = LenientOptionParser()
     
     parser.add_option("--db", default='flydra_db', help="FlydraDB directory")
 
@@ -39,15 +40,14 @@ def main():
                       default=False, action="store_true")
 
     
-    (options, args) = parser.parse_args()
+    (options, args) = parser.parse_args(args)
     
     table_name = 'rows' # TODO: use constant
     table_version = "smooth" if options.smoothing else "kf"
     
     
     if not args:
-        logger.error('No files or directories specified.')
-        sys.exit(-1)
+        raise UserError('No files or directories specified.')
          
     if not os.path.exists(options.db):
         os.makedirs(options.db)
@@ -134,16 +134,8 @@ def main():
         
          
     db.close()
-    sys.exit(0)
-
-
-
-def get_user():    
-    try:
-        return pwd.getpwuid(os.getuid())[0]
-    except:
-        return '<unknown user>'
     
+
     
 
 def get_posts_info(xml):
@@ -164,6 +156,9 @@ def get_posts_info(xml):
           
 
 
+def main():
+    wrap_script_entry_point(main_filter, logger)
+    
 if __name__ == '__main__':
     main()
     
